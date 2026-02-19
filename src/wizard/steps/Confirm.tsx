@@ -9,6 +9,7 @@ export interface WizardData {
   apiKeyEnvVar: string;
   apiKey: string;
   botToken: string;
+  baseUrl?: string;
 }
 
 interface ConfirmProps {
@@ -41,6 +42,7 @@ export function Confirm({ data, onConfirm, onBack }: ConfirmProps) {
       <Text bold>Model:</Text>
       <Text> Provider: {data.provider}</Text>
       <Text> Model: {data.model}</Text>
+      {data.baseUrl && <Text> Base URL: {data.baseUrl}</Text>}
       <Text>
         {" "}API Key: {data.apiKey ? "••••••••" : `(set ${data.apiKeyEnvVar} manually)`}
       </Text>

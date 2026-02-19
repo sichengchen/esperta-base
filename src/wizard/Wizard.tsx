@@ -25,6 +25,7 @@ export function Wizard({ homeDir, onComplete }: WizardProps) {
     apiKeyEnvVar: "ANTHROPIC_API_KEY",
     apiKey: "",
     botToken: "",
+    baseUrl: undefined,
   });
 
   const handleConfirm = useCallback(async () => {
@@ -58,6 +59,7 @@ export function Wizard({ homeDir, onComplete }: WizardProps) {
             apiKeyEnvVar: data.apiKeyEnvVar,
             temperature: 0.7,
             maxTokens: 8192,
+            ...(data.baseUrl ? { baseUrl: data.baseUrl } : {}),
           },
         ],
       };

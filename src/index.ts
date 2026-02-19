@@ -36,8 +36,11 @@ async function launchApp() {
     .filter(Boolean)
     .join("\n");
 
+  // Load encrypted secrets (API keys, bot token) — null if file missing/corrupted
+  const secrets = await config.loadSecrets();
+
   // Initialize model router
-  const router = await ModelRouter.load(config.getModelsPath());
+  const router = await ModelRouter.load(config.getModelsPath(), secrets);
 
   // Initialize agent
   const tools = [...getBuiltinTools(), createRememberTool(memory)];
@@ -47,9 +50,9 @@ async function launchApp() {
     systemPrompt,
   });
 
-  // Start Telegram bot if token is available
+  // Start Telegram bot if token is available (env var takes precedence over secrets)
   const telegramTokenVar = saConfig.runtime.telegramBotTokenEnvVar;
-  const telegramToken = process.env[telegramTokenVar];
+  const telegramToken = process.env[telegramTokenVar] ?? secrets?.botToken;
   if (telegramToken) {
     const telegram = new TelegramTransport({
       botToken: telegramToken,

@@ -189,7 +189,7 @@ describe("ModelRouter", () => {
       const original = process.env.ANTHROPIC_API_KEY;
       delete process.env.ANTHROPIC_API_KEY;
       try {
-        expect(() => router.getStreamOptions()).toThrow("not set");
+        expect(() => router.getStreamOptions()).toThrow("API key not found");
       } finally {
         if (original) process.env.ANTHROPIC_API_KEY = original;
       }

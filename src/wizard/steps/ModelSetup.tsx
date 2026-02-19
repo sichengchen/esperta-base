@@ -103,7 +103,7 @@ export function ModelSetup({ onNext, onBack }: ModelSetupProps) {
       .finally(() => {
         setSubstep("model");
       });
-  }, [substep]); // eslint-disable-line react-hooks/exhaustive-deps
+  }, [substep]); // intentionally only re-runs when substep changes to "fetching"
 
   function completeSetup(chosenModel: string) {
     const finalProvider = isCompat ? "openai" : providerOption.type;

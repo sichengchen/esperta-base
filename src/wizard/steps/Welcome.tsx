@@ -17,8 +17,7 @@ export function Welcome({ onNext }: WelcomeProps) {
       </Text>
       <Text />
       <Text>
-        SA is your personal AI agent assistant — local-first, private, and
-        minimalist.
+        SA (Sasa) is your personal AI agent assistant.
       </Text>
       <Text />
       <Text>This wizard will help you set up:</Text>

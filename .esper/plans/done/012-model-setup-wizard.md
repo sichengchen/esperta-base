@@ -1,12 +1,13 @@
 ---
 id: 12
 title: Model setup wizard — provider picker + model list
-status: active
+status: done
 type: feature
 priority: 1
 phase: phase-1
 branch: feature/phase-1
 created: 2026-02-19
+shipped_at: 2026-02-19
 ---
 # Model setup wizard — provider picker + model list
 

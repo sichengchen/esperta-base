@@ -44,3 +44,4 @@ Deliver a working personal AI agent that can be configured via an onboarding wiz
 - #3 — Core agent runtime: Implement `Agent` class with streaming chat loop and tool dispatch. Files: types.ts, agent.ts, registry.ts, index.ts, agent.test.ts
 - #4 — Built-in tools (Read, Write, Edit, Bash): Implement each tool with validation and error handling. Files: read.ts, write.ts, edit.ts, bash.ts, index.ts, tools.test.ts
 - #6 — Long-term memory system: Define memory structure with `~/.sa/memory/` directory. Files: types.ts, manager.ts, index.ts, remember.ts, memory.test.ts
+- #7 — TUI interface with Ink: Create the main `App` component that orchestrates the TUI. Files: App.tsx, ChatView.tsx, Input.tsx, StatusBar.tsx, ModelPicker.tsx, index.ts

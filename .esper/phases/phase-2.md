@@ -79,3 +79,4 @@ The Agent Skills spec (agentskills.io) is an open standard by Anthropic adopted 
 - #018 — tRPC router & Engine scaffolding: Install tRPC dependencies and create Engine entry point with HTTP + WS server and all procedure stubs. Files: package.json, tsconfig.json, trpc.ts, router.ts, context.ts, server.ts, index.ts, types.ts
 - #019 — Connector interface & session management: Define Connector interface and implement SessionManager with tRPC client factory. Files: connector.ts, types.ts, client.ts, sessions.ts, router.ts, sessions.test.ts
 - #020 — Agent runtime migration to Engine: Move Agent, Router, Memory, Tools into Engine process with per-session agents and tool approval flow. Files: runtime.ts, router.ts, server.ts, index.ts, agent.ts, types.ts
+- #021 — Engine daemon mode: CLI daemon management (start/stop/status/logs/restart) with PID file and discovery URL. Files: cli/index.ts, cli/engine.ts, server.ts, index.ts, package.json

@@ -8,6 +8,7 @@ phase: phase-1
 branch: feature/phase-1
 created: 2026-02-19
 shipped_at: 2026-02-20
+pr: https://github.com/sichengchen/sa/pull/1
 ---
 # Bootstrap Context Files — USER.md, Tools, Safety, Heartbeat
 

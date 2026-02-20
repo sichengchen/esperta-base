@@ -1,5 +1,5 @@
 ---
-id: "017"
+id: 17
 title: Ask user for personalization (USER.md injection) during onboarding
 status: done
 shipped_at: 2026-02-19
@@ -8,8 +8,8 @@ priority: 2
 phase: phase-1
 branch: feature/phase-1
 created: 2026-02-19
+pr: https://github.com/sichengchen/sa/pull/1
 ---
-
 # Ask user for personalization (USER.md injection) during onboarding
 
 ## Context

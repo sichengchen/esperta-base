@@ -76,6 +76,17 @@ export class ConfigManager {
     return join(this.homeDir, "models.json");
   }
 
+  getUserProfilePath(): string {
+    return join(this.homeDir, "USER.md");
+  }
+
+  async loadUserProfile(): Promise<string | null> {
+    const path = this.getUserProfilePath();
+    if (!existsSync(path)) return null;
+    const content = await readFile(path, "utf-8");
+    return content.trim() || null;
+  }
+
   async loadSecrets(): Promise<SecretsFile | null> {
     return _loadSecrets(this.homeDir);
   }

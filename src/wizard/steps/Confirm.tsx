@@ -4,6 +4,10 @@ import { Box, Text, useInput } from "ink";
 export interface WizardData {
   name: string;
   personality: string;
+  userName: string;
+  timezone: string;
+  communicationStyle: string;
+  aboutMe: string;
   provider: string;
   model: string;
   apiKeyEnvVar: string;

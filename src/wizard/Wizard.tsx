@@ -7,10 +7,11 @@ import { Welcome } from "./steps/Welcome.js";
 import { Identity } from "./steps/Identity.js";
 import { ModelSetup, type ModelSetupData } from "./steps/ModelSetup.js";
 import { TelegramSetup } from "./steps/TelegramSetup.js";
+import { UserProfile, type UserProfileData } from "./steps/UserProfile.js";
 import { Confirm, type WizardData } from "./steps/Confirm.js";
 import { saveSecrets } from "../config/secrets.js";
 
-type Step = "welcome" | "identity" | "model" | "telegram" | "confirm" | "done";
+type Step = "welcome" | "identity" | "profile" | "model" | "telegram" | "confirm" | "done";
 
 interface WizardProps {
   homeDir: string;
@@ -26,6 +27,10 @@ export function Wizard({ homeDir, onComplete, existingConfig }: WizardProps) {
       : {
           name: "Sasa",
           personality: "Helpful, concise, and proactive personal assistant",
+          userName: "",
+          timezone: "",
+          communicationStyle: "",
+          aboutMe: "",
           provider: "anthropic",
           model: "claude-sonnet-4-5-20250514",
           apiKeyEnvVar: "ANTHROPIC_API_KEY",
@@ -125,9 +130,29 @@ Fill in what you want ${data.name} to always know about you.
           }
           onNext={({ name, personality }) => {
             setData((d) => ({ ...d, name, personality }));
-            setStep("model");
+            setStep("profile");
           }}
           onBack={() => setStep("welcome")}
+        />
+      );
+    case "profile":
+      return (
+        <UserProfile
+          currentValues={
+            existingConfig
+              ? {
+                  userName: data.userName,
+                  timezone: data.timezone,
+                  communicationStyle: data.communicationStyle,
+                  aboutMe: data.aboutMe,
+                }
+              : undefined
+          }
+          onNext={(profileData: UserProfileData) => {
+            setData((d) => ({ ...d, ...profileData }));
+            setStep("model");
+          }}
+          onBack={() => setStep("identity")}
         />
       );
     case "model":
@@ -148,7 +173,7 @@ Fill in what you want ${data.name} to always know about you.
             setData((d) => ({ ...d, ...modelData }));
             setStep("telegram");
           }}
-          onBack={() => setStep("identity")}
+          onBack={() => setStep("profile")}
         />
       );
     case "telegram":

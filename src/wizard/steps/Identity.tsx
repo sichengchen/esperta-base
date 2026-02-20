@@ -4,9 +4,13 @@ import { Box, Text, useInput } from "ink";
 interface IdentityProps {
   onNext: (data: { name: string; personality: string }) => void;
   onBack: () => void;
+  currentValues?: { name: string; personality: string };
 }
 
-export function Identity({ onNext, onBack }: IdentityProps) {
+export function Identity({ onNext, onBack, currentValues }: IdentityProps) {
+  const [phase, setPhase] = useState<"keep-or-change" | "edit">(
+    currentValues ? "keep-or-change" : "edit"
+  );
   const [field, setField] = useState<"name" | "personality">("name");
   const [name, setName] = useState("Sasa");
   const [personality, setPersonality] = useState(
@@ -14,7 +18,21 @@ export function Identity({ onNext, onBack }: IdentityProps) {
   );
 
   useInput((input, key) => {
+    if (phase === "keep-or-change") {
+      if (key.escape) { onBack(); return; }
+      if (input?.toLowerCase() === "k" && currentValues) {
+        onNext(currentValues);
+        return;
+      }
+      if (input?.toLowerCase() === "c") {
+        setPhase("edit");
+        return;
+      }
+      return;
+    }
+
     if (key.escape) {
+      if (currentValues) { setPhase("keep-or-change"); return; }
       onBack();
       return;
     }
@@ -39,6 +57,26 @@ export function Identity({ onNext, onBack }: IdentityProps) {
       else setPersonality((v) => v + input);
     }
   });
+
+  if (phase === "keep-or-change" && currentValues) {
+    return (
+      <Box flexDirection="column" padding={1}>
+        <Text bold color="cyan">
+          Agent Identity
+        </Text>
+        <Text />
+        <Text>Current configuration:</Text>
+        <Text>  Name: {currentValues.name}</Text>
+        <Text>  Personality: {currentValues.personality}</Text>
+        <Text />
+        <Text>
+          <Text color="yellow" bold>[K]</Text> Keep current{"  "}
+          <Text color="yellow" bold>[C]</Text> Change{"    "}
+          <Text dimColor>Esc to go back</Text>
+        </Text>
+      </Box>
+    );
+  }
 
   return (
     <Box flexDirection="column" padding={1}>

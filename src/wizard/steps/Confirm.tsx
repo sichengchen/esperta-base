@@ -44,6 +44,12 @@ export function Confirm({ data, onConfirm, onBack }: ConfirmProps) {
       <Text> Name: {data.name}</Text>
       <Text> Personality: {data.personality}</Text>
       <Text />
+      <Text bold>Your Profile:</Text>
+      <Text> Name: {data.userName}</Text>
+      <Text> Timezone: {data.timezone || "(not set)"}</Text>
+      <Text> Style: {data.communicationStyle || "(not set)"}</Text>
+      {data.aboutMe && <Text> About: {data.aboutMe}</Text>}
+      <Text />
       <Text bold>Model:</Text>
       <Text> Provider: {data.provider}</Text>
       <Text> Model: {data.model}</Text>

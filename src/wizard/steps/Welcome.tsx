@@ -22,8 +22,9 @@ export function Welcome({ onNext }: WelcomeProps) {
       <Text />
       <Text>This wizard will help you set up:</Text>
       <Text> 1. Agent identity and personality</Text>
-      <Text> 2. LLM model provider and API key</Text>
-      <Text> 3. Telegram bot (optional)</Text>
+      <Text> 2. Your profile (name, preferences)</Text>
+      <Text> 3. LLM model provider and API key</Text>
+      <Text> 4. Telegram bot (optional)</Text>
       <Text />
       <Text dimColor>Press Enter to begin...</Text>
     </Box>

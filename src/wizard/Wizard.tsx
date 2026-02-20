@@ -14,20 +14,25 @@ type Step = "welcome" | "identity" | "model" | "telegram" | "confirm" | "done";
 interface WizardProps {
   homeDir: string;
   onComplete: () => void;
+  existingConfig?: WizardData;
 }
 
-export function Wizard({ homeDir, onComplete }: WizardProps) {
+export function Wizard({ homeDir, onComplete, existingConfig }: WizardProps) {
   const [step, setStep] = useState<Step>("welcome");
-  const [data, setData] = useState<WizardData>({
-    name: "Sasa",
-    personality: "Helpful, concise, and proactive personal assistant",
-    provider: "anthropic",
-    model: "claude-sonnet-4-5-20250514",
-    apiKeyEnvVar: "ANTHROPIC_API_KEY",
-    apiKey: "",
-    botToken: "",
-    baseUrl: undefined,
-  });
+  const [data, setData] = useState<WizardData>(
+    existingConfig
+      ? { ...existingConfig }
+      : {
+          name: "Sasa",
+          personality: "Helpful, concise, and proactive personal assistant",
+          provider: "anthropic",
+          model: "claude-sonnet-4-5-20250514",
+          apiKeyEnvVar: "ANTHROPIC_API_KEY",
+          apiKey: "",
+          botToken: "",
+          baseUrl: undefined,
+        }
+  );
 
   const handleConfirm = useCallback(async () => {
     try {
@@ -93,6 +98,11 @@ export function Wizard({ homeDir, onComplete }: WizardProps) {
     case "identity":
       return (
         <Identity
+          currentValues={
+            existingConfig
+              ? { name: data.name, personality: data.personality }
+              : undefined
+          }
           onNext={({ name, personality }) => {
             setData((d) => ({ ...d, name, personality }));
             setStep("model");
@@ -103,6 +113,17 @@ export function Wizard({ homeDir, onComplete }: WizardProps) {
     case "model":
       return (
         <ModelSetup
+          currentValues={
+            existingConfig
+              ? {
+                  provider: data.provider,
+                  model: data.model,
+                  apiKeyEnvVar: data.apiKeyEnvVar,
+                  apiKey: data.apiKey,
+                  baseUrl: data.baseUrl,
+                }
+              : undefined
+          }
           onNext={(modelData: ModelSetupData) => {
             setData((d) => ({ ...d, ...modelData }));
             setStep("telegram");
@@ -113,6 +134,11 @@ export function Wizard({ homeDir, onComplete }: WizardProps) {
     case "telegram":
       return (
         <TelegramSetup
+          currentValues={
+            existingConfig
+              ? { botToken: data.botToken, pairingCode: data.pairingCode }
+              : undefined
+          }
           onNext={({ botToken, pairingCode }) => {
             setData((d) => ({ ...d, botToken, pairingCode }));
             setStep("confirm");

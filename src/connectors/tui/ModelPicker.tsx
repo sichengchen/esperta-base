@@ -49,7 +49,7 @@ export function ModelPicker({
       {models.map((m, i) => (
         <Box key={m.name}>
           <Text color={i === selectedIndex ? "cyan" : undefined}>
-            {i === selectedIndex ? "❯ " : "  "}
+            {i === selectedIndex ? "● " : "○ "}
             {m.name} ({m.provider} → {m.model})
             {m.name === activeModel ? " (active)" : ""}
           </Text>

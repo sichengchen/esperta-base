@@ -59,11 +59,11 @@ export function SkillSetup({ onNext, onBack }: SkillSetupProps) {
       <Text />
       <Box flexDirection="column">
         <Text>
-          {selected === 0 ? <Text color="green">{"❯ "}</Text> : "  "}
+          {selected === 0 ? <Text color="green">{"● "}</Text> : <Text>{"○ "}</Text>}
           Browse skills after setup
         </Text>
         <Text>
-          {selected === 1 ? <Text color="green">{"❯ "}</Text> : "  "}
+          {selected === 1 ? <Text color="green">{"● "}</Text> : <Text>{"○ "}</Text>}
           Skip for now (you can install skills later)
         </Text>
       </Box>

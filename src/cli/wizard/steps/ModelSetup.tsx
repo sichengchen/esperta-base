@@ -288,7 +288,7 @@ export function ModelSetup({ onNext, onBack, currentValues }: ModelSetupProps) {
           {PROVIDER_OPTIONS.map((p, i) => (
             <Box key={p.type}>
               <Text color={i === providerIdx ? "cyan" : undefined} bold={i === providerIdx}>
-                {i === providerIdx ? "❯ " : "  "}
+                {i === providerIdx ? "● " : "○ "}
                 {p.label}
               </Text>
             </Box>
@@ -364,7 +364,7 @@ export function ModelSetup({ onNext, onBack, currentValues }: ModelSetupProps) {
                       color={absIdx === selectedModelIdx ? "cyan" : undefined}
                       bold={absIdx === selectedModelIdx}
                     >
-                      {absIdx === selectedModelIdx ? "❯ " : "  "}
+                      {absIdx === selectedModelIdx ? "● " : "○ "}
                       {m}
                     </Text>
                   </Box>

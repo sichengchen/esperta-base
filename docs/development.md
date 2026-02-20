@@ -21,36 +21,21 @@ All scripts are run with `bun run <script>`.
 
 | Script       | Command                                          | Description                          |
 |--------------|--------------------------------------------------|--------------------------------------|
-| `dev`        | `bun run src/engine/index.ts`                    | Run the Engine in the foreground (for development) |
-| `cli`        | `bun run src/cli/index.ts`                       | Run the SA CLI directly              |
-| `build`      | `bun build src/engine/index.ts --outdir dist --target bun` | Compile to `dist/` for distribution |
+| `dev`        | `bun run src/cli/index.ts`                       | Start Engine (if needed) + open TUI  |
+| `build`      | `bun build src/cli/index.ts --outdir dist --target bun` | Compile to `dist/` for distribution |
 | `test`       | `bun test`                                       | Run all tests                        |
 | `lint`       | `eslint src/`                                    | Lint the source directory            |
 | `typecheck`  | `tsc --noEmit`                                   | Type-check without emitting files    |
 
-## Running the Engine
+## Running SA
 
-For development, run the Engine in the foreground:
-
-```bash
-bun run dev
-```
-
-For production-like usage, use the CLI to manage the Engine as a background daemon:
+`bun run dev` (or `sa` if installed) starts the Engine daemon if it isn't running, then opens the TUI. Configured IM connectors (Telegram, Discord) auto-start with the Engine.
 
 ```bash
-sa engine start     # start daemon
-sa engine status    # check if running
-sa engine logs      # view recent output
-sa engine stop      # graceful shutdown
-```
-
-Then start a connector in a separate terminal:
-
-```bash
-bun run src/connectors/tui/index.ts       # TUI
-bun run src/connectors/telegram/index.ts   # Telegram
-bun run src/connectors/discord/index.ts    # Discord
+bun run dev         # start Engine + TUI
+sa engine status    # check daemon status
+sa engine logs      # view Engine logs
+sa engine stop      # stop the daemon
 ```
 
 ## Tests
@@ -67,13 +52,13 @@ bun test src/config/secrets.test.ts     # run a single file
 ```
 src/
   agent/          # Agent class, conversation loop, tool dispatch
-  cli/            # SA CLI (sa engine start/stop/status/logs/restart)
+  cli/            # SA CLI: default opens TUI, `sa engine` manages daemon
   clawhub/        # ClawHub API client and skill installer
   config/         # ConfigManager, types, defaults, secrets
   connectors/
-    tui/          # TUI Connector (Ink-based, connects to Engine)
-    telegram/     # Telegram Connector (Grammy, connects to Engine)
-    discord/      # Discord Connector (discord.js, connects to Engine)
+    tui/          # TUI (Ink-based, on-demand via `sa`)
+    telegram/     # Telegram connector (Grammy, auto-starts with Engine)
+    discord/      # Discord connector (discord.js, auto-starts with Engine)
   engine/         # Engine daemon: server, runtime, router, auth, sessions, scheduler
   memory/         # MemoryManager, persistence
   router/         # ModelRouter, ModelConfig types

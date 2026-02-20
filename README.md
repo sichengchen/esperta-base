@@ -4,27 +4,27 @@ A personal AI agent assistant for myself.
 
 ## Architecture
 
-SA uses a daemon + connector architecture. The **Engine** runs as a background daemon exposing a tRPC API over HTTP and WebSocket. **Connectors** (TUI, Telegram, Discord) connect to the Engine and relay messages between the user and the agent.
+The **Engine** runs as a background daemon that owns the agent, tools, memory, skills, and scheduler. **Connectors** (Telegram, Discord) are IM frontends that auto-start with the Engine when configured. The **TUI** is the terminal interface, launched on-demand.
 
 ```
-┌──────────┐   ┌──────────┐   ┌──────────┐
-│   TUI    │   │ Telegram │   │ Discord  │
-│Connector │   │Connector │   │Connector │
-└────┬─────┘   └────┬─────┘   └────┬─────┘
-     │              │              │
-     └──────────────┼──────────────┘
-                    │ tRPC (HTTP + WS)
-              ┌─────┴─────┐
-              │  SA Engine │
-              │  (daemon)  │
-              └─────┬─────┘
-                    │
-       ┌────────────┼────────────┐
-       │            │            │
-   ┌───┴───┐  ┌────┴────┐  ┌───┴────┐
-   │ Agent │  │  Skills  │  │ClawHub │
-   │ + LLM │  │ Registry │  │Registry│
-   └───────┘  └─────────┘  └────────┘
+                      ┌──────────┐   ┌──────────┐
+                      │ Telegram │   │ Discord  │
+                      │Connector │   │Connector │
+                      └────┬─────┘   └────┬─────┘
+    ┌──────┐               │              │
+    │ TUI  │───────────────┼──────────────┘
+    └──────┘               │ tRPC (HTTP + WS)
+                     ┌─────┴─────┐
+                     │  SA Engine │
+                     │  (daemon)  │
+                     └─────┬─────┘
+                           │
+              ┌────────────┼────────────┐
+              │            │            │
+          ┌───┴───┐  ┌────┴────┐  ┌───┴────┐
+          │ Agent │  │  Skills  │  │ClawHub │
+          │ + LLM │  │ Registry │  │Registry│
+          └───────┘  └─────────┘  └────────┘
 ```
 
 ## Prerequisites
@@ -40,39 +40,22 @@ git clone <repo-url> sa
 cd sa
 bun install
 cp .env.example .env   # fill in your API keys
+sa                      # starts Engine + opens TUI
 ```
 
 On first run, a setup wizard walks you through identity, model configuration, and optional Telegram/Discord setup. Config is saved to `~/.sa/`.
 
-Start the Engine daemon, then connect with any frontend:
-
-```bash
-# Start the Engine
-sa engine start
-
-# In another terminal — run the TUI connector
-bun run src/connectors/tui/index.ts
-
-# Or start the Telegram connector
-bun run src/connectors/telegram/index.ts
-```
-
-For development, run the Engine in the foreground:
-
-```bash
-bun run dev
-```
+When the Engine starts, it auto-launches any configured IM connectors (Telegram and/or Discord). The TUI opens on-demand when you run `sa`.
 
 ## SA CLI
 
-The `sa` command manages the Engine daemon.
-
 ```
-sa engine start     Start the Engine as a background daemon
-sa engine stop      Stop the running Engine
-sa engine status    Show Engine status
-sa engine logs      Show recent Engine logs
-sa engine restart   Restart the Engine
+sa                      Start the Engine (if needed) and open the TUI
+sa engine start         Start the Engine as a background daemon
+sa engine stop          Stop the running Engine
+sa engine status        Show Engine status
+sa engine logs          Show recent Engine logs
+sa engine restart       Restart the Engine
 ```
 
 ## Skills
@@ -104,6 +87,6 @@ Config lives in `~/.sa/` by default. Override with the `SA_HOME` environment var
   skills/          # installed skills (one directory per skill)
   engine.url       # Engine discovery file (written at startup)
   engine.pid       # Engine PID file
-  engine.token     # Engine auth token (local connectors)
+  engine.token     # Engine auth token
   engine.log       # Engine log output
 ```

@@ -1,14 +1,15 @@
 # Architecture
 
-SA uses a daemon + connector architecture. The **Engine** is a long-running background process that owns the agent, model router, memory, skills, and scheduler. **Connectors** are lightweight frontends (TUI, Telegram, Discord) that connect to the Engine via tRPC and relay user messages.
+The **Engine** is a long-running background daemon that owns the agent, model router, memory, skills, and scheduler. **Connectors** (Telegram, Discord) are IM frontends that auto-start with the Engine when configured. The **TUI** is the terminal interface, launched on-demand via `sa`.
 
 ## High-level overview
 
 ```
-Connectors (TUI / Telegram / Discord)
-    │
-    │  tRPC over HTTP + WebSocket
-    │
+                         Connectors (Telegram / Discord)
+                              │  (auto-start with Engine)
+    TUI (on-demand) ──────────┤
+                              │  tRPC over HTTP + WebSocket
+                              │
 Engine (daemon, port 7420)
     ├── Agent — conversation loop, tool dispatch, streaming events
     ├── ModelRouter — multi-provider LLM routing via pi-ai
@@ -32,15 +33,15 @@ Engine (daemon, port 7420)
 | **memory**       | `src/memory/`               | Persists key/value entries to `~/.sa/memory/`; loads them into the system prompt on startup |
 | **skills**       | `src/skills/`               | Skill loader, registry, and prompt injection (agentskills.io spec) |
 | **clawhub**      | `src/clawhub/`              | ClawHub API client and skill installer |
-| **connectors**   | `src/connectors/`           | TUI, Telegram, and Discord connector implementations |
+| **connectors**   | `src/connectors/`           | IM connectors (Telegram, Discord) — auto-start with Engine; TUI — on-demand |
 | **shared**       | `src/shared/`               | Shared types, tRPC client factory, Connector interface |
-| **cli**          | `src/cli/`                  | `sa` CLI for managing the Engine daemon (start/stop/status/logs/restart) |
+| **cli**          | `src/cli/`                  | `sa` CLI: default opens TUI, `sa engine` manages daemon |
 | **wizard**       | `src/wizard/`               | First-run onboarding wizard (Ink) |
 
 ## Engine startup flow
 
 ```
-sa engine start
+sa engine start  (or: sa → auto-starts Engine if not running)
     │
     └─ spawn: bun run src/engine/index.ts (detached)
          │
@@ -56,20 +57,24 @@ sa engine start
          │    ├─ Scheduler.start() (heartbeat task)
          │    └─ AuthManager.init() (writes engine.token)
          │
-         └─ startServer(runtime)
-              ├─ HTTP server on port 7420 (tRPC + /health)
-              ├─ WebSocket server on port 7421 (tRPC subscriptions)
-              └─ writes engine.url discovery file
+         ├─ startServer(runtime)
+         │    ├─ HTTP server on port 7420 (tRPC + /health)
+         │    ├─ WebSocket server on port 7421 (tRPC subscriptions)
+         │    └─ writes engine.url discovery file
+         │
+         └─ Auto-start connectors
+              ├─ Telegram (if bot token configured)
+              └─ Discord (if bot token configured)
 ```
 
-## Connector flow
+## TUI flow
 
 ```
-Connector (e.g. TUI)
+sa (no args)
     │
+    ├─ ensureEngine() — start daemon if not running
     ├─ Read engine.url + engine.token from ~/.sa/
     ├─ Create tRPC client (HTTP + WS)
-    ├─ auth.pair(masterToken) → session token
     ├─ session.create() → sessionId
     │
     └─ Chat loop:
@@ -134,7 +139,7 @@ AgentEvents streamed back to Connector via tRPC subscription
 
 ## Key design decisions
 
-- **Daemon + Connector split** — the Engine runs independently; connectors are stateless frontends that can be started/stopped/swapped without losing conversation state.
+- **Daemon + frontend split** — the Engine runs independently as a daemon. IM connectors (Telegram, Discord) auto-start with it; the TUI connects on-demand via `sa`.
 - **tRPC for IPC** — typed RPC with subscription support for streaming. HTTP for queries/mutations, WebSocket for real-time event streams.
 - **Token-based auth** — local connectors use the master token file; remote connectors pair via one-time codes. No passwords, no user accounts.
 - **Configuration as files** — `IDENTITY.md`, `config.json`, `models.json`, and `secrets.enc` are the source of truth. No database.

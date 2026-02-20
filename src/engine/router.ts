@@ -234,6 +234,38 @@ export function createAppRouter(runtime: EngineRuntime) {
         return { code: runtime.auth.generatePairingCode() };
       }),
     }),
+
+    /** Cron scheduler */
+    cron: router({
+      /** List all scheduled tasks */
+      list: publicProcedure.query(() => {
+        return runtime.scheduler.list();
+      }),
+
+      /** Add a user-defined scheduled task */
+      add: publicProcedure
+        .input(z.object({ name: z.string(), schedule: z.string(), prompt: z.string() }))
+        .mutation(({ input }) => {
+          runtime.scheduler.register({
+            name: input.name,
+            schedule: input.schedule,
+            prompt: input.prompt,
+            handler: async () => {
+              // User-defined cron tasks send a prompt to the agent
+              // The prompt will be dispatched when the scheduler ticks
+              console.log(`[cron] Running user task "${input.name}": ${input.prompt}`);
+            },
+          });
+          return { added: true, name: input.name };
+        }),
+
+      /** Remove a user-defined scheduled task */
+      remove: publicProcedure
+        .input(z.object({ name: z.string() }))
+        .mutation(({ input }) => {
+          return { removed: runtime.scheduler.unregister(input.name) };
+        }),
+    }),
   });
 }
 

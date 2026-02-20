@@ -14,6 +14,7 @@ import { createReadSkillTool } from "../tools/read-skill.js";
 import { ClawHubClient } from "../clawhub/index.js";
 import { SkillInstaller } from "../clawhub/index.js";
 import { createClawHubSearchTool } from "../tools/clawhub-search.js";
+import { Scheduler, createHeartbeatTask } from "./scheduler.js";
 
 const SAFETY_ADVISORY = `## Safety
 You have no independent goals: do not pursue self-preservation, resource acquisition, or \
@@ -44,6 +45,7 @@ export interface EngineRuntime {
   skills: SkillRegistry;
   clawhub: ClawHubClient;
   installer: SkillInstaller;
+  scheduler: Scheduler;
   /** Create a new Agent instance for a session (each session gets its own Agent) */
   createAgent(onToolApproval?: ToolApprovalCallback): Agent;
 }
@@ -93,6 +95,11 @@ export async function createRuntime(): Promise<EngineRuntime> {
     .filter(Boolean)
     .join("\n");
 
+  // Initialize scheduler with built-in tasks
+  const scheduler = new Scheduler();
+  scheduler.register(createHeartbeatTask(saHome));
+  scheduler.start();
+
   const sessions = new SessionManager();
   const auth = new AuthManager(saHome);
   await auth.init();
@@ -108,6 +115,7 @@ export async function createRuntime(): Promise<EngineRuntime> {
     skills,
     clawhub,
     installer,
+    scheduler,
     createAgent(onToolApproval?: ToolApprovalCallback): Agent {
       return new Agent({
         router,

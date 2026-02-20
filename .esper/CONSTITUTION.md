@@ -33,3 +33,4 @@ SA (nicknamed Sasa) is a personal AI agent assistant with minimalist design. It 
 3. **Configuration as documents** — Markdown and JSON files are the source of truth, not databases
 4. **Single-user simplicity** — no auth, no permissions, no multi-user abstractions
 5. **Composable, not monolithic** — subsystems (router, tools, memory, transports) are loosely coupled and independently testable
+6. **Keep the bundled `sa` skill up to date** — `src/engine/skills/bundled/sa/SKILL.md` documents SA's architecture, commands, and capabilities. Update it as features evolve.

@@ -1,116 +1,203 @@
 import { z } from "zod";
 import { router, publicProcedure } from "./trpc.js";
-import { SessionManager } from "./sessions.js";
-import type { EngineEvent, Session, SkillInfo } from "../shared/types.js";
+import type { EngineRuntime } from "./runtime.js";
+import type { Agent } from "../agent/index.js";
+import type { EngineEvent, SkillInfo } from "../shared/types.js";
 
-/** Singleton session manager — shared across all procedures */
-const sessionManager = new SessionManager();
+/** Per-session agent instances */
+const sessionAgents = new Map<string, Agent>();
 
-/** Export for use in server bootstrap and tests */
-export { sessionManager };
+/** Pending tool approval resolvers: toolCallId -> resolve(boolean) */
+const pendingApprovals = new Map<string, (approved: boolean) => void>();
 
-/** Main tRPC router — all Engine procedures */
-export const appRouter = router({
-  /** Health check */
-  health: router({
-    ping: publicProcedure.query(() => {
-      return { status: "ok" as const, uptime: process.uptime() };
+/** Create the tRPC router bound to a runtime instance */
+export function createAppRouter(runtime: EngineRuntime) {
+  /** Get or create an Agent for a session */
+  function getSessionAgent(sessionId: string): Agent {
+    let agent = sessionAgents.get(sessionId);
+    if (!agent) {
+      agent = runtime.createAgent(async (_toolName, toolCallId, _args) => {
+        return new Promise<boolean>((resolve) => {
+          pendingApprovals.set(toolCallId, resolve);
+          // Auto-reject after 5 minutes if no response
+          setTimeout(() => {
+            if (pendingApprovals.has(toolCallId)) {
+              pendingApprovals.delete(toolCallId);
+              resolve(false);
+            }
+          }, 5 * 60 * 1000);
+        });
+      });
+      sessionAgents.set(sessionId, agent);
+    }
+    return agent;
+  }
+
+  return router({
+    /** Health check */
+    health: router({
+      ping: publicProcedure.query(() => {
+        return {
+          status: "ok" as const,
+          uptime: process.uptime(),
+          sessions: runtime.sessions.listSessions().length,
+          model: runtime.router.getActiveModelName(),
+        };
+      }),
     }),
-  }),
 
-  /** Chat procedures */
-  chat: router({
-    /** Send a user message, returns session ID */
-    send: publicProcedure
-      .input(z.object({ sessionId: z.string(), message: z.string() }))
-      .mutation(async ({ input }): Promise<{ sessionId: string }> => {
-        sessionManager.touchSession(input.sessionId);
-        // Stub — will be wired to Agent in plan #020
-        return { sessionId: input.sessionId };
-      }),
-
-    /** Stream AgentEvents for a session */
-    stream: publicProcedure
-      .input(z.object({ sessionId: z.string() }))
-      .subscription(async function* ({ input }): AsyncGenerator<EngineEvent> {
-        sessionManager.touchSession(input.sessionId);
-        // Stub — will yield events from Agent streaming in plan #020
-        yield { type: "done", stopReason: "stub" };
-      }),
-
-    /** Get conversation history for a session */
-    history: publicProcedure
-      .input(z.object({ sessionId: z.string() }))
-      .query(async ({ input }): Promise<{ sessionId: string; messages: unknown[] }> => {
-        // Stub — will return conversation messages in plan #020
-        return { sessionId: input.sessionId, messages: [] };
-      }),
-  }),
-
-  /** Session management */
-  session: router({
-    /** Create a new session for a Connector */
-    create: publicProcedure
-      .input(
-        z.object({
-          connectorType: z.enum(["tui", "telegram", "discord"]),
-          connectorId: z.string(),
+    /** Chat procedures */
+    chat: router({
+      /** Send a user message and stream back AgentEvents */
+      send: publicProcedure
+        .input(z.object({ sessionId: z.string(), message: z.string() }))
+        .mutation(async ({ input }): Promise<{ sessionId: string }> => {
+          const session = runtime.sessions.getSession(input.sessionId);
+          if (!session) {
+            throw new Error(`Session not found: ${input.sessionId}`);
+          }
+          runtime.sessions.touchSession(input.sessionId);
+          return { sessionId: input.sessionId };
         }),
-      )
-      .mutation(({ input }): Session => {
-        return sessionManager.createSession(input.connectorId, input.connectorType);
-      }),
 
-    /** List active sessions */
-    list: publicProcedure.query((): Session[] => {
-      return sessionManager.listSessions();
-    }),
-  }),
+      /** Stream AgentEvents for a chat turn */
+      stream: publicProcedure
+        .input(z.object({ sessionId: z.string(), message: z.string() }))
+        .subscription(async function* ({ input }): AsyncGenerator<EngineEvent> {
+          const session = runtime.sessions.getSession(input.sessionId);
+          if (!session) {
+            yield { type: "error", message: `Session not found: ${input.sessionId}` };
+            return;
+          }
 
-  /** Tool execution */
-  tool: router({
-    /** Approve or reject a pending tool execution */
-    approve: publicProcedure
-      .input(
-        z.object({
-          toolCallId: z.string(),
-          approved: z.boolean(),
+          runtime.sessions.touchSession(input.sessionId);
+          const agent = getSessionAgent(input.sessionId);
+
+          try {
+            for await (const event of agent.chat(input.message)) {
+              switch (event.type) {
+                case "text_delta":
+                case "thinking_delta":
+                case "done":
+                case "error":
+                  yield event;
+                  break;
+                case "tool_start":
+                  yield { type: "tool_start", name: event.name, id: event.id };
+                  break;
+                case "tool_end":
+                  yield {
+                    type: "tool_end",
+                    name: event.name,
+                    id: event.id,
+                    content: event.result.content,
+                    isError: event.result.isError ?? false,
+                  };
+                  break;
+                case "tool_approval_request":
+                  yield {
+                    type: "tool_approval_request",
+                    name: event.name,
+                    id: event.id,
+                    args: event.args,
+                  };
+                  break;
+              }
+            }
+          } catch (err) {
+            const message = err instanceof Error ? err.message : String(err);
+            yield { type: "error", message };
+          }
         }),
-      )
-      .mutation(async ({ input }): Promise<{ acknowledged: boolean }> => {
-        // Stub — will be implemented in plan #020
-        return { acknowledged: true };
-      }),
-  }),
 
-  /** Skills */
-  skill: router({
-    /** List loaded skills */
-    list: publicProcedure.query(async (): Promise<SkillInfo[]> => {
-      // Stub — will be implemented in plan #026
-      return [];
+      /** Get conversation history for a session */
+      history: publicProcedure
+        .input(z.object({ sessionId: z.string() }))
+        .query(({ input }): { sessionId: string; messages: unknown[] } => {
+          const agent = sessionAgents.get(input.sessionId);
+          const messages = agent ? Array.from(agent.getMessages()) : [];
+          return { sessionId: input.sessionId, messages };
+        }),
     }),
 
-    /** Manually activate a skill */
-    activate: publicProcedure
-      .input(z.object({ name: z.string() }))
-      .mutation(async ({ input }): Promise<{ activated: boolean }> => {
+    /** Session management */
+    session: router({
+      /** Create a new session for a Connector */
+      create: publicProcedure
+        .input(
+          z.object({
+            connectorType: z.enum(["tui", "telegram", "discord"]),
+            connectorId: z.string(),
+          }),
+        )
+        .mutation(({ input }) => {
+          return runtime.sessions.createSession(input.connectorId, input.connectorType);
+        }),
+
+      /** List active sessions */
+      list: publicProcedure.query(() => {
+        return runtime.sessions.listSessions();
+      }),
+
+      /** Destroy a session and its Agent */
+      destroy: publicProcedure
+        .input(z.object({ sessionId: z.string() }))
+        .mutation(({ input }): { destroyed: boolean } => {
+          sessionAgents.delete(input.sessionId);
+          return { destroyed: runtime.sessions.destroySession(input.sessionId) };
+        }),
+    }),
+
+    /** Tool execution */
+    tool: router({
+      /** Approve or reject a pending tool execution */
+      approve: publicProcedure
+        .input(
+          z.object({
+            toolCallId: z.string(),
+            approved: z.boolean(),
+          }),
+        )
+        .mutation(({ input }): { acknowledged: boolean } => {
+          const resolver = pendingApprovals.get(input.toolCallId);
+          if (!resolver) {
+            return { acknowledged: false };
+          }
+          pendingApprovals.delete(input.toolCallId);
+          resolver(input.approved);
+          return { acknowledged: true };
+        }),
+    }),
+
+    /** Skills */
+    skill: router({
+      /** List loaded skills */
+      list: publicProcedure.query(async (): Promise<SkillInfo[]> => {
         // Stub — will be implemented in plan #026
-        return { activated: true };
+        return [];
       }),
-  }),
 
-  /** Authentication */
-  auth: router({
-    /** Device-flow pairing */
-    pair: publicProcedure
-      .input(z.object({ code: z.string() }))
-      .mutation(async ({ input }): Promise<{ paired: boolean; sessionId: string | null }> => {
-        // Stub — will be implemented in plan #022
-        return { paired: false, sessionId: null };
-      }),
-  }),
-});
+      /** Manually activate a skill */
+      activate: publicProcedure
+        .input(z.object({ name: z.string() }))
+        .mutation(async ({ input }): Promise<{ activated: boolean }> => {
+          // Stub — will be implemented in plan #026
+          return { activated: true };
+        }),
+    }),
 
-/** Export the router type for use in Connectors (tRPC client) */
-export type AppRouter = typeof appRouter;
+    /** Authentication */
+    auth: router({
+      /** Device-flow pairing */
+      pair: publicProcedure
+        .input(z.object({ code: z.string() }))
+        .mutation(async ({ input }): Promise<{ paired: boolean; sessionId: string | null }> => {
+          // Stub — will be implemented in plan #022
+          return { paired: false, sessionId: null };
+        }),
+    }),
+  });
+}
+
+/** Type helper for Connectors to import */
+export type AppRouter = ReturnType<typeof createAppRouter>;

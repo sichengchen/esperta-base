@@ -71,6 +71,38 @@ export class Agent {
             if (event.reason === "toolUse" && toolCalls.length > 0) {
               // Execute tools and add results to conversation
               for (const tc of toolCalls) {
+                // If an approval callback is set, request approval first
+                if (this.options.onToolApproval) {
+                  yield {
+                    type: "tool_approval_request",
+                    name: tc.name,
+                    id: tc.id,
+                    args: tc.arguments as Record<string, unknown>,
+                  };
+                  const approved = await this.options.onToolApproval(
+                    tc.name,
+                    tc.id,
+                    tc.arguments as Record<string, unknown>,
+                  );
+                  if (!approved) {
+                    const rejected = {
+                      content: `Tool "${tc.name}" was rejected by the user.`,
+                      isError: true,
+                    };
+                    yield { type: "tool_end", name: tc.name, id: tc.id, result: rejected };
+                    const toolResultMsg: ToolResultMessage = {
+                      role: "toolResult",
+                      toolCallId: tc.id,
+                      toolName: tc.name,
+                      content: [{ type: "text", text: rejected.content }],
+                      isError: true,
+                      timestamp: Date.now(),
+                    };
+                    this.messages.push(toolResultMsg);
+                    continue;
+                  }
+                }
+
                 const result = await this.registry.execute(tc.name, tc.arguments);
                 yield {
                   type: "tool_end",

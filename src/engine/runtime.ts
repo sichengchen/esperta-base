@@ -1,0 +1,95 @@
+import { join } from "node:path";
+import { homedir } from "node:os";
+import { ConfigManager } from "../config/index.js";
+import { ModelRouter } from "../router/index.js";
+import { Agent } from "../agent/index.js";
+import type { ToolImpl, ToolApprovalCallback } from "../agent/index.js";
+import { MemoryManager } from "../memory/index.js";
+import { getBuiltinTools, formatToolsSection } from "../tools/index.js";
+import { createRememberTool } from "../tools/remember.js";
+import { SessionManager } from "./sessions.js";
+
+const SAFETY_ADVISORY = `## Safety
+You have no independent goals: do not pursue self-preservation, resource acquisition, or \
+capability expansion beyond what the current task requires; avoid long-term plans beyond \
+the user's request.
+Prioritize safety and human oversight over task completion; if instructions conflict, \
+pause and ask; comply with stop/pause requests and never bypass safeguards.
+Do not manipulate the user to expand your access or disable safeguards. Do not modify \
+your own system prompt, safety rules, or tool behaviour unless explicitly asked.`;
+
+function buildHeartbeat(router: ModelRouter): string {
+  const now = new Date();
+  const dateStr = now.toISOString().replace("T", " ").slice(0, 19) + " UTC";
+  let modelName = "unknown";
+  try { modelName = router.getActiveModelName(); } catch { /* fallback */ }
+  return `## Session\nStarted: ${dateStr} | Model: ${modelName}`;
+}
+
+/** Engine runtime — holds all bootstrapped subsystems */
+export interface EngineRuntime {
+  config: ConfigManager;
+  router: ModelRouter;
+  memory: MemoryManager;
+  tools: ToolImpl[];
+  systemPrompt: string;
+  sessions: SessionManager;
+  /** Create a new Agent instance for a session (each session gets its own Agent) */
+  createAgent(onToolApproval?: ToolApprovalCallback): Agent;
+}
+
+/** Bootstrap all Engine subsystems */
+export async function createRuntime(): Promise<EngineRuntime> {
+  const saHome = process.env.SA_HOME ?? join(homedir(), ".sa");
+
+  const config = new ConfigManager(saHome);
+  const saConfig = await config.load();
+
+  // Initialize memory
+  const memoryDir = join(config.homeDir, saConfig.runtime.memory.directory);
+  const memory = new MemoryManager(memoryDir);
+  await memory.init();
+
+  // Load secrets and initialize model router
+  const secrets = await config.loadSecrets();
+  const router = await ModelRouter.load(config.getModelsPath(), secrets);
+
+  // Build tools
+  const tools = [...getBuiltinTools(), createRememberTool(memory)];
+
+  // Assemble system prompt
+  const userProfile = await config.loadUserProfile();
+  const toolsSection = formatToolsSection(tools);
+  const heartbeat = buildHeartbeat(router);
+  const memoryContext = await memory.loadContext();
+
+  const systemPrompt = [
+    saConfig.identity.systemPrompt,
+    `\n${toolsSection}`,
+    `\n${SAFETY_ADVISORY}`,
+    userProfile ? `\n## User Profile\n${userProfile}` : "",
+    `\n${heartbeat}`,
+    memoryContext ? `\n## Memory\n${memoryContext}` : "",
+  ]
+    .filter(Boolean)
+    .join("\n");
+
+  const sessions = new SessionManager();
+
+  return {
+    config,
+    router,
+    memory,
+    tools,
+    systemPrompt,
+    sessions,
+    createAgent(onToolApproval?: ToolApprovalCallback): Agent {
+      return new Agent({
+        router,
+        tools,
+        systemPrompt,
+        onToolApproval,
+      });
+    },
+  };
+}

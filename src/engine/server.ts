@@ -1,8 +1,9 @@
 import { fetchRequestHandler } from "@trpc/server/adapters/fetch";
 import { applyWSSHandler } from "@trpc/server/adapters/ws";
 import { WebSocketServer } from "ws";
-import { appRouter } from "./router.js";
-import { createContext, type EngineContext } from "./context.js";
+import { createAppRouter, type AppRouter } from "./router.js";
+import { createContext } from "./context.js";
+import type { EngineRuntime } from "./runtime.js";
 
 const DEFAULT_PORT = 7420;
 
@@ -17,9 +18,11 @@ export interface EngineServer {
 }
 
 /** Start the Engine's HTTP + WebSocket server */
-export function startServer(options: EngineServerOptions = {}): EngineServer {
+export function startServer(runtime: EngineRuntime, options: EngineServerOptions = {}): EngineServer {
   const port = options.port ?? DEFAULT_PORT;
   const hostname = options.hostname ?? "127.0.0.1";
+
+  const appRouter = createAppRouter(runtime);
 
   // HTTP server via Bun.serve (fetch adapter)
   const httpServer = Bun.serve({
@@ -51,7 +54,7 @@ export function startServer(options: EngineServerOptions = {}): EngineServer {
 
   // WebSocket server for tRPC subscriptions (separate port)
   const wss = new WebSocketServer({ port: port + 1, host: hostname });
-  const wssHandler = applyWSSHandler<typeof appRouter>({
+  const wssHandler = applyWSSHandler<AppRouter>({
     wss,
     router: appRouter,
     createContext() {

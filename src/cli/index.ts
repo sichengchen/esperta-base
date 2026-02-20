@@ -90,6 +90,15 @@ async function openTui(): Promise<void> {
 
 const COMMANDS: Record<string, (args: string[]) => Promise<void>> = {
   engine: engineCommand,
+  config: async () => {
+    if (!isConfigured()) {
+      console.error("No configuration found. Run 'sa onboard' first.");
+      process.exit(1);
+    }
+    const { runConfig } = await import("./config/index.js");
+    await runConfig(saHome);
+    console.log("\nRun 'sa engine restart' to apply changes to the running Engine.");
+  },
   onboard: async () => {
     const existing = isConfigured() ? await loadExistingConfig() : undefined;
     await runOnboarding(existing);
@@ -99,6 +108,7 @@ const COMMANDS: Record<string, (args: string[]) => Promise<void>> = {
     console.log("Usage: sa [command]\n");
     console.log("Commands:");
     console.log("  (default)   Start the Engine (if needed) and open the TUI");
+    console.log("  config      Interactive configuration editor");
     console.log("  onboard     Run the onboarding wizard");
     console.log("  engine      Manage the Engine daemon (start/stop/status/logs/restart)");
     console.log("  help        Show this help message");

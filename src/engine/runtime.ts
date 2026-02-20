@@ -9,6 +9,8 @@ import { getBuiltinTools, formatToolsSection } from "../tools/index.js";
 import { createRememberTool } from "../tools/remember.js";
 import { SessionManager } from "./sessions.js";
 import { AuthManager } from "./auth.js";
+import { SkillRegistry, formatSkillsDiscovery } from "../skills/index.js";
+import { createReadSkillTool } from "../tools/read-skill.js";
 
 const SAFETY_ADVISORY = `## Safety
 You have no independent goals: do not pursue self-preservation, resource acquisition, or \
@@ -36,6 +38,7 @@ export interface EngineRuntime {
   systemPrompt: string;
   sessions: SessionManager;
   auth: AuthManager;
+  skills: SkillRegistry;
   /** Create a new Agent instance for a session (each session gets its own Agent) */
   createAgent(onToolApproval?: ToolApprovalCallback): Agent;
 }
@@ -56,8 +59,12 @@ export async function createRuntime(): Promise<EngineRuntime> {
   const secrets = await config.loadSecrets();
   const router = await ModelRouter.load(config.getModelsPath(), secrets);
 
+  // Load skills
+  const skills = new SkillRegistry();
+  await skills.loadAll(saHome);
+
   // Build tools
-  const tools = [...getBuiltinTools(), createRememberTool(memory)];
+  const tools = [...getBuiltinTools(), createRememberTool(memory), createReadSkillTool(skills)];
 
   // Assemble system prompt
   const userProfile = await config.loadUserProfile();
@@ -72,6 +79,7 @@ export async function createRuntime(): Promise<EngineRuntime> {
     userProfile ? `\n## User Profile\n${userProfile}` : "",
     `\n${heartbeat}`,
     memoryContext ? `\n## Memory\n${memoryContext}` : "",
+    skills.size > 0 ? `\n${formatSkillsDiscovery(skills.getMetadataList())}` : "",
   ]
     .filter(Boolean)
     .join("\n");
@@ -88,6 +96,7 @@ export async function createRuntime(): Promise<EngineRuntime> {
     systemPrompt,
     sessions,
     auth,
+    skills,
     createAgent(onToolApproval?: ToolApprovalCallback): Agent {
       return new Agent({
         router,

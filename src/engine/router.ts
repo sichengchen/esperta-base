@@ -172,17 +172,19 @@ export function createAppRouter(runtime: EngineRuntime) {
     /** Skills */
     skill: router({
       /** List loaded skills */
-      list: publicProcedure.query(async (): Promise<SkillInfo[]> => {
-        // Stub — will be implemented in plan #026
-        return [];
+      list: publicProcedure.query((): SkillInfo[] => {
+        return runtime.skills.getMetadataList().map((s) => ({
+          name: s.name,
+          description: s.description,
+          active: runtime.skills.isActive(s.name),
+        }));
       }),
 
       /** Manually activate a skill */
       activate: publicProcedure
         .input(z.object({ name: z.string() }))
         .mutation(async ({ input }): Promise<{ activated: boolean }> => {
-          // Stub — will be implemented in plan #026
-          return { activated: true };
+          return { activated: await runtime.skills.activate(input.name) };
         }),
     }),
 

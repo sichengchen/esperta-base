@@ -1,3 +1,5 @@
+import type { ProviderConfig, ModelConfig } from "../router/types.js";
+
 export interface Identity {
   name: string;
   personality: string;
@@ -13,9 +15,22 @@ export interface RuntimeConfig {
   };
 }
 
+/** On-disk config.json schema (v3 — merged models + runtime) */
+export interface SAConfigFile {
+  version: 3;
+  runtime: RuntimeConfig;
+  providers: ProviderConfig[];
+  models: ModelConfig[];
+  defaultModel: string;
+}
+
+/** Full in-memory config (identity from IDENTITY.md + everything else from config.json) */
 export interface SAConfig {
   identity: Identity;
   runtime: RuntimeConfig;
+  providers: ProviderConfig[];
+  models: ModelConfig[];
+  defaultModel: string;
 }
 
 export interface SecretsFile {

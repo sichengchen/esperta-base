@@ -23,14 +23,3 @@ export interface ModelConfig {
   /** Maximum output tokens */
   maxTokens?: number;
 }
-
-export interface ModelsFile {
-  /** Schema version for future migration detection */
-  version: number;
-  /** Name of the default model config */
-  default: string;
-  /** Configured providers */
-  providers: ProviderConfig[];
-  /** Model configurations referencing providers by ID */
-  models: ModelConfig[];
-}

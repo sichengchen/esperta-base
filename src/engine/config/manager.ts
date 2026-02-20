@@ -1,15 +1,15 @@
-import { readFile, writeFile, mkdir } from "node:fs/promises";
+import { readFile, writeFile, mkdir, rm } from "node:fs/promises";
 import { join } from "node:path";
 import { existsSync } from "node:fs";
 import { homedir } from "node:os";
-import type { Identity, RuntimeConfig, SAConfig, SecretsFile } from "./types.js";
-import { DEFAULT_IDENTITY_MD, DEFAULT_CONFIG, DEFAULT_MODELS } from "./defaults.js";
+import type { Identity, RuntimeConfig, SAConfig, SAConfigFile, SecretsFile } from "./types.js";
+import { DEFAULT_IDENTITY_MD, DEFAULT_CONFIG } from "./defaults.js";
 import { loadSecrets as _loadSecrets, saveSecrets as _saveSecrets } from "./secrets.js";
 
 export class ConfigManager {
   readonly homeDir: string;
   private identity: Identity | null = null;
-  private runtime: RuntimeConfig | null = null;
+  private configFile: SAConfigFile | null = null;
 
   constructor(homeDir?: string) {
     this.homeDir = homeDir ?? process.env.SA_HOME ?? join(homedir(), ".sa");
@@ -19,15 +19,15 @@ export class ConfigManager {
     await mkdir(this.homeDir, { recursive: true });
 
     this.identity = await this.loadIdentity();
-    this.runtime = await this.loadRuntime();
+    this.configFile = await this.loadConfigFile();
 
-    // Ensure models.json exists for the router
-    const modelsPath = join(this.homeDir, "models.json");
-    if (!existsSync(modelsPath)) {
-      await writeFile(modelsPath, JSON.stringify(DEFAULT_MODELS, null, 2) + "\n");
-    }
-
-    return { identity: this.identity, runtime: this.runtime };
+    return {
+      identity: this.identity,
+      runtime: this.configFile.runtime,
+      providers: this.configFile.providers,
+      models: this.configFile.models,
+      defaultModel: this.configFile.defaultModel,
+    };
   }
 
   private async loadIdentity(): Promise<Identity> {
@@ -42,14 +42,68 @@ export class ConfigManager {
     return parseIdentityMd(md);
   }
 
-  private async loadRuntime(): Promise<RuntimeConfig> {
+  private async loadConfigFile(): Promise<SAConfigFile> {
     const configPath = join(this.homeDir, "config.json");
+    const modelsPath = join(this.homeDir, "models.json");
+
     if (existsSync(configPath)) {
       const raw = await readFile(configPath, "utf-8");
-      return JSON.parse(raw);
+      const parsed = JSON.parse(raw);
+
+      // v3 merged config — use directly
+      if (parsed.version === 3) {
+        return parsed as SAConfigFile;
+      }
+
+      // Legacy config.json (no version field = pre-v3 RuntimeConfig)
+      // Check if models.json also exists for migration
+      if (existsSync(modelsPath)) {
+        const modelsRaw = await readFile(modelsPath, "utf-8");
+        const models = JSON.parse(modelsRaw);
+        const merged = this.migrateToV3(parsed as RuntimeConfig, models);
+        await this.writeConfigFile(merged);
+        // Remove legacy models.json after migration
+        await rm(modelsPath, { force: true });
+        return merged;
+      }
+
+      // Legacy config.json without models.json — create defaults for models
+      const merged = this.migrateToV3(parsed as RuntimeConfig, null);
+      await this.writeConfigFile(merged);
+      return merged;
     }
-    await writeFile(configPath, JSON.stringify(DEFAULT_CONFIG, null, 2) + "\n");
+
+    // No config.json at all — if models.json exists alone, migrate it
+    if (existsSync(modelsPath)) {
+      const modelsRaw = await readFile(modelsPath, "utf-8");
+      const models = JSON.parse(modelsRaw);
+      const merged = this.migrateToV3(DEFAULT_CONFIG.runtime, models);
+      await this.writeConfigFile(merged);
+      await rm(modelsPath, { force: true });
+      return merged;
+    }
+
+    // Fresh install — write defaults
+    await this.writeConfigFile(DEFAULT_CONFIG);
     return { ...DEFAULT_CONFIG };
+  }
+
+  private migrateToV3(
+    runtime: RuntimeConfig,
+    models: { version?: number; default?: string; providers?: any[]; models?: any[] } | null,
+  ): SAConfigFile {
+    return {
+      version: 3,
+      runtime,
+      providers: models?.providers ?? DEFAULT_CONFIG.providers,
+      models: models?.models ?? DEFAULT_CONFIG.models,
+      defaultModel: models?.default ?? DEFAULT_CONFIG.defaultModel,
+    };
+  }
+
+  private async writeConfigFile(config: SAConfigFile): Promise<void> {
+    const configPath = join(this.homeDir, "config.json");
+    await writeFile(configPath, JSON.stringify(config, null, 2) + "\n");
   }
 
   getIdentity(): Identity {
@@ -58,22 +112,29 @@ export class ConfigManager {
   }
 
   getConfig(): RuntimeConfig {
-    if (!this.runtime) throw new Error("Config not loaded — call load() first");
-    return this.runtime;
+    if (!this.configFile) throw new Error("Config not loaded — call load() first");
+    return this.configFile.runtime;
+  }
+
+  getConfigFile(): SAConfigFile {
+    if (!this.configFile) throw new Error("Config not loaded — call load() first");
+    return this.configFile;
   }
 
   async setConfig<K extends keyof RuntimeConfig>(
     key: K,
     value: RuntimeConfig[K]
   ): Promise<void> {
-    if (!this.runtime) throw new Error("Config not loaded — call load() first");
-    this.runtime[key] = value;
-    const configPath = join(this.homeDir, "config.json");
-    await writeFile(configPath, JSON.stringify(this.runtime, null, 2) + "\n");
+    if (!this.configFile) throw new Error("Config not loaded — call load() first");
+    this.configFile.runtime[key] = value;
+    await this.writeConfigFile(this.configFile);
   }
 
-  getModelsPath(): string {
-    return join(this.homeDir, "models.json");
+  /** Save the full config file to disk */
+  async saveConfig(config?: SAConfigFile): Promise<void> {
+    if (config) this.configFile = config;
+    if (!this.configFile) throw new Error("Config not loaded — call load() first");
+    await this.writeConfigFile(this.configFile);
   }
 
   getUserProfilePath(): string {

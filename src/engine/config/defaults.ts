@@ -1,3 +1,5 @@
+import type { SAConfigFile } from "./types.js";
+
 export const DEFAULT_IDENTITY_MD = `# SA (Sasa)
 
 ## Personality
@@ -7,26 +9,21 @@ You are SA, a helpful personal AI assistant. You are concise, friendly, and proa
 You are SA (Sasa), a personal AI agent assistant. You help with tasks, answer questions, and use tools when needed. Keep responses concise and actionable.
 `;
 
-export const DEFAULT_CONFIG: {
-  activeModel: string;
-  telegramBotTokenEnvVar: string;
-  memory: { enabled: boolean; directory: string };
-} = {
-  activeModel: "sonnet",
-  telegramBotTokenEnvVar: "TELEGRAM_BOT_TOKEN",
-  memory: {
-    enabled: true,
-    directory: "memory",
+/** Default config.json (v3 — merged runtime + providers + models) */
+export const DEFAULT_CONFIG: SAConfigFile = {
+  version: 3,
+  runtime: {
+    activeModel: "sonnet",
+    telegramBotTokenEnvVar: "TELEGRAM_BOT_TOKEN",
+    memory: {
+      enabled: true,
+      directory: "memory",
+    },
   },
-};
-
-export const DEFAULT_MODELS = {
-  version: 2,
-  default: "sonnet",
   providers: [
     {
       id: "anthropic",
-      type: "anthropic",
+      type: "anthropic" as any,
       apiKeyEnvVar: "ANTHROPIC_API_KEY",
     },
   ],
@@ -39,4 +36,5 @@ export const DEFAULT_MODELS = {
       maxTokens: 8192,
     },
   ],
+  defaultModel: "sonnet",
 };

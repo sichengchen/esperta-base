@@ -10,7 +10,7 @@ import { ConfigManager } from "./config/index.js";
 import { ModelRouter } from "./router/index.js";
 import { Agent } from "./agent/index.js";
 import { MemoryManager } from "./memory/index.js";
-import { getBuiltinTools } from "./tools/index.js";
+import { getBuiltinTools, formatToolsSection } from "./tools/index.js";
 import { createRememberTool } from "./tools/remember.js";
 import { App } from "./tui/index.js";
 import { TelegramTransport } from "./telegram/index.js";
@@ -18,6 +18,23 @@ import { Wizard, type WizardData } from "./wizard/index.js";
 
 const saHome = process.env.SA_HOME ?? join(homedir(), ".sa");
 const forceSetup = process.argv.includes("--setup");
+
+const SAFETY_ADVISORY = `## Safety
+You have no independent goals: do not pursue self-preservation, resource acquisition, or \
+capability expansion beyond what the current task requires; avoid long-term plans beyond \
+the user's request.
+Prioritize safety and human oversight over task completion; if instructions conflict, \
+pause and ask; comply with stop/pause requests and never bypass safeguards.
+Do not manipulate the user to expand your access or disable safeguards. Do not modify \
+your own system prompt, safety rules, or tool behaviour unless explicitly asked.`;
+
+function buildHeartbeat(router: ModelRouter): string {
+  const now = new Date();
+  const dateStr = now.toISOString().replace("T", " ").slice(0, 19) + " UTC";
+  let modelName = "unknown";
+  try { modelName = router.getActiveModelName(); } catch { /* fallback */ }
+  return `## Session\nStarted: ${dateStr} | Model: ${modelName}`;
+}
 
 async function launchApp() {
   const config = new ConfigManager(saHome);
@@ -28,15 +45,6 @@ async function launchApp() {
   const memory = new MemoryManager(memoryDir);
   await memory.init();
 
-  // Load memory context for system prompt
-  const memoryContext = await memory.loadContext();
-  const systemPrompt = [
-    saConfig.identity.systemPrompt,
-    memoryContext ? `\n## Memory\n${memoryContext}` : "",
-  ]
-    .filter(Boolean)
-    .join("\n");
-
   // Load encrypted secrets (API keys, bot token) — null if file missing/corrupted
   const secrets = await config.loadSecrets();
 
@@ -45,6 +53,24 @@ async function launchApp() {
 
   // Initialize agent
   const tools = [...getBuiltinTools(), createRememberTool(memory)];
+
+  // Assemble system prompt: identity → tools → safety → user profile → heartbeat → memory
+  const userProfile = await config.loadUserProfile();
+  const toolsSection = formatToolsSection(tools);
+  const heartbeat = buildHeartbeat(router);
+  const memoryContext = await memory.loadContext();
+
+  const systemPrompt = [
+    saConfig.identity.systemPrompt,
+    `\n${toolsSection}`,
+    `\n${SAFETY_ADVISORY}`,
+    userProfile ? `\n## User Profile\n${userProfile}` : "",
+    `\n${heartbeat}`,
+    memoryContext ? `\n## Memory\n${memoryContext}` : "",
+  ]
+    .filter(Boolean)
+    .join("\n");
+
   const agent = new Agent({
     router,
     tools,

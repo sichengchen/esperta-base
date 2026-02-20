@@ -169,6 +169,14 @@ export function createAppRouter(runtime: EngineRuntime) {
         }),
     }),
 
+    /** Model management */
+    model: router({
+      /** List all configured model names */
+      list: publicProcedure.query((): string[] => {
+        return runtime.router.listModels();
+      }),
+    }),
+
     /** Skills */
     skill: router({
       /** List loaded skills */

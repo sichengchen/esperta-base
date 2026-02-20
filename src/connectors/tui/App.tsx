@@ -31,6 +31,9 @@ export function App({ client }: AppProps) {
         setConnected(true);
         setModelName(ping.model);
 
+        const modelList = await client.model.list.query();
+        setModels(modelList);
+
         const session = await client.session.create.mutate({
           connectorType: "tui",
           connectorId: `tui-${Date.now()}`,

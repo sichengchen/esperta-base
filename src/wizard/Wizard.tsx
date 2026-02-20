@@ -1,6 +1,7 @@
 import React, { useState, useCallback } from "react";
 import { Box, Text } from "ink";
 import { writeFile, mkdir } from "node:fs/promises";
+import { existsSync } from "node:fs";
 import { join } from "node:path";
 import { Welcome } from "./steps/Welcome.js";
 import { Identity } from "./steps/Identity.js";
@@ -42,6 +43,25 @@ export function Wizard({ homeDir, onComplete, existingConfig }: WizardProps) {
       // Write identity.md
       const identityMd = `# ${data.name}\n\n## Personality\n${data.personality}\n\n## System Prompt\nYou are ${data.name}, a personal AI agent assistant. You help with tasks, answer questions, and use tools when needed. Keep responses concise and actionable.\n`;
       await writeFile(join(homeDir, "identity.md"), identityMd);
+
+      // Write USER.md template (only if it doesn't exist — don't overwrite user edits)
+      const userProfilePath = join(homeDir, "USER.md");
+      if (!existsSync(userProfilePath)) {
+        const userProfileTemplate = `# User Profile
+
+Fill in what you want ${data.name} to always know about you.
+
+## About Me
+<!-- Your name, location, timezone, role, etc. -->
+
+## Preferences
+<!-- Communication style, preferred tools, habits, etc. -->
+
+## Recurring Context
+<!-- Projects, goals, or ongoing context ${data.name} should always be aware of. -->
+`;
+        await writeFile(userProfilePath, userProfileTemplate);
+      }
 
       // Write config.json
       const config = {

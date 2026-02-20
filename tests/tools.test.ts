@@ -170,13 +170,14 @@ describe("Bash tool", () => {
 });
 
 describe("getBuiltinTools", () => {
-  test("returns all 4 tools", () => {
+  test("returns all 5 builtin tools", () => {
     const tools = getBuiltinTools();
-    expect(tools).toHaveLength(4);
+    expect(tools).toHaveLength(5);
     const names = tools.map((t) => t.name);
     expect(names).toContain("read");
     expect(names).toContain("write");
     expect(names).toContain("edit");
     expect(names).toContain("bash");
+    expect(names).toContain("clawhub_search");
   });
 });

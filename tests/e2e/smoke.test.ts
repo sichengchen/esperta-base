@@ -45,12 +45,13 @@ describe("E2E smoke test", () => {
 
     // 5. Verify tool definitions are available for LLM
     // (We can't call agent.chat() without a real LLM, but we can verify the setup is correct)
-    expect(tools).toHaveLength(5); // read, write, edit, bash, remember
+    expect(tools).toHaveLength(6); // read, write, edit, bash, clawhub_search, remember
     expect(tools.map((t) => t.name)).toEqual([
       "read",
       "write",
       "edit",
       "bash",
+      "clawhub_search",
       "remember",
     ]);
   });

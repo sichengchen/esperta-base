@@ -13,7 +13,7 @@ const saHome = process.env.SA_HOME ?? join(homedir(), ".sa");
 const [subcommand, ...args] = process.argv.slice(2);
 
 async function runOnboarding(existingConfig?: unknown): Promise<void> {
-  const { Wizard } = await import("../wizard/index.js");
+  const { Wizard } = await import("./wizard/index.js");
   return new Promise<void>((resolve) => {
     const instance = render(
       React.createElement(Wizard, {

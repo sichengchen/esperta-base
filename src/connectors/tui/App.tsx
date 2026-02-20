@@ -101,9 +101,37 @@ export function App({ client }: AppProps) {
         return;
       }
 
-      // Handle /model and /models commands — open model picker
-      if (text === "/model" || text === "/models") {
+      // Handle /model command — open model picker to switch
+      if (text === "/model") {
         setShowModelPicker(true);
+        return;
+      }
+
+      // Handle /models command — list configured models with details
+      if (text === "/models") {
+        try {
+          const modelList = await client.model.list.query();
+          const active = await client.model.active.query();
+          const lines = modelList.map((m: ModelConfig) => {
+            const marker = m.name === active.name ? "●" : "○";
+            const extras: string[] = [];
+            if (m.temperature !== undefined) extras.push(`temp=${m.temperature}`);
+            if (m.maxTokens !== undefined) extras.push(`max=${m.maxTokens}`);
+            const suffix = extras.length > 0 ? `  (${extras.join(", ")})` : "";
+            return `${marker} ${m.name}  ${m.provider} → ${m.model}${suffix}`;
+          });
+          setMessages((prev) => [
+            ...prev,
+            {
+              role: "tool",
+              content: `Models:\n${lines.join("\n")}`,
+              toolName: "system",
+            },
+          ]);
+        } catch (err) {
+          const msg = err instanceof Error ? err.message : String(err);
+          setMessages((prev) => [...prev, { role: "error", content: msg }]);
+        }
         return;
       }
 
@@ -111,7 +139,10 @@ export function App({ client }: AppProps) {
       if (text === "/provider") {
         try {
           const providers = await client.provider.list.query();
-          const lines = providers.map((p: ProviderConfig) => `• ${p.id} (${p.type}) — ${p.apiKeyEnvVar}`);
+          const lines = providers.map((p: ProviderConfig) => {
+            const base = `• ${p.id} (${p.type}) — ${p.apiKeyEnvVar}`;
+            return p.baseUrl ? `${base}  [${p.baseUrl}]` : base;
+          });
           setMessages((prev) => [
             ...prev,
             {

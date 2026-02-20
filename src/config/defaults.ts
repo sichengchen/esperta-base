@@ -21,13 +21,20 @@ export const DEFAULT_CONFIG: {
 };
 
 export const DEFAULT_MODELS = {
+  version: 2,
   default: "sonnet",
+  providers: [
+    {
+      id: "anthropic",
+      type: "anthropic",
+      apiKeyEnvVar: "ANTHROPIC_API_KEY",
+    },
+  ],
   models: [
     {
       name: "sonnet",
       provider: "anthropic",
       model: "claude-sonnet-4-5-20250514",
-      apiKeyEnvVar: "ANTHROPIC_API_KEY",
       temperature: 0.7,
       maxTokens: 8192,
     },

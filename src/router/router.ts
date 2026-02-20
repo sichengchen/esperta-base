@@ -1,7 +1,7 @@
 import { readFile, writeFile } from "node:fs/promises";
 import { getModel } from "@mariozechner/pi-ai";
 import type { Model, Api } from "@mariozechner/pi-ai";
-import type { ModelConfig, ModelsFile } from "./types.js";
+import type { ModelConfig, ModelsFile, ProviderConfig } from "./types.js";
 import type { SecretsFile } from "../config/types.js";
 
 export class ModelRouter {
@@ -20,6 +20,15 @@ export class ModelRouter {
   static async load(configPath: string, secrets?: SecretsFile | null): Promise<ModelRouter> {
     const raw = await readFile(configPath, "utf-8");
     const config: ModelsFile = JSON.parse(raw);
+
+    if (config.version !== 2) {
+      throw new Error(
+        "models.json schema version unsupported — please re-run the onboarding wizard"
+      );
+    }
+    if (!config.providers || config.providers.length === 0) {
+      throw new Error("models.json must contain at least one provider");
+    }
     if (!config.models || config.models.length === 0) {
       throw new Error("models.json must contain at least one model");
     }
@@ -36,6 +45,14 @@ export class ModelRouter {
     if (uniqueNames.size !== names.length) {
       throw new Error("Duplicate model names in models.json");
     }
+    const providerIds = new Set(config.providers.map((p) => p.id));
+    for (const model of config.models) {
+      if (!providerIds.has(model.provider)) {
+        throw new Error(
+          `Model "${model.name}" references unknown provider "${model.provider}"`
+        );
+      }
+    }
     return new ModelRouter(config, configPath, secrets ?? null);
   }
 
@@ -50,19 +67,29 @@ export class ModelRouter {
     );
   }
 
+  /** Look up a ProviderConfig by ID */
+  getProvider(id: string): ProviderConfig {
+    const provider = this.config.providers.find((p) => p.id === id);
+    if (!provider) {
+      throw new Error(`Provider "${id}" not found`);
+    }
+    return provider;
+  }
+
   /** Get the PI-mono Model object for the active (or named) config */
   getModel(name?: string): Model<Api> {
     const cfg = this.getConfig(name);
-    const apiKey = this.resolveApiKey(cfg.apiKeyEnvVar);
+    const provider = this.getProvider(cfg.provider);
+    const apiKey = this.resolveApiKey(provider.apiKeyEnvVar);
     // For OpenAI-compatible providers with a custom base URL, construct the
     // Model object manually since pi-ai's getModel only handles known providers
-    if (cfg.baseUrl) {
+    if (provider.baseUrl) {
       return {
         id: cfg.model,
         name: cfg.model,
         api: "openai-completions" as const,
-        provider: cfg.provider,
-        baseUrl: cfg.baseUrl,
+        provider: provider.type,
+        baseUrl: provider.baseUrl,
         reasoning: false,
         input: ["text"] as ("text" | "image")[],
         cost: { input: 0, output: 0, cacheRead: 0, cacheWrite: 0 },
@@ -73,7 +100,7 @@ export class ModelRouter {
     // Dynamic provider/model strings require type assertion since PI-mono
     // uses exact literal types for its overloaded getModel signature
     return (getModel as (p: string, m: string) => Model<Api>)(
-      cfg.provider,
+      provider.type,
       cfg.model
     );
   }
@@ -95,7 +122,8 @@ export class ModelRouter {
     apiKey: string;
   } {
     const cfg = this.getConfig(name);
-    const apiKey = this.resolveApiKey(cfg.apiKeyEnvVar);
+    const provider = this.getProvider(cfg.provider);
+    const apiKey = this.resolveApiKey(provider.apiKeyEnvVar);
     return {
       temperature: cfg.temperature,
       maxTokens: cfg.maxTokens,
@@ -106,6 +134,16 @@ export class ModelRouter {
   /** List all configured model names */
   listModels(): string[] {
     return this.config.models.map((m) => m.name);
+  }
+
+  /** List all model configs */
+  listModelConfigs(): ModelConfig[] {
+    return [...this.config.models];
+  }
+
+  /** List all configured providers */
+  listProviders(): ProviderConfig[] {
+    return [...this.config.providers];
   }
 
   /** Get the currently active model name */
@@ -127,6 +165,9 @@ export class ModelRouter {
     if (this.config.models.some((m) => m.name === config.name)) {
       throw new Error(`Model "${config.name}" already exists`);
     }
+    if (!this.config.providers.some((p) => p.id === config.provider)) {
+      throw new Error(`Provider "${config.provider}" not found`);
+    }
     this.config.models.push(config);
     await this.save();
   }
@@ -144,6 +185,31 @@ export class ModelRouter {
     if (this.activeModelName === name) {
       this.activeModelName = this.config.default;
     }
+    await this.save();
+  }
+
+  /** Add a new provider configuration */
+  async addProvider(provider: ProviderConfig): Promise<void> {
+    if (this.config.providers.some((p) => p.id === provider.id)) {
+      throw new Error(`Provider "${provider.id}" already exists`);
+    }
+    this.config.providers.push(provider);
+    await this.save();
+  }
+
+  /** Remove a provider configuration by ID */
+  async removeProvider(id: string): Promise<void> {
+    const idx = this.config.providers.findIndex((p) => p.id === id);
+    if (idx === -1) {
+      throw new Error(`Provider "${id}" not found`);
+    }
+    const referencedBy = this.config.models.filter((m) => m.provider === id).map((m) => m.name);
+    if (referencedBy.length > 0) {
+      throw new Error(
+        `Cannot remove provider "${id}" — still referenced by model(s): ${referencedBy.join(", ")}`
+      );
+    }
+    this.config.providers.splice(idx, 1);
     await this.save();
   }
 

@@ -1,5 +1,6 @@
 import React from "react";
 import { Box, Text } from "ink";
+import { MarkdownText } from "./MarkdownText.js";
 
 export interface ChatMessage {
   role: "user" | "assistant" | "tool" | "error";
@@ -26,7 +27,7 @@ export function ChatView({ messages, streamingText, agentName }: ChatViewProps) 
           <Text color="green" bold>
             {`${agentName}: `}
           </Text>
-          <Text>{streamingText}</Text>
+          <MarkdownText>{streamingText}</MarkdownText>
           <Text color="yellow">{"▊"}</Text>
         </Box>
       )}
@@ -51,7 +52,7 @@ function MessageBlock({ message, agentName }: { message: ChatMessage; agentName:
           <Text color="green" bold>
             {`${agentName}: `}
           </Text>
-          <Text>{message.content}</Text>
+          <MarkdownText>{message.content}</MarkdownText>
         </Box>
       );
     case "tool":

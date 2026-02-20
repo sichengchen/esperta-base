@@ -1,6 +1,7 @@
 import { Bot, type Context, InlineKeyboard } from "grammy";
 import { splitMessage, formatToolResult } from "./formatter.js";
 import { createTelegramClient } from "./client.js";
+import { markdownToHtml } from "../../shared/markdown.js";
 
 const EDIT_THROTTLE_MS = 1000;
 
@@ -144,14 +145,16 @@ export class TelegramConnector {
                 case "text_delta":
                   fullText += event.delta;
                   if (Date.now() - lastEditTime > EDIT_THROTTLE_MS && fullText.length > 0) {
+                    const html = markdownToHtml(fullText.slice(0, 4096));
                     try {
                       if (!sentMsg) {
-                        sentMsg = await ctx.reply(fullText.slice(0, 4096));
+                        sentMsg = await ctx.reply(html, { parse_mode: "HTML" });
                       } else {
                         await ctx.api.editMessageText(
                           ctx.message.chat.id,
                           sentMsg.message_id,
-                          fullText.slice(0, 4096),
+                          html,
+                          { parse_mode: "HTML" },
                         );
                       }
                       lastEditTime = Date.now();
@@ -182,20 +185,22 @@ export class TelegramConnector {
 
                 case "done":
                   if (fullText) {
-                    const chunks = splitMessage(fullText);
+                    const htmlFull = markdownToHtml(fullText);
+                    const chunks = splitMessage(htmlFull);
                     try {
                       if (!sentMsg) {
-                        sentMsg = await ctx.reply(chunks[0]!);
+                        sentMsg = await ctx.reply(chunks[0]!, { parse_mode: "HTML" });
                       } else {
                         await ctx.api.editMessageText(
                           ctx.message.chat.id,
                           sentMsg.message_id,
                           chunks[0]!,
+                          { parse_mode: "HTML" },
                         );
                       }
                     } catch {}
                     for (let i = 1; i < chunks.length; i++) {
-                      await ctx.reply(chunks[i]!);
+                      await ctx.reply(chunks[i]!, { parse_mode: "HTML" });
                     }
                   }
                   break;

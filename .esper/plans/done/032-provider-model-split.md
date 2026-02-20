@@ -8,6 +8,7 @@ phase: phase-2
 branch: feature/phase-2
 created: 2026-02-20
 shipped_at: 2026-02-20
+pr: https://github.com/sichengchen/sa/pull/2
 ---
 # Split providers and models in config schema
 

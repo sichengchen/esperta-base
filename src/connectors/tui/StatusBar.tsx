@@ -22,7 +22,7 @@ export function StatusBar({ modelName, isStreaming, connected }: StatusBarProps)
       <Text color={isStreaming ? "yellow" : "green"}>
         {isStreaming ? "streaming..." : "ready"}
       </Text>
-      <Text dimColor> | /new /status /model | Ctrl+C: exit</Text>
+      <Text dimColor> | Ctrl+C: exit</Text>
     </Box>
   );
 }

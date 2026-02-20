@@ -15,14 +15,16 @@ const [subcommand, ...args] = process.argv.slice(2);
 async function runOnboarding(existingConfig?: unknown): Promise<void> {
   const { Wizard } = await import("../wizard/index.js");
   return new Promise<void>((resolve) => {
-    const { waitUntilExit } = render(
+    const instance = render(
       React.createElement(Wizard, {
         homeDir: saHome,
         existingConfig: existingConfig as any,
-        onComplete: () => resolve(),
+        onComplete: () => {
+          instance.unmount();
+          resolve();
+        },
       })
     );
-    waitUntilExit();
   });
 }
 

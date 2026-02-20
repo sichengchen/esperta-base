@@ -1,12 +1,13 @@
 ---
 id: 16
 title: Bootstrap context files — USER.md, tools, safety, heartbeat
-status: active
+status: done
 type: feature
 priority: 2
 phase: phase-1
 branch: feature/phase-1
 created: 2026-02-19
+shipped_at: 2026-02-20
 ---
 # Bootstrap Context Files — USER.md, Tools, Safety, Heartbeat
 

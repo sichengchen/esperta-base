@@ -1,7 +1,7 @@
 ---
 phase: phase-1
 title: MVP — Core Agent with TUI & Telegram
-status: active
+status: completed
 ---
 
 # Phase 1: MVP — Core Agent with TUI & Telegram
@@ -28,14 +28,14 @@ Deliver a working personal AI agent that can be configured via an onboarding wiz
 - Multi-user support (never)
 
 ## Acceptance Criteria
-- [ ] New user can run the onboarding wizard and configure identity, model, and Telegram bot
-- [ ] User can chat with the agent via the Ink TUI
-- [ ] User can chat with the agent via Telegram
-- [ ] Agent can execute Read, Write, Edit, and Bash tools and return results
-- [ ] Model router supports at least 2 providers (e.g. Anthropic + OpenAI) and switching is instant
-- [ ] Long-term memory persists between sessions and is queryable
-- [ ] All core subsystems have passing unit tests
-- [ ] Integration test covers a full chat→tool→response round trip
+- [x] New user can run the onboarding wizard and configure identity, model, and Telegram bot
+- [x] User can chat with the agent via the Ink TUI
+- [x] User can chat with the agent via Telegram
+- [x] Agent can execute Read, Write, Edit, and Bash tools and return results
+- [x] Model router supports at least 2 providers (e.g. Anthropic + OpenAI) and switching is instant
+- [x] Long-term memory persists between sessions and is queryable
+- [x] All core subsystems have passing unit tests
+- [x] Integration test covers a full chat→tool→response round trip
 
 ## Shipped Plans
 - #1 — Project scaffolding: Run `bun init` to create `package.json` and `tsconfig.json`. Files: package.json, tsconfig.json, .gitignore, .env.example, src/index.ts

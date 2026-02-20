@@ -116,9 +116,31 @@ async function main() {
           await readFile(config.getModelsPath(), "utf8")
         );
         const defaultModel = modelsRaw.models?.[0];
+        // Parse profile fields from existing USER.md
+        const userProfile = await config.loadUserProfile();
+        let userName = "";
+        let timezone = "";
+        let communicationStyle = "";
+        let aboutMe = "";
+        if (userProfile) {
+          const nameMatch = userProfile.match(/^Name:\s*(.+)/m);
+          if (nameMatch) userName = nameMatch[1].trim();
+          const tzMatch = userProfile.match(/^Timezone:\s*(.+)/m);
+          if (tzMatch && tzMatch[1].trim() !== "not set") timezone = tzMatch[1].trim();
+          const styleMatch = userProfile.match(/^Communication style:\s*(.+)/m);
+          if (styleMatch && styleMatch[1].trim() !== "not set") communicationStyle = styleMatch[1].trim();
+          // aboutMe: text between Timezone line and ## Preferences
+          const aboutMatch = userProfile.match(/^Timezone:.*\n\n([\s\S]*?)\n\n## Preferences/m);
+          if (aboutMatch && aboutMatch[1].trim()) aboutMe = aboutMatch[1].trim();
+        }
+
         existingConfig = {
           name: saConfig.identity.name,
           personality: saConfig.identity.personality,
+          userName,
+          timezone,
+          communicationStyle,
+          aboutMe,
           provider: defaultModel?.provider ?? "anthropic",
           model: defaultModel?.model ?? "",
           apiKeyEnvVar: defaultModel?.apiKeyEnvVar ?? "ANTHROPIC_API_KEY",

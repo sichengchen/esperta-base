@@ -3,6 +3,7 @@ import { router, publicProcedure } from "./trpc.js";
 import type { EngineRuntime } from "./runtime.js";
 import type { Agent } from "../agent/index.js";
 import type { EngineEvent, SkillInfo } from "../shared/types.js";
+import type { ModelConfig, ProviderConfig } from "../router/types.js";
 
 /** Per-session agent instances */
 const sessionAgents = new Map<string, Agent>();
@@ -172,10 +173,78 @@ export function createAppRouter(runtime: EngineRuntime) {
 
     /** Model management */
     model: router({
-      /** List all configured model names */
-      list: publicProcedure.query((): string[] => {
-        return runtime.router.listModels();
+      /** List all model configurations */
+      list: publicProcedure.query((): ModelConfig[] => {
+        return runtime.router.listModelConfigs();
       }),
+
+      /** Get the active model name */
+      active: publicProcedure.query((): { name: string } => {
+        return { name: runtime.router.getActiveModelName() };
+      }),
+
+      /** Switch the active model */
+      switch: publicProcedure
+        .input(z.object({ name: z.string() }))
+        .mutation(({ input }): { name: string } => {
+          runtime.router.switchModel(input.name);
+          return { name: input.name };
+        }),
+
+      /** Add a model configuration */
+      add: publicProcedure
+        .input(
+          z.object({
+            name: z.string(),
+            provider: z.string(),
+            model: z.string(),
+            temperature: z.number().optional(),
+            maxTokens: z.number().optional(),
+          }),
+        )
+        .mutation(async ({ input }): Promise<{ added: boolean }> => {
+          await runtime.router.addModel(input as ModelConfig);
+          return { added: true };
+        }),
+
+      /** Remove a model configuration */
+      remove: publicProcedure
+        .input(z.object({ name: z.string() }))
+        .mutation(async ({ input }): Promise<{ removed: boolean }> => {
+          await runtime.router.removeModel(input.name);
+          return { removed: true };
+        }),
+    }),
+
+    /** Provider management */
+    provider: router({
+      /** List all configured providers */
+      list: publicProcedure.query((): ProviderConfig[] => {
+        return runtime.router.listProviders();
+      }),
+
+      /** Add a provider configuration */
+      add: publicProcedure
+        .input(
+          z.object({
+            id: z.string(),
+            type: z.string(),
+            apiKeyEnvVar: z.string(),
+            baseUrl: z.string().optional(),
+          }),
+        )
+        .mutation(async ({ input }): Promise<{ added: boolean }> => {
+          await runtime.router.addProvider(input as ProviderConfig);
+          return { added: true };
+        }),
+
+      /** Remove a provider configuration */
+      remove: publicProcedure
+        .input(z.object({ id: z.string() }))
+        .mutation(async ({ input }): Promise<{ removed: boolean }> => {
+          await runtime.router.removeProvider(input.id);
+          return { removed: true };
+        }),
     }),
 
     /** Skills */

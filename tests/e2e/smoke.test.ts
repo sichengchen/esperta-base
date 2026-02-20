@@ -29,8 +29,12 @@ describe("E2E smoke test", () => {
 
     const memoryContext = await memory.loadContext();
 
-    // 3. Router loads from generated models.json
-    const router = await ModelRouter.load(config.getModelsPath());
+    // 3. Router loads from config data (v3 merged schema)
+    const router = ModelRouter.fromConfig({
+      providers: saConfig.providers,
+      models: saConfig.models,
+      defaultModel: saConfig.defaultModel,
+    });
     expect(router.listModels().length).toBeGreaterThan(0);
 
     // 4. Agent initializes with all components

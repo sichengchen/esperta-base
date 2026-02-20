@@ -3,7 +3,7 @@ import { Agent, ToolRegistry } from "../src/engine/agent/index.js";
 import type { ToolImpl } from "../src/engine/agent/index.js";
 import { ModelRouter } from "../src/engine/router/index.js";
 import { Type } from "@mariozechner/pi-ai";
-import { writeFile, mkdir, rm } from "node:fs/promises";
+import { rm } from "node:fs/promises";
 import { join } from "node:path";
 import { tmpdir } from "node:os";
 
@@ -11,33 +11,26 @@ import { tmpdir } from "node:os";
 import * as streamModule from "@mariozechner/pi-ai";
 
 const testDir = join(tmpdir(), "sa-test-agent-" + Date.now());
-const modelsPath = join(testDir, "models.json");
 
-async function setupRouter(): Promise<ModelRouter> {
-  await mkdir(testDir, { recursive: true });
-  await writeFile(
-    modelsPath,
-    JSON.stringify({
-      version: 2,
-      default: "test-model",
-      providers: [
-        {
-          id: "anthropic",
-          type: "anthropic",
-          apiKeyEnvVar: "TEST_API_KEY",
-        },
-      ],
-      models: [
-        {
-          name: "test-model",
-          provider: "anthropic",
-          model: "claude-sonnet-4-5-20250514",
-          temperature: 0.7,
-        },
-      ],
-    })
-  );
-  return ModelRouter.load(modelsPath);
+function setupRouter(): ModelRouter {
+  return ModelRouter.fromConfig({
+    defaultModel: "test-model",
+    providers: [
+      {
+        id: "anthropic",
+        type: "anthropic" as any,
+        apiKeyEnvVar: "TEST_API_KEY",
+      },
+    ],
+    models: [
+      {
+        name: "test-model",
+        provider: "anthropic",
+        model: "claude-sonnet-4-5-20250514",
+        temperature: 0.7,
+      },
+    ],
+  });
 }
 
 beforeEach(() => {

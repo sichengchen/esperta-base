@@ -31,18 +31,13 @@ async function runOnboarding(existingConfig?: unknown): Promise<void> {
 async function loadExistingConfig(): Promise<unknown | undefined> {
   try {
     const { ConfigManager } = await import("../engine/config/index.js");
-    const { readFile } = await import("node:fs/promises");
     const config = new ConfigManager(saHome);
     const saConfig = await config.load();
     const secrets = await config.loadSecrets();
-    const modelsRaw = JSON.parse(
-      await readFile(config.getModelsPath(), "utf8")
-    );
-    const defaultModel = modelsRaw.models?.[0];
-    // Resolve provider config from the v2 schema's providers array
-    const defaultProvider = modelsRaw.providers?.find(
+    const defaultModel = saConfig.models?.[0];
+    const defaultProvider = saConfig.providers?.find(
       (p: { id: string }) => p.id === defaultModel?.provider
-    ) ?? modelsRaw.providers?.[0];
+    ) ?? saConfig.providers?.[0];
     const userProfile = await config.loadUserProfile();
     let userName = "";
     let timezone = "";

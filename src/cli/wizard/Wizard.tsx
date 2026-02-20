@@ -84,21 +84,14 @@ ${recurringContext}
 `;
       await writeFile(userProfilePath, userProfileContent);
 
-      // Write config.json
+      // Write merged config.json (v3 schema)
       const config = {
-        activeModel: "default",
-        telegramBotTokenEnvVar: "TELEGRAM_BOT_TOKEN",
-        memory: { enabled: true, directory: "memory" },
-      };
-      await writeFile(
-        join(homeDir, "config.json"),
-        JSON.stringify(config, null, 2) + "\n"
-      );
-
-      // Write models.json (v2 schema with separate providers and models)
-      const models = {
-        version: 2,
-        default: "default",
+        version: 3,
+        runtime: {
+          activeModel: "default",
+          telegramBotTokenEnvVar: "TELEGRAM_BOT_TOKEN",
+          memory: { enabled: true, directory: "memory" },
+        },
         providers: [
           {
             id: data.providerId,
@@ -116,10 +109,11 @@ ${recurringContext}
             maxTokens: 8192,
           },
         ],
+        defaultModel: "default",
       };
       await writeFile(
-        join(homeDir, "models.json"),
-        JSON.stringify(models, null, 2) + "\n"
+        join(homeDir, "config.json"),
+        JSON.stringify(config, null, 2) + "\n"
       );
 
       // Write empty MEMORY.md

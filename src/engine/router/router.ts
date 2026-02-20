@@ -22,8 +22,8 @@ export class ModelRouter {
     secrets: SecretsFile | null,
     onSave: (() => Promise<void>) | null,
   ) {
-    this.providers = data.providers;
-    this.models = data.models;
+    this.providers = [...data.providers];
+    this.models = [...data.models];
     this.defaultModelName = data.defaultModel;
     this.activeModelName = data.defaultModel;
     this.secrets = secrets;

@@ -55,3 +55,4 @@ Phase 2 shipped a solid Engine + Connector architecture with tRPC, device-flow a
 - #046 — web_search built-in tool: Search web via Brave or Perplexity API with auto-backend selection. Files: web-search.ts, index.ts
 - #047 — TUI session viewer and switcher: /sessions, /switch, Ctrl+S, SessionPicker component, StatusBar session info. Files: App.tsx, SessionPicker.tsx, StatusBar.tsx
 - #048 — Webhook connector: POST /webhook REST endpoint with secret auth, session create/resume, SSE streaming, and JSON response. Files: types.ts, server.ts, procedures.ts, types.ts, defaults.ts, ConnectorSettings.tsx
+- #050 — Audio transcription for IM connectors: Transcription service with whisper-cpp/python and OpenAI backends, Telegram voice/audio handler, Discord audio attachment handler. Files: transcriber.ts, index.ts, runtime.ts, procedures.ts, transport.ts, transport.ts, types.ts, defaults.ts

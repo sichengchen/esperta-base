@@ -51,3 +51,4 @@ Phase 2 shipped a solid Engine + Connector architecture with tRPC, device-flow a
 - #042 — Configurable tool approval for IM connectors: Add per-connector toolApproval setting (always/never/ask) with session-level overrides. Files: types.ts, defaults.ts, procedures.ts, types.ts, transport.ts, transport.ts, App.tsx, ConnectorSettings.tsx
 - #043 — Advanced exec tool to replace bash: Create exec tool with workdir, env, background, yieldMs, timeout plus exec_status/exec_kill companion tools. Files: exec.ts, exec-background.ts, index.ts
 - #044 — Add Nvidia NIM as a built-in provider: Add "nvidia" provider type hitting integrate.api.nvidia.com/v1. Files: fetch-models.ts, ModelSetup.tsx, ProviderManager.tsx
+- #045 — web_fetch built-in tool: Fetch URLs and convert HTML to markdown via node-html-markdown. Files: web-fetch.ts, index.ts

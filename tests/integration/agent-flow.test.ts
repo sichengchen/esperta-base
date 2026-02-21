@@ -20,11 +20,11 @@ describe("Agent flow integration", () => {
     }
 
     // Verify all tools are registered
-    expect(registry.listNames()).toEqual(["read", "write", "edit", "exec", "exec_status", "exec_kill", "clawhub_search"]);
+    expect(registry.listNames()).toEqual(["read", "write", "edit", "exec", "exec_status", "exec_kill", "web_fetch", "clawhub_search"]);
 
     // Tool definitions are valid for LLM context
     const defs = registry.getToolDefinitions();
-    expect(defs).toHaveLength(7);
+    expect(defs).toHaveLength(8);
     for (const def of defs) {
       expect(def.name).toBeTruthy();
       expect(def.description).toBeTruthy();

@@ -1,14 +1,14 @@
 ---
-id: 045
+id: 45
 title: web_fetch built-in tool
-status: pending
+status: done
 type: feature
 priority: 2
 phase: phase-3
 branch: feature/phase-3
 created: 2026-02-21
+shipped_at: 2026-02-21
 ---
-
 # web_fetch built-in tool
 
 ## Context
@@ -40,3 +40,11 @@ SA has no built-in way for the agent to fetch web content. The bash tool could r
 - Run: `bun test`
 - Expected: Tool fetches a URL and returns markdown content; handles errors gracefully
 - Edge cases: Very large pages (truncation), non-HTML content types, redirect handling, HTTPS-only URLs, timeout on slow servers
+
+## Progress
+- Created web-fetch.ts: url, maxLength (50k default), headers params; HTML-to-markdown via node-html-markdown; 30s timeout
+- Added node-html-markdown dependency
+- Registered webFetchTool in getBuiltinTools (8 builtin tools)
+- Updated test expectations across tools.test.ts, agent-flow.test.ts, smoke.test.ts
+- Modified: src/engine/tools/web-fetch.ts, src/engine/tools/index.ts, package.json
+- Verification: typecheck passed, lint passed, 201 tests passed

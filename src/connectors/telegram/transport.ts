@@ -270,6 +270,12 @@ export class TelegramConnector {
   }
 
   async start(): Promise<void> {
+    await this.bot.api.setMyCommands([
+      { command: "new", description: "Start a new session" },
+      { command: "status", description: "Show engine status" },
+      { command: "model", description: "List and switch models" },
+      { command: "provider", description: "List configured providers" },
+    ]);
     await this.bot.start({
       onStart: (botInfo) => {
         console.log(`Telegram Connector @${botInfo.username} started`);

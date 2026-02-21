@@ -7,8 +7,8 @@ import { StatusBar } from "./StatusBar.js";
 import { ModelPicker } from "./ModelPicker.js";
 import { SessionPicker } from "./SessionPicker.js";
 import { createTuiClient } from "./client.js";
-import type { ModelConfig, ProviderConfig } from "../../engine/router/types.js";
-import type { Session } from "../../shared/types.js";
+import type { ModelConfig, ProviderConfig } from "@sa/engine/router/types.js";
+import type { Session } from "@sa/shared/types.js";
 
 type EngineClient = ReturnType<typeof createTuiClient>;
 

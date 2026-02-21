@@ -2,7 +2,7 @@ import { z } from "zod";
 import { router, publicProcedure } from "./trpc.js";
 import type { EngineRuntime } from "./runtime.js";
 import type { Agent } from "./agent/index.js";
-import type { EngineEvent, SkillInfo, ConnectorType, ToolApprovalMode } from "../shared/types.js";
+import type { EngineEvent, SkillInfo, ConnectorType, ToolApprovalMode } from "@sa/shared/types.js";
 import type { ModelConfig, ProviderConfig } from "./router/types.js";
 
 /** Tools that are always auto-approved and silent on IM connectors */

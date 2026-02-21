@@ -1,6 +1,6 @@
 import React from "react";
 import { Text } from "ink";
-import { parseInlineMarkdown } from "../../shared/markdown.js";
+import { parseInlineMarkdown } from "@sa/shared/markdown.js";
 
 interface MarkdownTextProps {
   children: string;

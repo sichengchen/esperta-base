@@ -1,8 +1,8 @@
 import { readFileSync, existsSync } from "node:fs";
 import { join } from "node:path";
 import { homedir } from "node:os";
-import { createEngineClient } from "../../shared/client.js";
-import { AuthManager } from "../../engine/auth.js";
+import { createEngineClient } from "@sa/shared/client.js";
+import { AuthManager } from "@sa/engine/auth.js";
 
 const DEFAULT_HTTP_PORT = 7420;
 

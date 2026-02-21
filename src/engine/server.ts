@@ -7,7 +7,7 @@ import { WebSocketServer } from "ws";
 import { createAppRouter, type AppRouter } from "./procedures.js";
 import { createContext } from "./context.js";
 import type { EngineRuntime } from "./runtime.js";
-import type { EngineEvent } from "../shared/types.js";
+import type { EngineEvent } from "@sa/shared/types.js";
 
 const DEFAULT_PORT = 7420;
 

@@ -1,5 +1,5 @@
 import type { ProviderConfig, ModelConfig } from "../router/types.js";
-import type { ToolApprovalMode, ConnectorType } from "../../shared/types.js";
+import type { ToolApprovalMode, ConnectorType } from "@sa/shared/types.js";
 
 export interface Identity {
   name: string;

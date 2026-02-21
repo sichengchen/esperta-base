@@ -1,0 +1,87 @@
+name: Release
+
+on:
+  push:
+    tags: ["v*"]
+
+permissions:
+  contents: write
+
+jobs:
+  build:
+    strategy:
+      matrix:
+        include:
+          - os: macos-latest
+            arch: arm64
+            artifact: sa-darwin-arm64
+          - os: macos-13
+            arch: x86_64
+            artifact: sa-darwin-x86_64
+    runs-on: ${{ matrix.os }}
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: oven-sh/setup-bun@v2
+        with:
+          bun-version: latest
+
+      - run: bun install
+
+      - name: Build
+        run: bun run build
+
+      - name: Rename binary
+        run: mv dist/index.js dist/${{ matrix.artifact }}
+
+      - name: Generate checksum
+        run: shasum -a 256 dist/${{ matrix.artifact }} > dist/${{ matrix.artifact }}.sha256
+
+      - name: Upload artifact
+        uses: actions/upload-artifact@v4
+        with:
+          name: ${{ matrix.artifact }}
+          path: |
+            dist/${{ matrix.artifact }}
+            dist/${{ matrix.artifact }}.sha256
+
+  release:
+    needs: build
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/download-artifact@v4
+        with:
+          path: artifacts
+          merge-multiple: true
+
+      - name: Create GitHub Release
+        uses: softprops/action-gh-release@v2
+        with:
+          generate_release_notes: true
+          files: |
+            artifacts/sa-darwin-arm64
+            artifacts/sa-darwin-arm64.sha256
+            artifacts/sa-darwin-x86_64
+            artifacts/sa-darwin-x86_64.sha256
+
+  update-tap:
+    needs: release
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: oven-sh/setup-bun@v2
+        with:
+          bun-version: latest
+
+      - run: bun install
+
+      - uses: actions/download-artifact@v4
+        with:
+          path: artifacts
+          merge-multiple: true
+
+      - name: Update Homebrew formula
+        env:
+          TAP_GITHUB_TOKEN: ${{ secrets.TAP_GITHUB_TOKEN }}
+        run: bun run scripts/update-homebrew.ts

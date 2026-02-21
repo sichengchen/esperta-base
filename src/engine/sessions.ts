@@ -1,4 +1,4 @@
-import type { Session, ConnectorType } from "../shared/types.js";
+import type { Session, ConnectorType } from "@sa/shared/types.js";
 
 /** Manages active sessions between Engine and Connectors */
 export class SessionManager {

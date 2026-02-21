@@ -74,10 +74,19 @@ export async function createRuntime(): Promise<EngineRuntime> {
 
   // Load secrets and initialize model router
   const secrets = await config.loadSecrets();
+  const baseConfigFile = config.getConfigFile();
   const router = ModelRouter.fromConfig(
     { providers: saConfig.providers, models: saConfig.models, defaultModel: saConfig.defaultModel },
     secrets,
-    () => config.saveConfig(),
+    async (state) => {
+      await config.saveConfig({
+        ...baseConfigFile,
+        providers: state.providers,
+        models: state.models,
+        defaultModel: state.defaultModel,
+        runtime: { ...baseConfigFile.runtime, activeModel: state.activeModel },
+      });
+    },
   );
 
   // Load skills

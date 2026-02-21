@@ -9,18 +9,26 @@ export interface ModelRouterData {
   defaultModel: string;
 }
 
+/** State passed to the onSave callback so the consumer can persist it. */
+export interface RouterState {
+  providers: ProviderConfig[];
+  models: ModelConfig[];
+  defaultModel: string;
+  activeModel: string;
+}
+
 export class ModelRouter {
   private providers: ProviderConfig[];
   private models: ModelConfig[];
   private defaultModelName: string;
   private activeModelName: string;
   private secrets: SecretsFile | null;
-  private onSave: (() => Promise<void>) | null;
+  private onSave: ((state: RouterState) => Promise<void>) | null;
 
   private constructor(
     data: ModelRouterData,
     secrets: SecretsFile | null,
-    onSave: (() => Promise<void>) | null,
+    onSave: ((state: RouterState) => Promise<void>) | null,
   ) {
     this.providers = [...data.providers];
     this.models = [...data.models];
@@ -34,7 +42,7 @@ export class ModelRouter {
   static fromConfig(
     data: ModelRouterData,
     secrets?: SecretsFile | null,
-    onSave?: () => Promise<void>,
+    onSave?: (state: RouterState) => Promise<void>,
   ): ModelRouter {
     ModelRouter.validate(data);
     return new ModelRouter(data, secrets ?? null, onSave ?? null);
@@ -163,12 +171,13 @@ export class ModelRouter {
   }
 
   /** Switch the active model */
-  switchModel(name: string): void {
+  async switchModel(name: string): Promise<void> {
     const exists = this.models.some((m) => m.name === name);
     if (!exists) {
       throw new Error(`Model "${name}" not found`);
     }
     this.activeModelName = name;
+    await this.save();
   }
 
   /** Add a new model configuration */
@@ -226,7 +235,12 @@ export class ModelRouter {
 
   private async save(): Promise<void> {
     if (this.onSave) {
-      await this.onSave();
+      await this.onSave({
+        providers: this.providers,
+        models: this.models,
+        defaultModel: this.defaultModelName,
+        activeModel: this.activeModelName,
+      });
     }
   }
 }

@@ -128,13 +128,13 @@ Agent.chat(message)
     └─ Tool call in response?
            │
            ├─ Needs approval? → yield tool_approval_request → wait for tool.approve()
-           ├─ Dispatch to ToolImpl.execute()
+           ├─ Dispatch to ToolImpl.execute() (with loop detection + result size guard)
            ├─ Append tool result to conversation
-           └─ Loop (up to maxToolRounds)
+           └─ Loop until natural completion, timeout (600s), or circuit breaker
     │
     ▼
 AgentEvents streamed back to Connector via tRPC subscription
-    (text_delta, thinking_delta, tool_start, tool_end, done, error)
+    (text_delta, thinking_delta, tool_start, tool_end, warning, done, error)
 ```
 
 ## Key design decisions

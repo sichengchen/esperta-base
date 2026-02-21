@@ -46,3 +46,6 @@ Expand SA's connectivity and capability surface: add a webhook connector for pro
 
 ## Phase Notes
 Phase 2 shipped a solid Engine + Connector architecture with tRPC, device-flow auth, and three connectors (TUI, Telegram, Discord). The tool approval system currently treats all tools equally — Phase 3 adds granular permission control. The bash tool is functional but minimal (command, cwd, timeout) — the new exec tool is a superset. The TUI is single-session; Phase 3 adds cross-session visibility since the Engine already tracks all sessions via SessionManager.
+
+## Shipped Plans
+- #042 — Configurable tool approval for IM connectors: Add per-connector toolApproval setting (always/never/ask) with session-level overrides. Files: types.ts, defaults.ts, procedures.ts, types.ts, transport.ts, transport.ts, App.tsx, ConnectorSettings.tsx

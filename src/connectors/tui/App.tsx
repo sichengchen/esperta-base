@@ -4,8 +4,10 @@ import { ChatView, type ChatMessage } from "./ChatView.js";
 import { Input } from "./Input.js";
 import { StatusBar } from "./StatusBar.js";
 import { ModelPicker } from "./ModelPicker.js";
+import { SessionPicker } from "./SessionPicker.js";
 import { createTuiClient } from "./client.js";
 import type { ModelConfig, ProviderConfig } from "../../engine/router/types.js";
+import type { Session } from "../../shared/types.js";
 
 type EngineClient = ReturnType<typeof createTuiClient>;
 
@@ -22,9 +24,12 @@ export function App({ client }: AppProps) {
   const [sessionId, setSessionId] = useState<string | null>(null);
   const [modelName, setModelName] = useState("unknown");
   const [showModelPicker, setShowModelPicker] = useState(false);
+  const [showSessionPicker, setShowSessionPicker] = useState(false);
   const [models, setModels] = useState<ModelConfig[]>([]);
+  const [sessions, setSessions] = useState<Session[]>([]);
   const [agentName, setAgentName] = useState("SA");
   const [scrollOffset, setScrollOffset] = useState(0);
+  const [sessionConnectorType, setSessionConnectorType] = useState("tui");
 
   const { stdout } = useStdout();
   const terminalRows = stdout?.rows ?? 24;
@@ -74,6 +79,17 @@ export function App({ client }: AppProps) {
     }
     if (key.ctrl && _input === "m" && !isStreaming) {
       setShowModelPicker((v) => !v);
+      setShowSessionPicker(false);
+    }
+    if (key.ctrl && _input === "s" && !isStreaming) {
+      (async () => {
+        try {
+          const list = await client.session.list.query();
+          setSessions(list);
+        } catch {}
+        setShowSessionPicker((v) => !v);
+        setShowModelPicker(false);
+      })();
     }
     if (key.upArrow) {
       setScrollOffset((v) => Math.min(v + 1, Math.max(0, messages.length - 1)));
@@ -96,6 +112,7 @@ export function App({ client }: AppProps) {
             connectorId: `tui-${Date.now()}`,
           });
           setSessionId(session.id);
+          setSessionConnectorType("tui");
           setMessages([]);
           setMessages([{ role: "tool", content: "New session started.", toolName: "system" }]);
         } catch {}
@@ -173,6 +190,52 @@ export function App({ client }: AppProps) {
               content: `Providers:\n${lines.join("\n")}`,
               toolName: "system",
             },
+          ]);
+        } catch (err) {
+          const msg = err instanceof Error ? err.message : String(err);
+          setMessages((prev) => [...prev, { role: "error", content: msg }]);
+        }
+        return;
+      }
+
+      // Handle /sessions command — list or open picker
+      if (text === "/sessions") {
+        try {
+          const list = await client.session.list.query();
+          setSessions(list);
+          setShowSessionPicker(true);
+        } catch (err) {
+          const msg = err instanceof Error ? err.message : String(err);
+          setMessages((prev) => [...prev, { role: "error", content: msg }]);
+        }
+        return;
+      }
+
+      // Handle /switch <id> command — switch to a session by ID prefix
+      if (text.startsWith("/switch ")) {
+        const target = text.slice(8).trim();
+        if (!target) {
+          setMessages((prev) => [...prev, { role: "error", content: "Usage: /switch <session-id>" }]);
+          return;
+        }
+        try {
+          const list = await client.session.list.query();
+          const match = list.find((s: Session) => s.id.startsWith(target));
+          if (!match) {
+            setMessages((prev) => [...prev, { role: "error", content: `No session found matching: ${target}` }]);
+            return;
+          }
+          setSessionId(match.id);
+          setSessionConnectorType(match.connectorType);
+          // Load history
+          const history = await client.chat.history.query({ sessionId: match.id });
+          const historyMessages: ChatMessage[] = (history.messages as any[]).map((m: any) => ({
+            role: m.role === "assistant" ? "assistant" : m.role === "user" ? "user" : "tool",
+            content: typeof m.content === "string" ? m.content : JSON.stringify(m.content),
+          }));
+          setMessages([
+            { role: "tool", content: `Switched to session ${match.id.slice(0, 8)} [${match.connectorType}]`, toolName: "system" },
+            ...historyMessages,
           ]);
         } catch (err) {
           const msg = err instanceof Error ? err.message : String(err);
@@ -282,12 +345,60 @@ export function App({ client }: AppProps) {
     [client],
   );
 
+  const handleSessionSelect = useCallback(
+    async (targetSessionId: string) => {
+      setShowSessionPicker(false);
+      if (targetSessionId === sessionId) return;
+      try {
+        const list = await client.session.list.query();
+        const match = list.find((s: Session) => s.id === targetSessionId);
+        if (!match) {
+          setMessages((prev) => [...prev, { role: "error", content: "Session no longer exists." }]);
+          return;
+        }
+        setSessionId(match.id);
+        setSessionConnectorType(match.connectorType);
+        const history = await client.chat.history.query({ sessionId: match.id });
+        const historyMessages: ChatMessage[] = (history.messages as any[]).map((m: any) => ({
+          role: m.role === "assistant" ? "assistant" : m.role === "user" ? "user" : "tool",
+          content: typeof m.content === "string" ? m.content : JSON.stringify(m.content),
+        }));
+        setMessages([
+          { role: "tool", content: `Switched to session ${match.id.slice(0, 8)} [${match.connectorType}]`, toolName: "system" },
+          ...historyMessages,
+        ]);
+      } catch (err) {
+        const msg = err instanceof Error ? err.message : String(err);
+        setMessages((prev) => [...prev, { role: "error", content: msg }]);
+      }
+    },
+    [client, sessionId],
+  );
+
+  const pickerOverlay = showModelPicker ? (
+    <ModelPicker
+      models={models}
+      activeModel={modelName}
+      onSelect={handleModelSelect}
+      onCancel={() => setShowModelPicker(false)}
+    />
+  ) : showSessionPicker ? (
+    <SessionPicker
+      sessions={sessions}
+      activeSessionId={sessionId ?? ""}
+      onSelect={handleSessionSelect}
+      onCancel={() => setShowSessionPicker(false)}
+    />
+  ) : null;
+
   return (
     <Box flexDirection="column" height="100%">
       <StatusBar
         modelName={modelName}
         isStreaming={isStreaming}
         connected={connected}
+        sessionId={sessionId}
+        connectorType={sessionConnectorType}
       />
       <ChatView
         messages={messages}
@@ -297,14 +408,7 @@ export function App({ client }: AppProps) {
         width={terminalCols}
         scrollOffset={scrollOffset}
       />
-      {showModelPicker ? (
-        <ModelPicker
-          models={models}
-          activeModel={modelName}
-          onSelect={handleModelSelect}
-          onCancel={() => setShowModelPicker(false)}
-        />
-      ) : (
+      {pickerOverlay ?? (
         <Input onSubmit={handleSubmit} disabled={isStreaming || !connected} />
       )}
     </Box>

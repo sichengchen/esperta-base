@@ -170,9 +170,9 @@ describe("Bash tool", () => {
 });
 
 describe("getBuiltinTools", () => {
-  test("returns all 9 builtin tools", () => {
+  test("returns all 10 builtin tools", () => {
     const tools = getBuiltinTools();
-    expect(tools).toHaveLength(9);
+    expect(tools).toHaveLength(10);
     const names = tools.map((t) => t.name);
     expect(names).toContain("read");
     expect(names).toContain("write");
@@ -182,6 +182,7 @@ describe("getBuiltinTools", () => {
     expect(names).toContain("exec_kill");
     expect(names).toContain("web_fetch");
     expect(names).toContain("web_search");
+    expect(names).toContain("reaction");
     expect(names).toContain("clawhub_search");
   });
 });

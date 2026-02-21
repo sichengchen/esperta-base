@@ -24,6 +24,18 @@ pause and ask; comply with stop/pause requests and never bypass safeguards.
 Do not manipulate the user to expand your access or disable safeguards. Do not modify \
 your own system prompt, safety rules, or tool behaviour unless explicitly asked.`;
 
+const TOOL_CALL_STYLE = `## Tool Call Style
+Default: do not narrate routine, low-risk tool calls — just call the tool.
+Narrate only when it helps: multi-step work, sensitive actions (e.g. deletions), or when the user explicitly asks.
+Keep narration brief and value-dense; avoid repeating what the tool result already shows.`;
+
+const SKILLS_DIRECTIVE = `## Skills (mandatory)
+Before replying to each user message, scan the <available_skills> list below.
+- If exactly one skill clearly applies: call read_skill to load it, then follow its instructions.
+- If multiple could apply: choose the most specific one, then read and follow it.
+- If none clearly apply: do not read any skill.
+Never read more than one skill up front; only read additional skills if the first one directs you to.`;
+
 function buildHeartbeat(router: ModelRouter): string {
   const now = new Date();
   const dateStr = now.toISOString().replace("T", " ").slice(0, 19) + " UTC";
@@ -87,14 +99,19 @@ export async function createRuntime(): Promise<EngineRuntime> {
   const heartbeat = buildHeartbeat(router);
   const memoryContext = await memory.loadContext();
 
+  const skillsBlock = skills.size > 0
+    ? `\n${SKILLS_DIRECTIVE}\n\n${formatSkillsDiscovery(skills.getMetadataList())}`
+    : "";
+
   const systemPrompt = [
     saConfig.identity.systemPrompt,
     `\n${toolsSection}`,
+    `\n${TOOL_CALL_STYLE}`,
     `\n${SAFETY_ADVISORY}`,
     userProfile ? `\n## User Profile\n${userProfile}` : "",
     `\n${heartbeat}`,
     memoryContext ? `\n## Memory\n${memoryContext}` : "",
-    skills.size > 0 ? `\n${formatSkillsDiscovery(skills.getMetadataList())}` : "",
+    skillsBlock,
   ]
     .filter(Boolean)
     .join("\n");

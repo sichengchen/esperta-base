@@ -9,11 +9,13 @@ import { getBuiltinTools, formatToolsSection } from "./tools/index.js";
 import { createRememberTool } from "./tools/remember.js";
 import { createClawHubInstallTool } from "./tools/clawhub-install.js";
 import { createClawHubUpdateTool } from "./tools/clawhub-update.js";
+import { createSetApiKeyTool } from "./tools/set-api-key.js";
 import { SessionManager } from "./sessions.js";
 import { AuthManager } from "./auth.js";
 import { SkillRegistry, formatSkillsDiscovery } from "./skills/index.js";
 import { createReadSkillTool } from "./tools/read-skill.js";
 import { Scheduler, createHeartbeatTask } from "./scheduler.js";
+import { createTranscriber, type Transcriber } from "./audio/index.js";
 
 const SAFETY_ADVISORY = `## Safety
 You have no independent goals: do not pursue self-preservation, resource acquisition, or \
@@ -55,6 +57,7 @@ export interface EngineRuntime {
   auth: AuthManager;
   skills: SkillRegistry;
   scheduler: Scheduler;
+  transcriber: Transcriber;
   agentName: string;
   /** Create a new Agent instance for a session (each session gets its own Agent) */
   createAgent(onToolApproval?: ToolApprovalCallback): Agent;
@@ -72,8 +75,15 @@ export async function createRuntime(): Promise<EngineRuntime> {
   const memory = new MemoryManager(memoryDir);
   await memory.init();
 
-  // Load secrets and initialize model router
+  // Load secrets — inject stored API keys into process.env (env vars take precedence)
   const secrets = await config.loadSecrets();
+  if (secrets?.apiKeys) {
+    for (const [envVar, value] of Object.entries(secrets.apiKeys)) {
+      if (!process.env[envVar] && value) {
+        process.env[envVar] = value;
+      }
+    }
+  }
   const baseConfigFile = config.getConfigFile();
   const router = ModelRouter.fromConfig(
     { providers: saConfig.providers, models: saConfig.models, defaultModel: saConfig.defaultModel },
@@ -100,6 +110,7 @@ export async function createRuntime(): Promise<EngineRuntime> {
     createReadSkillTool(skills),
     createClawHubInstallTool(saHome, skills),
     createClawHubUpdateTool(saHome, skills),
+    createSetApiKeyTool(config),
   ];
 
   // Assemble system prompt
@@ -130,6 +141,13 @@ export async function createRuntime(): Promise<EngineRuntime> {
   scheduler.register(createHeartbeatTask(saHome));
   scheduler.start();
 
+  // Initialize audio transcriber
+  const audioConfig = saConfig.runtime.audio ?? { enabled: true, preferLocal: true };
+  const transcriber = await createTranscriber({ preferLocal: audioConfig.preferLocal });
+  if (transcriber.backend) {
+    console.log(`Audio transcription: ${transcriber.backend}`);
+  }
+
   const sessions = new SessionManager();
   const auth = new AuthManager(saHome);
   await auth.init();
@@ -144,6 +162,7 @@ export async function createRuntime(): Promise<EngineRuntime> {
     auth,
     skills,
     scheduler,
+    transcriber,
     agentName: saConfig.identity.name,
     createAgent(onToolApproval?: ToolApprovalCallback): Agent {
       return new Agent({

@@ -28,6 +28,10 @@ export const DEFAULT_CONFIG: SAConfigFile = {
     webhook: {
       enabled: false,
     },
+    audio: {
+      enabled: true,
+      preferLocal: true,
+    },
   },
   providers: [
     {

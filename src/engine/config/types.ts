@@ -25,6 +25,12 @@ export interface RuntimeConfig {
     /** Shared secret for authenticating webhook requests */
     secret?: string;
   };
+  /** Audio transcription configuration */
+  audio?: {
+    enabled: boolean;
+    /** Prefer local Whisper over cloud API when both are available */
+    preferLocal: boolean;
+  };
 }
 
 /** On-disk config.json schema (v3 — merged models + runtime) */

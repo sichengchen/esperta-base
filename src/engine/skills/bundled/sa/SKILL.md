@@ -77,17 +77,18 @@ Skills are NOT tools — they are prompt-level instructions that teach you how t
 
 ## Common User Tasks
 
-### Setting an API key
-Use the `set_api_key` tool to store keys in SA's encrypted vault (`secrets.enc`). **Never** write API keys to shell profiles (`.zshrc`, `.bashrc`) or environment files.
+### Setting environment variables
+**Never** write to shell profiles (`.zshrc`, `.bashrc`) or dotenv files. Use SA's own tools:
+
+- `set_env_secret` — for sensitive values (API keys, tokens, passwords). Stored encrypted in `secrets.enc`.
+- `set_env_variable` — for non-sensitive values (feature flags, paths, config). Stored in `config.json`.
 
 ```
-set_api_key(name: "BRAVE_API_KEY", value: "BSA...")
+set_env_secret(name: "BRAVE_API_KEY", value: "BSA...")
+set_env_variable(name: "SA_LOG_LEVEL", value: "debug")
 ```
 
-Common tool keys: `BRAVE_API_KEY`, `PERPLEXITY_API_KEY`, `OPENAI_API_KEY`.
-Common provider keys: `ANTHROPIC_API_KEY`, `OPENAI_API_KEY`, `GOOGLE_AI_API_KEY`, `OPENROUTER_API_KEY`, `NVIDIA_API_KEY`.
-
-Keys take effect immediately and persist across engine restarts.
+Both take effect immediately and persist across engine restarts.
 
 For interactive key management, direct the user to: `sa config`
 

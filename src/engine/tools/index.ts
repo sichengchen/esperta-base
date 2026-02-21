@@ -22,7 +22,7 @@ export { webSearchTool } from "./web-search.js";
 export { reactionTool } from "./reaction.js";
 export { createClawHubInstallTool } from "./clawhub-install.js";
 export { createClawHubUpdateTool } from "./clawhub-update.js";
-export { createSetApiKeyTool } from "./set-api-key.js";
+export { createSetEnvSecretTool, createSetEnvVariableTool } from "./set-api-key.js";
 
 export function getBuiltinTools(): ToolImpl[] {
   return [readTool, writeTool, editTool, execTool, execStatusTool, execKillTool, webFetchTool, webSearchTool, reactionTool, clawHubSearchTool];

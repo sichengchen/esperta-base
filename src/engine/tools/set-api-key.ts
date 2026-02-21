@@ -2,22 +2,21 @@ import { Type } from "@mariozechner/pi-ai";
 import type { ToolImpl } from "../agent/types.js";
 import type { ConfigManager } from "../config/index.js";
 
-/** Create a set_api_key tool bound to a ConfigManager instance */
-export function createSetApiKeyTool(config: ConfigManager): ToolImpl {
+/** Create a set_env_secret tool — stores values encrypted in secrets.enc */
+export function createSetEnvSecretTool(config: ConfigManager): ToolImpl {
   return {
-    name: "set_api_key",
+    name: "set_env_secret",
     description:
-      "Store an API key securely in SA's encrypted secrets vault (secrets.enc). " +
-      "The key becomes available immediately and persists across engine restarts.",
+      "Store a sensitive value (API key, token, password) in SA's encrypted vault (secrets.enc). " +
+      "The value is injected as an environment variable immediately and persists across restarts.",
     summary:
-      "Store an API key in SA's encrypted vault. Use for tool keys (BRAVE_API_KEY, PERPLEXITY_API_KEY) " +
-      "and provider keys (ANTHROPIC_API_KEY, OPENAI_API_KEY, etc.). Keys take effect immediately.",
+      "Store a secret (API key, token) encrypted in secrets.enc. " +
+      "Use for: BRAVE_API_KEY, ANTHROPIC_API_KEY, OPENAI_API_KEY, bot tokens, etc.",
     parameters: Type.Object({
       name: Type.String({
-        description:
-          'Environment variable name for the key, e.g. "BRAVE_API_KEY", "OPENAI_API_KEY"',
+        description: 'Environment variable name, e.g. "BRAVE_API_KEY"',
       }),
-      value: Type.String({ description: "The API key value" }),
+      value: Type.String({ description: "The secret value" }),
     }),
     async execute(args) {
       const name = args.name as string;
@@ -31,17 +30,59 @@ export function createSetApiKeyTool(config: ConfigManager): ToolImpl {
         const secrets = (await config.loadSecrets()) ?? { apiKeys: {} };
         secrets.apiKeys[name] = value;
         await config.saveSecrets(secrets);
-
-        // Inject into current process so tools pick it up immediately
         process.env[name] = value;
 
         return {
-          content: `Stored ${name} in encrypted secrets vault. The key is active now.`,
+          content: `Stored ${name} in encrypted vault. Active now.`,
           isError: false,
         };
       } catch (err) {
         const msg = err instanceof Error ? err.message : String(err);
-        return { content: `Error storing key: ${msg}`, isError: true };
+        return { content: `Error: ${msg}`, isError: true };
+      }
+    },
+  };
+}
+
+/** Create a set_env_variable tool — stores values in plain config.json */
+export function createSetEnvVariableTool(config: ConfigManager): ToolImpl {
+  return {
+    name: "set_env_variable",
+    description:
+      "Set a non-sensitive environment variable in SA's config (config.json runtime.env). " +
+      "The value is injected immediately and persists across restarts. " +
+      "Do NOT use for secrets — use set_env_secret instead.",
+    summary:
+      "Set a plain (non-secret) environment variable in config.json. " +
+      "Use for: feature flags, paths, non-sensitive config. Not for API keys or tokens.",
+    parameters: Type.Object({
+      name: Type.String({
+        description: 'Environment variable name, e.g. "SA_LOG_LEVEL"',
+      }),
+      value: Type.String({ description: "The value to set" }),
+    }),
+    async execute(args) {
+      const name = args.name as string;
+      const value = args.value as string;
+
+      if (!name.trim()) {
+        return { content: "Error: name must not be empty", isError: true };
+      }
+
+      try {
+        const configFile = config.getConfigFile();
+        const env = configFile.runtime.env ?? {};
+        env[name] = value;
+        await config.saveConfig({ ...configFile, runtime: { ...configFile.runtime, env } });
+        process.env[name] = value;
+
+        return {
+          content: `Set ${name} in config. Active now.`,
+          isError: false,
+        };
+      } catch (err) {
+        const msg = err instanceof Error ? err.message : String(err);
+        return { content: `Error: ${msg}`, isError: true };
       }
     },
   };

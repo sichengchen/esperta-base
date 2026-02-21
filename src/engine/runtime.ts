@@ -9,7 +9,7 @@ import { getBuiltinTools, formatToolsSection } from "./tools/index.js";
 import { createRememberTool } from "./tools/remember.js";
 import { createClawHubInstallTool } from "./tools/clawhub-install.js";
 import { createClawHubUpdateTool } from "./tools/clawhub-update.js";
-import { createSetApiKeyTool } from "./tools/set-api-key.js";
+import { createSetEnvSecretTool, createSetEnvVariableTool } from "./tools/set-api-key.js";
 import { SessionManager } from "./sessions.js";
 import { AuthManager } from "./auth.js";
 import { SkillRegistry, formatSkillsDiscovery } from "./skills/index.js";
@@ -75,7 +75,16 @@ export async function createRuntime(): Promise<EngineRuntime> {
   const memory = new MemoryManager(memoryDir);
   await memory.init();
 
-  // Load secrets — inject stored API keys into process.env (env vars take precedence)
+  // Inject plain env vars from config.json (env vars take precedence)
+  if (saConfig.runtime.env) {
+    for (const [envVar, value] of Object.entries(saConfig.runtime.env)) {
+      if (!process.env[envVar] && value) {
+        process.env[envVar] = value;
+      }
+    }
+  }
+
+  // Inject encrypted secrets into process.env (env vars take precedence, secrets override plain config)
   const secrets = await config.loadSecrets();
   if (secrets?.apiKeys) {
     for (const [envVar, value] of Object.entries(secrets.apiKeys)) {
@@ -110,7 +119,8 @@ export async function createRuntime(): Promise<EngineRuntime> {
     createReadSkillTool(skills),
     createClawHubInstallTool(saHome, skills),
     createClawHubUpdateTool(saHome, skills),
-    createSetApiKeyTool(config),
+    createSetEnvSecretTool(config),
+    createSetEnvVariableTool(config),
   ];
 
   // Assemble system prompt

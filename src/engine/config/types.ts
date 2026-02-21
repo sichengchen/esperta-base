@@ -31,6 +31,8 @@ export interface RuntimeConfig {
     /** Prefer local Whisper over cloud API when both are available */
     preferLocal: boolean;
   };
+  /** Plain (non-secret) environment variables injected at engine startup */
+  env?: Record<string, string>;
 }
 
 /** On-disk config.json schema (v3 — merged models + runtime) */

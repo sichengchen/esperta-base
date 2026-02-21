@@ -8,6 +8,7 @@ phase: phase-2
 branch: feature/phase-2
 created: 2026-02-20
 shipped_at: 2026-02-21
+pr: https://github.com/sichengchen/sa/pull/2
 ---
 # Prompt engineering for skill/tool compliance with weaker models
 

@@ -168,6 +168,10 @@ export class DiscordConnector {
                       .setCustomId(`reject:${event.id}`)
                       .setLabel("Reject")
                       .setStyle(ButtonStyle.Danger),
+                    new ButtonBuilder()
+                      .setCustomId(`always:${event.id}`)
+                      .setLabel(`Always allow ${event.name}`)
+                      .setStyle(ButtonStyle.Primary),
                   );
                   await message.channel.send({
                     content: `Tool: **${event.name}** — Approve execution?`,
@@ -215,6 +219,19 @@ export class DiscordConnector {
         } catch (err) {
           const msg = err instanceof Error ? err.message : String(err);
           await interaction.reply({ content: `Failed to switch: ${msg}`, ephemeral: true });
+        }
+        return;
+      }
+
+      if (action === "always" && value) {
+        try {
+          await this.client.tool.acceptForSession.mutate({ toolCallId: value });
+          await interaction.update({
+            content: "Tool always allowed for this session.",
+            components: [],
+          });
+        } catch {
+          await interaction.reply({ content: "Failed to process.", ephemeral: true });
         }
         return;
       }

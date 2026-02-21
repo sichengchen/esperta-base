@@ -2,8 +2,7 @@
 /**
  * Updates the Homebrew tap formula with the current version and checksum.
  *
- * Reads the checksum from the local artifact file (downloaded by the release workflow),
- * clones the tap repo, updates the formula, commits, and pushes.
+ * Uses the GitHub API to commit the formula directly — no git clone needed.
  *
  * Requires:
  *   TAP_GITHUB_TOKEN env var — a GitHub PAT with repo scope for the tap repo
@@ -14,11 +13,16 @@
 
 import { readFileSync } from "fs";
 import { resolve } from "path";
-import { execSync } from "child_process";
 
 const TAP_REPO = "sichengchen/homebrew-tap";
 const FORMULA_PATH = "Formula/sa.rb";
 const SA_REPO = "sichengchen/sa";
+
+const token = process.env.TAP_GITHUB_TOKEN;
+if (!token) {
+  console.error("Error: TAP_GITHUB_TOKEN env var is required");
+  process.exit(1);
+}
 
 // Read version from package.json
 const pkgPath = resolve(import.meta.dir, "..", "package.json");
@@ -57,28 +61,38 @@ const formula = `class Sa < Formula
 end
 `;
 
-// Clone tap, update formula, commit, push
-const token = process.env.TAP_GITHUB_TOKEN;
-if (!token) {
-  console.error("Error: TAP_GITHUB_TOKEN env var is required");
-  process.exit(1);
+const api = `https://api.github.com/repos/${TAP_REPO}/contents/${FORMULA_PATH}`;
+const headers = {
+  Authorization: `Bearer ${token}`,
+  Accept: "application/vnd.github.v3+json",
+  "X-GitHub-Api-Version": "2022-11-28",
+};
+
+// Get current file SHA (needed for updates, absent for creation)
+let fileSha: string | undefined;
+const getRes = await fetch(api, { headers });
+if (getRes.ok) {
+  const data = (await getRes.json()) as { sha: string };
+  fileSha = data.sha;
 }
 
-const tmpDir = `/tmp/homebrew-tap-${Date.now()}`;
-const cloneUrl = `https://x-access-token:${token}@github.com/${TAP_REPO}.git`;
+// Commit the formula via the Contents API
+const body: Record<string, string> = {
+  message: `sa ${version}`,
+  content: Buffer.from(formula).toString("base64"),
+};
+if (fileSha) body.sha = fileSha;
 
-execSync(`git clone --depth 1 ${cloneUrl} ${tmpDir}`, { stdio: "inherit" });
-execSync(`mkdir -p ${tmpDir}/Formula`, { stdio: "inherit" });
+const putRes = await fetch(api, {
+  method: "PUT",
+  headers,
+  body: JSON.stringify(body),
+});
 
-const formulaPath = resolve(tmpDir, FORMULA_PATH);
-Bun.write(formulaPath, formula);
-
-execSync(
-  `cd ${tmpDir} && git add Formula/sa.rb && git commit -m "sa ${version}" && git push`,
-  { stdio: "inherit" },
-);
-
-// Cleanup
-execSync(`rm -rf ${tmpDir}`);
+if (!putRes.ok) {
+  const err = await putRes.text();
+  console.error(`Failed to update formula: ${putRes.status} ${err}`);
+  process.exit(1);
+}
 
 console.log(`\nHomebrew formula updated to ${version}`);

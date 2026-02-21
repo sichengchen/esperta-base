@@ -60,7 +60,7 @@ describe("Config + Router integration", () => {
     });
     expect(router.getActiveModelName()).toBe("fast");
 
-    router.switchModel("smart");
+    await router.switchModel("smart");
     expect(router.getActiveModelName()).toBe("smart");
 
     const cfg = router.getConfig();

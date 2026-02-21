@@ -96,13 +96,13 @@ describe("ModelRouter", () => {
       router = ModelRouter.fromConfig(validConfig);
     });
 
-    test("switches to a valid model", () => {
-      router.switchModel("gpt4o");
+    test("switches to a valid model", async () => {
+      await router.switchModel("gpt4o");
       expect(router.getActiveModelName()).toBe("gpt4o");
     });
 
     test("throws on unknown model", () => {
-      expect(() => router.switchModel("nonexistent")).toThrow("not found");
+      expect(router.switchModel("nonexistent")).rejects.toThrow("not found");
     });
   });
 
@@ -197,7 +197,7 @@ describe("ModelRouter", () => {
     });
 
     test("resets active to default when active model is removed", async () => {
-      router.switchModel("gpt4o");
+      await router.switchModel("gpt4o");
       await router.removeModel("gpt4o");
       expect(router.getActiveModelName()).toBe("sonnet");
     });

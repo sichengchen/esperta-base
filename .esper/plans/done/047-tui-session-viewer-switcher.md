@@ -1,14 +1,14 @@
 ---
-id: 047
+id: 47
 title: TUI session viewer and switcher
-status: pending
+status: done
 type: feature
 priority: 2
 phase: phase-3
 branch: feature/phase-3
 created: 2026-02-21
+shipped_at: 2026-02-21
 ---
-
 # TUI session viewer and switcher
 
 ## Context
@@ -44,3 +44,12 @@ The TUI connector (`src/connectors/tui/App.tsx`) creates a single session on mou
 - Run: `bun test && bun run typecheck`
 - Expected: /sessions lists all sessions; /switch changes active session and loads history
 - Edge cases: Switching to a session owned by another connector type; session destroyed while viewing; empty session list; history message format compatibility with ChatView
+
+## Progress
+- Created SessionPicker component (arrow keys, Enter to switch, Esc to cancel)
+- Added /sessions command to open session picker
+- Added /switch <id> command for prefix-based session switching with history load
+- Added Ctrl+S shortcut to toggle session picker
+- Updated StatusBar to show session ID prefix and connector type
+- Modified: src/connectors/tui/App.tsx, src/connectors/tui/SessionPicker.tsx, src/connectors/tui/StatusBar.tsx
+- Verification: typecheck passed, lint passed, 201 tests passed

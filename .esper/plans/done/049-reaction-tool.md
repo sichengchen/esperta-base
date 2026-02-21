@@ -1,14 +1,14 @@
 ---
-id: 049
+id: 49
 title: Reaction tool for IM emoji tap-backs
-status: pending
+status: done
 type: feature
 priority: 3
 phase: phase-3
 branch: feature/phase-3
 created: 2026-02-21
+shipped_at: 2026-02-21
 ---
-
 # Reaction tool for IM emoji tap-backs
 
 ## Context
@@ -44,3 +44,15 @@ Telegram and Discord both support emoji reactions on messages. Adding a `reactio
 - Run: `bun test && bun run typecheck`
 - Expected: Agent can call reaction tool; emoji appears as reaction in Telegram/Discord
 - Edge cases: Unsupported emoji on Telegram (limited set); Discord permissions for reactions; multiple reactions on same message; reaction on old messages
+
+## Progress
+- Created reaction tool (emoji parameter, returns __reaction__:emoji content)
+- Added reaction EngineEvent type to shared/types.ts
+- Registered tool in index.ts (10 builtin tools)
+- procedures.ts intercepts reaction tool_end and emits reaction event
+- Telegram: tracks lastUserMessageId, calls setMessageReaction API
+- Discord: tracks lastUserMessage, calls message.react()
+- TUI: displays reaction as inline tool message
+- Updated test expectations across 3 test files
+- Verification: typecheck ✓, lint ✓, 201 tests pass ✓
+- Modified: reaction.ts, index.ts, types.ts, procedures.ts, telegram/transport.ts, discord/transport.ts, App.tsx

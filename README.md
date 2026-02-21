@@ -2,21 +2,38 @@
 
 Yet another personal AI assistant.
 
+## Install
+
+```bash
+brew tap sichengchen/tap
+brew install sa
+```
+
+Requires [Bun](https://bun.sh). Update with `brew upgrade sa`.
+
 ## Architecture
 
 The **Engine** runs as a background daemon and owns the agent loop, tools, memory, skills, scheduler, audio transcription, and model routing. **Connectors** (Telegram, Discord) auto-start with the Engine when configured. The **TUI** is launched on-demand. A **Webhook** endpoint (`POST /webhook`) allows external systems to send messages programmatically.
 
-## Quickstart
+## Development
 
 ```bash
-git clone <repo-url> sa
+git clone https://github.com/sichengchen/sa.git
 cd sa
 bun install
-cp .env.example .env   # add at least one API key
 bun run dev            # starts Engine (if needed) + opens TUI
 ```
 
 On first run, an onboarding wizard configures identity, model/provider settings, and optional connectors. Config is saved to `~/.sa/` (or `SA_HOME` if set).
+
+| Command | Purpose |
+|---------|---------|
+| `bun run dev` | Run from source |
+| `bun run build` | Bundle to `dist/` |
+| `bun test` | Run tests |
+| `bun run lint` | ESLint |
+| `bun run typecheck` | TypeScript check |
+| `bun run version:bump` | Bump CalVer + tag |
 
 ## SA CLI
 

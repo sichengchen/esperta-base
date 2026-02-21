@@ -1,6 +1,6 @@
 # SA (Sasa)
 
-Personal AI agent assistant with a daemon Engine, terminal UI, and optional Telegram/Discord connectors.
+Yet another personal AI assistant.
 
 ## Architecture
 

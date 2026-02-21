@@ -61,7 +61,7 @@ const formula = `class Sa < Formula
     working_dir Dir.home
     log_path var/"log/sa/engine.log"
     error_log_path var/"log/sa/engine.log"
-    environment_variables SA_HOME: "\#{Dir.home}/.sa"
+    environment_variables SA_HOME: "\#{Dir.home}/.sa", PATH: "\#{HOMEBREW_PREFIX}/bin:\#{HOMEBREW_PREFIX}/sbin:/usr/bin:/bin:/usr/sbin:/sbin"
   end
 
   test do

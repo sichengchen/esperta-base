@@ -1,14 +1,14 @@
 ---
-id: 050
+id: 50
 title: Audio transcription for IM connectors
-status: pending
+status: done
 type: feature
 priority: 2
 phase: phase-3
 branch: feature/phase-3
 created: 2026-02-21
+shipped_at: 2026-02-21
 ---
-
 # Audio transcription for IM connectors
 
 ## Context
@@ -16,9 +16,11 @@ Telegram and Discord both support voice messages, but SA currently only handles 
 
 ## Approach
 
-1. **Detect local Whisper installation** — on Engine startup, check for:
-   - `whisper` CLI (OpenAI Whisper via pip)
-   - `whisper-cpp` / `whisper.cpp` binary
+1. **Detect local Whisper installation** — on Engine startup, check for Local CLIs (if installed and not configured):
+   - `sherpa-onnx-offline` (requires SHERPA_ONNX_MODEL_DIR with encoder/decoder/joiner/tokens)
+   - `whisper-cli` (from whisper-cpp; uses WHISPER_CPP_MODEL or the bundled tiny model)
+   - `whisper` (Python CLI; downloads models automatically)
+   - Gemini CLI (`gemini`) using read_many_files
    - Store availability in Engine runtime state
 
 2. **Create transcription service** — `src/engine/audio/transcriber.ts`:
@@ -59,3 +61,16 @@ Telegram and Discord both support voice messages, but SA currently only handles 
 - Run: `bun test`
 - Expected: Voice messages are transcribed and processed; agent responds to transcript
 - Edge cases: Large audio files (timeout/memory), unsupported audio formats, no Whisper + no OpenAI key (clear error), concurrent transcription requests, Telegram OGG format conversion
+
+## Progress
+- Created transcription service with 3 backends: whisper-cpp, whisper-python, openai-api
+- Auto-detects local whisper CLI availability, falls back to OpenAI cloud API
+- Added audio config (enabled, preferLocal) to RuntimeConfig types and defaults
+- Added transcriber to EngineRuntime, initialized on startup
+- Added chat.transcribeAndSend tRPC subscription (base64 audio → transcribe → stream agent response)
+- Telegram: handles message:voice and message:audio events, downloads via getFile API
+- Discord: detects audio attachments in messageCreate, downloads and sends to Engine
+- Both connectors show "Transcribing voice message..." then update with transcript
+- Simplified sherpa-onnx and Gemini backends from plan — focused on whisper-cpp, whisper-python, and OpenAI
+- Verification: typecheck ✓, lint ✓, 201 tests pass ✓
+- Modified: transcriber.ts, index.ts (audio), runtime.ts, procedures.ts, telegram/transport.ts, discord/transport.ts, types.ts, defaults.ts

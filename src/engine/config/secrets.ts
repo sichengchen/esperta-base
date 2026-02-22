@@ -7,11 +7,14 @@ import {
 import { readFile, writeFile, chmod } from "node:fs/promises";
 import { existsSync } from "node:fs";
 import { join } from "node:path";
-import { hostname } from "node:os";
+import { hostname, userInfo } from "node:os";
 import type { SecretsFile } from "./types.js";
 
 const SALT_FILE = ".salt";
 const SECRETS_FILE = "secrets.enc";
+
+/** Explicit scrypt parameters: N=2^14 (16384), r=8, p=1 — ~100ms on modern hardware */
+const SCRYPT_PARAMS = { N: 16384, r: 8, p: 1, maxmem: 32 * 1024 * 1024 };
 
 /** Read or generate the machine salt (32 bytes, stored as hex). */
 async function getSalt(homeDir: string): Promise<Buffer> {
@@ -26,8 +29,22 @@ async function getSalt(homeDir: string): Promise<Buffer> {
   return salt;
 }
 
-/** Derive a 32-byte encryption key from hostname + salt using scrypt. */
+/**
+ * Build a machine fingerprint with more entropy than hostname alone.
+ * Combines hostname + username + home directory for a longer, less guessable input.
+ */
+function machineFingerprint(): string {
+  const info = userInfo();
+  return `${hostname()}:${info.username}:${info.homedir}`;
+}
+
+/** Derive a 32-byte encryption key from machine fingerprint + salt using scrypt. */
 function deriveKey(salt: Buffer): Buffer {
+  return scryptSync(machineFingerprint(), salt, 32, SCRYPT_PARAMS) as Buffer;
+}
+
+/** Legacy key derivation (hostname-only) for migration from pre-v5.1 secrets. */
+function deriveKeyLegacy(salt: Buffer): Buffer {
   return scryptSync(hostname(), salt, 32) as Buffer;
 }
 
@@ -64,21 +81,48 @@ function decrypt(raw: string, key: Buffer): SecretsFile {
   return JSON.parse(decrypted.toString("utf-8"));
 }
 
-/** Load and decrypt secrets from ~/.sa/secrets.enc. Returns null if missing or corrupted. */
+/**
+ * Load and decrypt secrets from ~/.sa/secrets.enc.
+ * Tries the current key derivation first, then falls back to legacy (hostname-only)
+ * for migration. If legacy succeeds, re-encrypts with the new derivation.
+ * Returns null if the file is missing or cannot be decrypted.
+ */
 export async function loadSecrets(homeDir: string): Promise<SecretsFile | null> {
   const secretsPath = join(homeDir, SECRETS_FILE);
   if (!existsSync(secretsPath)) return null;
+
+  const salt = await getSalt(homeDir);
+  const raw = await readFile(secretsPath, "utf-8");
+
+  // Try current derivation
   try {
-    const salt = await getSalt(homeDir);
     const key = deriveKey(salt);
-    const raw = await readFile(secretsPath, "utf-8");
     return decrypt(raw, key);
   } catch {
-    console.warn(
-      "[sa] Warning: secrets.enc could not be decrypted — falling back to environment variables"
-    );
-    return null;
+    // Current derivation failed — try legacy migration
   }
+
+  // Try legacy (hostname-only) derivation for migration
+  try {
+    const legacyKey = deriveKeyLegacy(salt);
+    const secrets = decrypt(raw, legacyKey);
+
+    // Legacy decryption succeeded — re-encrypt with new derivation
+    console.warn("[sa] Migrating secrets.enc to improved key derivation...");
+    const newKey = deriveKey(salt);
+    const reEncrypted = encrypt(secrets, newKey);
+    await writeFile(secretsPath, reEncrypted);
+    await chmod(secretsPath, 0o600);
+
+    return secrets;
+  } catch {
+    // Both derivations failed
+  }
+
+  console.warn(
+    "[sa] Warning: secrets.enc could not be decrypted (file may be corrupted or from a different machine) — falling back to environment variables"
+  );
+  return null;
 }
 
 /** Encrypt and save secrets to ~/.sa/secrets.enc (chmod 600). */
@@ -93,3 +137,6 @@ export async function saveSecrets(
   await writeFile(secretsPath, encrypted);
   await chmod(secretsPath, 0o600);
 }
+
+// Exported for testing only
+export const _internal = { deriveKey, deriveKeyLegacy, encrypt, decrypt, machineFingerprint };

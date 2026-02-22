@@ -1,9 +1,10 @@
 import { describe, it, expect, beforeEach, afterEach } from "bun:test";
-import { mkdtemp, rm } from "node:fs/promises";
+import { mkdtemp, rm, readFile, writeFile, stat } from "node:fs/promises";
 import { existsSync } from "node:fs";
 import { join } from "node:path";
-import { tmpdir } from "node:os";
-import { loadSecrets, saveSecrets } from "./secrets.js";
+import { tmpdir, hostname } from "node:os";
+import { randomBytes, scryptSync, createCipheriv } from "node:crypto";
+import { loadSecrets, saveSecrets, _internal } from "./secrets.js";
 import type { SecretsFile } from "./types.js";
 
 describe("secrets", () => {
@@ -75,7 +76,6 @@ describe("secrets", () => {
 
   it("reuses the existing salt on subsequent saves", async () => {
     await saveSecrets(dir, { apiKeys: { KEY1: "val1" } });
-    const { readFile } = await import("node:fs/promises");
     const salt1 = await readFile(join(dir, ".salt"), "utf-8");
 
     await saveSecrets(dir, { apiKeys: { KEY2: "val2" } });
@@ -85,18 +85,140 @@ describe("secrets", () => {
   });
 
   it("returns null and logs a warning for a corrupted secrets.enc", async () => {
-    const { writeFile } = await import("node:fs/promises");
-    // Write an invalid (non-JSON) encrypted file
     await writeFile(join(dir, "secrets.enc"), "this is not valid json");
 
     const originalWarn = console.warn;
-    let warned = false;
-    console.warn = () => { warned = true; };
+    let warnMessage = "";
+    console.warn = (msg: string) => { warnMessage = msg; };
 
     const result = await loadSecrets(dir);
 
     console.warn = originalWarn;
     expect(result).toBeNull();
-    expect(warned).toBe(true);
+    expect(warnMessage).toContain("could not be decrypted");
+  });
+
+  it("sets .salt file permissions to 0600", async () => {
+    await saveSecrets(dir, { apiKeys: { KEY: "val" } });
+    const saltStat = await stat(join(dir, ".salt"));
+    expect(saltStat.mode & 0o777).toBe(0o600);
+  });
+
+  it("sets secrets.enc file permissions to 0600", async () => {
+    await saveSecrets(dir, { apiKeys: { KEY: "val" } });
+    const encStat = await stat(join(dir, "secrets.enc"));
+    expect(encStat.mode & 0o777).toBe(0o600);
+  });
+});
+
+describe("key derivation", () => {
+  it("machine fingerprint includes hostname and username", () => {
+    const fp = _internal.machineFingerprint();
+    expect(fp).toContain(hostname());
+    expect(fp.split(":").length).toBeGreaterThanOrEqual(3);
+  });
+
+  it("new derivation produces a 32-byte key", () => {
+    const salt = randomBytes(32);
+    const key = _internal.deriveKey(salt);
+    expect(key.length).toBe(32);
+  });
+
+  it("legacy derivation produces a different key than new derivation", () => {
+    const salt = randomBytes(32);
+    const newKey = _internal.deriveKey(salt);
+    const legacyKey = _internal.deriveKeyLegacy(salt);
+    expect(Buffer.compare(newKey, legacyKey)).not.toBe(0);
+  });
+});
+
+describe("legacy migration", () => {
+  let dir: string;
+
+  beforeEach(async () => {
+    dir = await mkdtemp(join(tmpdir(), "sa-secrets-migrate-"));
+  });
+
+  afterEach(async () => {
+    await rm(dir, { recursive: true, force: true });
+  });
+
+  /** Write a secrets file encrypted with the legacy (hostname-only) derivation */
+  async function writeLegacySecrets(homeDir: string, secrets: SecretsFile): Promise<void> {
+    const salt = randomBytes(32);
+    await writeFile(join(homeDir, ".salt"), salt.toString("hex") + "\n");
+
+    // Legacy derivation: hostname only, default scrypt params
+    const key = scryptSync(hostname(), salt, 32) as Buffer;
+
+    const iv = randomBytes(16);
+    const cipher = createCipheriv("aes-256-gcm", key, iv);
+    const plaintext = JSON.stringify(secrets);
+    const encrypted = Buffer.concat([
+      cipher.update(plaintext, "utf-8"),
+      cipher.final(),
+    ]);
+    const authTag = cipher.getAuthTag();
+
+    const encData = JSON.stringify({
+      iv: iv.toString("hex"),
+      authTag: authTag.toString("hex"),
+      data: encrypted.toString("hex"),
+    });
+
+    await writeFile(join(homeDir, "secrets.enc"), encData);
+  }
+
+  it("migrates legacy-encrypted secrets to new derivation", async () => {
+    const secrets: SecretsFile = {
+      apiKeys: { LEGACY_KEY: "legacy-value-123" },
+    };
+
+    await writeLegacySecrets(dir, secrets);
+
+    const originalWarn = console.warn;
+    let migrated = false;
+    console.warn = (msg: string) => {
+      if (msg.includes("Migrating")) migrated = true;
+    };
+
+    const loaded = await loadSecrets(dir);
+
+    console.warn = originalWarn;
+    expect(loaded).not.toBeNull();
+    expect(loaded!.apiKeys.LEGACY_KEY).toBe("legacy-value-123");
+    expect(migrated).toBe(true);
+
+    // Second load should use new derivation directly (no migration)
+    let migratedAgain = false;
+    console.warn = (msg: string) => {
+      if (msg.includes("Migrating")) migratedAgain = true;
+    };
+
+    const loaded2 = await loadSecrets(dir);
+
+    console.warn = originalWarn;
+    expect(loaded2).not.toBeNull();
+    expect(loaded2!.apiKeys.LEGACY_KEY).toBe("legacy-value-123");
+    expect(migratedAgain).toBe(false);
+  });
+
+  it("returns null with specific warning for unrecoverable corruption", async () => {
+    await writeFile(join(dir, ".salt"), randomBytes(32).toString("hex") + "\n");
+    await writeFile(join(dir, "secrets.enc"), JSON.stringify({
+      iv: randomBytes(16).toString("hex"),
+      authTag: randomBytes(16).toString("hex"),
+      data: randomBytes(64).toString("hex"),
+    }));
+
+    const originalWarn = console.warn;
+    let warnMessage = "";
+    console.warn = (msg: string) => { warnMessage = msg; };
+
+    const result = await loadSecrets(dir);
+
+    console.warn = originalWarn;
+    expect(result).toBeNull();
+    expect(warnMessage).toContain("corrupted or from a different machine");
   });
 });

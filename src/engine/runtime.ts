@@ -10,6 +10,7 @@ import { createRememberTool } from "./tools/remember.js";
 import { createClawHubInstallTool } from "./tools/clawhub-install.js";
 import { createClawHubUpdateTool } from "./tools/clawhub-update.js";
 import { createSetEnvSecretTool, createSetEnvVariableTool } from "./tools/set-api-key.js";
+import { createNotifyTool } from "./tools/notify.js";
 import { SessionManager } from "./sessions.js";
 import { AuthManager } from "./auth.js";
 import { SkillRegistry, formatSkillsDiscovery } from "./skills/index.js";
@@ -162,6 +163,7 @@ export async function createRuntime(): Promise<EngineRuntime> {
     createClawHubUpdateTool(saHome, skills),
     createSetEnvSecretTool(config),
     createSetEnvVariableTool(config),
+    createNotifyTool(secrets),
   ];
 
   // Assemble system prompt

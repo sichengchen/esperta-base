@@ -115,6 +115,19 @@ Configuration in `config.json`:
 }
 ```
 
+## Notify Tool
+
+The `notify` tool pushes messages to the user's Telegram and/or Discord:
+
+```
+notify(message: "Your task completed!", connector?: "telegram" | "discord" | "all")
+```
+
+- **Safe tool** (auto-approved) — sends to the paired chat/channel only
+- Uses HTTP directly (no Grammy/discord.js dependency)
+- Requires: Telegram bot token + paired chat ID, or Discord bot token + SA_DISCORD_NOTIFY_CHANNEL env var
+- Used by heartbeat, cron tasks, and any agent flow that needs to alert the user
+
 ## Common User Tasks
 
 ### Setting environment variables

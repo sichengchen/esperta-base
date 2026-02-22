@@ -247,19 +247,21 @@ describe("ToolPolicyManager", () => {
     const pm = new ToolPolicyManager(undefined, builtinLevels);
 
     it("suppresses safe tool approvals", () => {
-      expect(pm.shouldEmitApproval("tui", ctx("read", "safe"))).toBe(false);
+      expect(pm.shouldEmitApproval("tui", ctx("read", "safe"), "ask")).toBe(false);
     });
 
-    it("emits for moderate tools", () => {
-      expect(pm.shouldEmitApproval("tui", ctx("write", "moderate"))).toBe(true);
+    it("suppresses moderate tools when mode is not 'always'", () => {
+      expect(pm.shouldEmitApproval("tui", ctx("write", "moderate"), "never")).toBe(false);
+      expect(pm.shouldEmitApproval("telegram", ctx("write", "moderate"), "ask")).toBe(false);
     });
 
-    it("emits for dangerous tools", () => {
-      expect(pm.shouldEmitApproval("tui", ctx("exec", "dangerous"))).toBe(true);
+    it("emits for moderate tools when mode is 'always'", () => {
+      expect(pm.shouldEmitApproval("tui", ctx("write", "moderate"), "always")).toBe(true);
     });
 
-    it("emits even in silent mode for dangerous tools", () => {
-      expect(pm.shouldEmitApproval("telegram", ctx("exec", "dangerous"))).toBe(true);
+    it("emits for dangerous tools regardless of mode", () => {
+      expect(pm.shouldEmitApproval("tui", ctx("exec", "dangerous"), "never")).toBe(true);
+      expect(pm.shouldEmitApproval("telegram", ctx("exec", "dangerous"), "ask")).toBe(true);
     });
   });
 

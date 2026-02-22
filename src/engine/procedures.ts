@@ -147,6 +147,7 @@ export function createAppRouter(runtime: EngineRuntime) {
   async function* filterAgentEvents(
     events: AsyncIterable<AgentEvent>,
     connectorType: ConnectorType,
+    approvalMode: ToolApprovalMode,
   ): AsyncGenerator<EngineEvent> {
     const isIM = connectorType !== "tui";
 
@@ -199,7 +200,7 @@ export function createAppRouter(runtime: EngineRuntime) {
             toolName: event.name,
             dangerLevel: getDangerLevel(event.name),
           };
-          if (!policyManager.shouldEmitApproval(connectorType, ctx)) break;
+          if (!policyManager.shouldEmitApproval(connectorType, ctx, approvalMode)) break;
           yield {
             type: "tool_approval_request",
             name: event.name,
@@ -255,7 +256,7 @@ export function createAppRouter(runtime: EngineRuntime) {
           const connectorType = session.connectorType as ConnectorType;
 
           try {
-            yield* filterAgentEvents(agent.chat(input.message), connectorType);
+            yield* filterAgentEvents(agent.chat(input.message), connectorType, getApprovalMode(input.sessionId));
           } catch (err) {
             const message = err instanceof Error ? err.message : String(err);
             yield { type: "error", message };
@@ -316,7 +317,7 @@ export function createAppRouter(runtime: EngineRuntime) {
           const agent = getSessionAgent(input.sessionId);
           const connectorType = session.connectorType as ConnectorType;
           try {
-            yield* filterAgentEvents(agent.chat(transcript), connectorType);
+            yield* filterAgentEvents(agent.chat(transcript), connectorType, getApprovalMode(input.sessionId));
           } catch (err) {
             const message = err instanceof Error ? err.message : String(err);
             yield { type: "error", message };

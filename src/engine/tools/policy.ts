@@ -1,5 +1,5 @@
 import type { DangerLevel } from "../agent/types.js";
-import type { ConnectorType } from "@sa/shared/types.js";
+import type { ConnectorType, ToolApprovalMode } from "@sa/shared/types.js";
 import type { ToolPolicyConfig, ToolVerbosity } from "../config/types.js";
 
 /** Default per-connector verbosity */
@@ -91,8 +91,12 @@ export class ToolPolicyManager {
   }
 
   /** Decide whether to emit a tool_approval_request event */
-  shouldEmitApproval(_connectorType: ConnectorType, ctx: ToolEventContext): boolean {
-    // Always emit approval requests for non-safe tools — the approval dialog is critical
-    return ctx.dangerLevel !== "safe";
+  shouldEmitApproval(_connectorType: ConnectorType, ctx: ToolEventContext, approvalMode: ToolApprovalMode): boolean {
+    // Safe tools never need approval
+    if (ctx.dangerLevel === "safe") return false;
+    // Dangerous tools always need approval
+    if (ctx.dangerLevel === "dangerous") return true;
+    // Moderate tools only block when mode is "always"
+    return approvalMode === "always";
   }
 }

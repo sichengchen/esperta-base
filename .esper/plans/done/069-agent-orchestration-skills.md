@@ -1,14 +1,14 @@
 ---
-id: 069
-title: "Skill-based agent orchestration"
-status: pending
+id: 69
+title: Skill-based agent orchestration
+status: done
 type: feature
 priority: 3
 phase: 006-full-stack-polish
 branch: feature/006-full-stack-polish
 created: 2026-02-22
+shipped_at: 2026-02-22
 ---
-
 # Skill-based agent orchestration
 
 ## Context
@@ -50,3 +50,11 @@ Write a test that verifies the skill files are valid SKILL.md format (parseable 
 - Expected: Clean
 - Manual: Start SA, ask "delegate a coding task to Claude Code", verify it reads the skill and uses exec with correct flags
 - Edge cases: Claude Code not installed (skill should instruct agent to inform user); API key not available (skill should guide agent to use set_env_secret)
+
+## Progress
+- Created claude-code/SKILL.md: --print one-shot, background exec, ANTHROPIC_API_KEY env param, danger classification, limitations
+- Created codex/SKILL.md: --quiet one-shot, background exec, OPENAI_API_KEY env param, similar structure
+- Added 5 tests to tests/skills.test.ts: frontmatter validity, required topic coverage, SkillRegistry discovery, env/background docs
+- Regenerated embedded-skills.generated.ts (24 files across 14 skills)
+- Verification: typecheck clean, lint clean, 447 pass / 9 skip / 0 fail
+- Modified: claude-code/SKILL.md, codex/SKILL.md, tests/skills.test.ts, embedded-skills.generated.ts

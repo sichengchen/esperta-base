@@ -86,3 +86,4 @@ Connectors track the "current session" per chat context. `/new` calls `create(pr
 - Plan 064 — Live LLM agent chat tests: 6 live tests for agent chat loop using Haiku — text response, tool use, multi-turn, event order, approval callback, clearHistory. Files: tests/live/agent-chat.test.ts
 - Plan 065 — tRPC API tests: 13 non-live + 2 live tRPC procedure tests covering session CRUD, cron, model, heartbeat, chat.stream. Files: tests/procedures.test.ts, tests/live/procedures.test.ts
 - Plan 066 — Migrate imports to path aliases: 56 test imports migrated from relative to @sa/* aliases. Files: 22 test files
+- Plan 067 — Cron dispatch + persistence + one-shot: Wired cron.add to isolated agent sessions, one-shot auto-removal, config persistence, result logging. Files: scheduler.ts, procedures.ts, runtime.ts, types.ts

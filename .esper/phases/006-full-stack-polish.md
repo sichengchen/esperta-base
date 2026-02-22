@@ -89,3 +89,4 @@ Connectors track the "current session" per chat context. `/new` calls `create(pr
 - Plan 067 — Cron dispatch + persistence + one-shot: Wired cron.add to isolated agent sessions, one-shot auto-removal, config persistence, result logging. Files: scheduler.ts, procedures.ts, runtime.ts, types.ts
 - Plan 068 — Notify tool: Push messages to Telegram/Discord via HTTP from agent loop. Files: notify.ts, notify.test.ts, runtime.ts, SKILL.md
 - Plan 070 — Mention-gated IM filtering: Pure-function mention/reply gates for Telegram and Discord group chats. Files: telegram/formatter.ts, telegram/transport.ts, discord/formatter.ts, discord/transport.ts, telegram.test.ts, discord-filter.test.ts
+- Plan 071 — Group chat sender attribution + sessions: Per-chat session tracking with Map, sender name prefix for group messages, system prompt group guidance. Files: procedures.ts, telegram/transport.ts, discord/transport.ts, runtime.ts

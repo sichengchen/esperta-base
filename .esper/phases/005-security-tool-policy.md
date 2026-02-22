@@ -43,3 +43,4 @@ Phase 4 was clean — no carry-forward items. The current tool system is binary 
 
 ## Shipped Plans
 - Plan 053 — 3-tier tool danger classification system: Add dangerLevel (safe/moderate/dangerous) to ToolImpl and replace SAFE_TOOLS with tier-based approval logic. Files: types.ts, registry.ts, procedures.ts, App.tsx, ToolApproval.tsx, + all tool files
+- Plan 054 — Hybrid exec command classification: Agent self-declares danger for exec, engine validates with pattern matching. Files: exec.ts, exec-classifier.ts, exec-classifier.test.ts, procedures.ts, runtime.ts

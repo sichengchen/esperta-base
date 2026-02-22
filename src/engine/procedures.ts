@@ -709,6 +709,125 @@ export function createAppRouter(runtime: EngineRuntime) {
         }),
     }),
 
+    /** Webhook task management */
+    webhookTask: router({
+      /** List configured webhook tasks */
+      list: protectedProcedure.query(() => {
+        const configFile = runtime.config.getConfigFile();
+        return configFile.runtime.automation?.webhookTasks ?? [];
+      }),
+
+      /** Add a new webhook task */
+      add: protectedProcedure
+        .input(z.object({
+          name: z.string(),
+          slug: z.string().regex(/^[a-zA-Z0-9_-]+$/),
+          prompt: z.string(),
+          enabled: z.boolean().default(true),
+          model: z.string().optional(),
+          connector: z.string().optional(),
+        }))
+        .mutation(async ({ input }) => {
+          const configFile = runtime.config.getConfigFile();
+          const tasks = configFile.runtime.automation?.webhookTasks ?? [];
+
+          // Check for duplicate slug
+          if (tasks.some((t) => t.slug === input.slug)) {
+            throw new TRPCError({ code: "CONFLICT", message: `Webhook task with slug "${input.slug}" already exists` });
+          }
+
+          tasks.push({
+            name: input.name,
+            slug: input.slug,
+            prompt: input.prompt,
+            enabled: input.enabled,
+            model: input.model,
+            connector: input.connector,
+          });
+
+          await runtime.config.saveConfig({
+            ...configFile,
+            runtime: {
+              ...configFile.runtime,
+              automation: {
+                ...configFile.runtime.automation,
+                cronTasks: configFile.runtime.automation?.cronTasks ?? [],
+                webhookTasks: tasks,
+              },
+            },
+          });
+
+          return { added: true, slug: input.slug };
+        }),
+
+      /** Update an existing webhook task */
+      update: protectedProcedure
+        .input(z.object({
+          slug: z.string(),
+          name: z.string().optional(),
+          prompt: z.string().optional(),
+          enabled: z.boolean().optional(),
+          model: z.string().optional(),
+          connector: z.string().optional(),
+        }))
+        .mutation(async ({ input }) => {
+          const configFile = runtime.config.getConfigFile();
+          const tasks = configFile.runtime.automation?.webhookTasks ?? [];
+          const task = tasks.find((t) => t.slug === input.slug);
+          if (!task) {
+            throw new TRPCError({ code: "NOT_FOUND", message: `Webhook task not found: ${input.slug}` });
+          }
+
+          if (input.name !== undefined) task.name = input.name;
+          if (input.prompt !== undefined) task.prompt = input.prompt;
+          if (input.enabled !== undefined) task.enabled = input.enabled;
+          if (input.model !== undefined) task.model = input.model;
+          if (input.connector !== undefined) task.connector = input.connector;
+
+          await runtime.config.saveConfig({
+            ...configFile,
+            runtime: {
+              ...configFile.runtime,
+              automation: {
+                ...configFile.runtime.automation,
+                cronTasks: configFile.runtime.automation?.cronTasks ?? [],
+                webhookTasks: tasks,
+              },
+            },
+          });
+
+          return { updated: true, slug: input.slug };
+        }),
+
+      /** Remove a webhook task */
+      remove: protectedProcedure
+        .input(z.object({ slug: z.string() }))
+        .mutation(async ({ input }) => {
+          const configFile = runtime.config.getConfigFile();
+          const tasks = configFile.runtime.automation?.webhookTasks ?? [];
+          const idx = tasks.findIndex((t) => t.slug === input.slug);
+          if (idx === -1) {
+            return { removed: false };
+          }
+
+          tasks.splice(idx, 1);
+
+          await runtime.config.saveConfig({
+            ...configFile,
+            runtime: {
+              ...configFile.runtime,
+              automation: {
+                ...configFile.runtime.automation,
+                cronTasks: configFile.runtime.automation?.cronTasks ?? [],
+                webhookTasks: tasks,
+              },
+            },
+          });
+
+          return { removed: true };
+        }),
+    }),
+
     /** Heartbeat management */
     heartbeat: router({
       /** Get heartbeat status */

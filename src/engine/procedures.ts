@@ -3,6 +3,7 @@ import { router, publicProcedure } from "./trpc.js";
 import type { EngineRuntime } from "./runtime.js";
 import type { Agent } from "./agent/index.js";
 import type { DangerLevel } from "./agent/types.js";
+import { classifyExecCommand } from "./tools/exec-classifier.js";
 import type { EngineEvent, SkillInfo, ConnectorType, ToolApprovalMode } from "@sa/shared/types.js";
 import type { ModelConfig, ProviderConfig } from "./router/types.js";
 
@@ -64,9 +65,15 @@ export function createAppRouter(runtime: EngineRuntime) {
   function getSessionAgent(sessionId: string): Agent {
     let agent = sessionAgents.get(sessionId);
     if (!agent) {
-      agent = runtime.createAgent(async (toolName, toolCallId, _args) => {
+      agent = runtime.createAgent(async (toolName, toolCallId, args) => {
         const mode = getApprovalMode(sessionId);
-        const level = getDangerLevel(toolName);
+
+        // For exec: use hybrid classification (agent-declared + pattern override)
+        let level = getDangerLevel(toolName);
+        if (toolName === "exec" && typeof args.command === "string") {
+          const agentDeclared = (args.danger as DangerLevel | undefined) ?? "dangerous";
+          level = classifyExecCommand(args.command, agentDeclared);
+        }
 
         // Safe tools: always auto-approve
         if (level === "safe") return true;

@@ -252,6 +252,152 @@ describe("ModelRouter", () => {
     });
   });
 
+  describe("tier routing", () => {
+    test("unconfigured tiers default to active model", () => {
+      const router = ModelRouter.fromConfig(validConfig);
+      const tiers = router.getTierConfig();
+      expect(tiers.performance).toBe("sonnet");
+      expect(tiers.normal).toBe("sonnet");
+      expect(tiers.eco).toBe("sonnet");
+    });
+
+    test("respects configured tiers", () => {
+      const router = ModelRouter.fromConfig(validConfig, null, undefined, {
+        modelTiers: { performance: "sonnet", normal: "sonnet", eco: "gpt4o" },
+      });
+      expect(router.getTierConfig().eco).toBe("gpt4o");
+      expect(router.getTierConfig().performance).toBe("sonnet");
+    });
+
+    test("partial tier config merges with defaults", () => {
+      const router = ModelRouter.fromConfig(validConfig, null, undefined, {
+        modelTiers: { eco: "gpt4o" },
+      });
+      // eco overridden, others default to active model
+      expect(router.getTierConfig().eco).toBe("gpt4o");
+      expect(router.getTierConfig().performance).toBe("sonnet");
+      expect(router.getTierConfig().normal).toBe("sonnet");
+    });
+
+    test("setTierModel updates a tier", async () => {
+      const router = ModelRouter.fromConfig(validConfig);
+      await router.setTierModel("eco", "gpt4o");
+      expect(router.getTierConfig().eco).toBe("gpt4o");
+    });
+
+    test("setTierModel throws on unknown model", () => {
+      const router = ModelRouter.fromConfig(validConfig);
+      expect(router.setTierModel("eco", "nonexistent")).rejects.toThrow("not found");
+    });
+
+    test("getTierModel returns correct model for configured tier", () => {
+      const router = ModelRouter.fromConfig(validConfig, null, undefined, {
+        modelTiers: { eco: "gpt4o" },
+      });
+      expect(router.getTierModel("eco")).toBe("gpt4o");
+      expect(router.getTierModel("performance")).toBe("sonnet");
+    });
+
+    test("getStreamOptionsForTask resolves task tier (with API key)", () => {
+      const original = process.env.ANTHROPIC_API_KEY;
+      process.env.ANTHROPIC_API_KEY = "test-key";
+      try {
+        const router = ModelRouter.fromConfig(validConfig, null, undefined, {
+          modelTiers: { eco: "sonnet" },
+        });
+        // classification defaults to eco tier → sonnet (anthropic)
+        const opts = router.getStreamOptionsForTask("classification");
+        expect(opts.apiKey).toBe("test-key");
+      } finally {
+        if (original) process.env.ANTHROPIC_API_KEY = original;
+        else delete process.env.ANTHROPIC_API_KEY;
+      }
+    });
+
+    test("task tier overrides work", () => {
+      const router = ModelRouter.fromConfig(validConfig, null, undefined, {
+        modelTiers: { performance: "sonnet", eco: "gpt4o" },
+        taskTierOverrides: { classification: "performance" },
+      });
+      // classification overridden to performance tier → should resolve to sonnet
+      expect(router.getTierModel("performance")).toBe("sonnet");
+    });
+
+    test("getRoutingState returns complete state", () => {
+      const router = ModelRouter.fromConfig(validConfig, null, undefined, {
+        modelAliases: { fast: "gpt4o" },
+      });
+      const state = router.getRoutingState();
+      expect(state.activeModel).toBe("sonnet");
+      expect(state.defaultModel).toBe("sonnet");
+      expect(state.aliases).toEqual({ fast: "gpt4o" });
+      expect(state.tiers).toBeDefined();
+    });
+  });
+
+  describe("aliases", () => {
+    test("resolveAlias returns the mapped name", () => {
+      const router = ModelRouter.fromConfig(validConfig, null, undefined, {
+        modelAliases: { fast: "gpt4o", smart: "sonnet" },
+      });
+      expect(router.resolveAlias("fast")).toBe("gpt4o");
+      expect(router.resolveAlias("smart")).toBe("sonnet");
+    });
+
+    test("resolveAlias returns input for non-aliases", () => {
+      const router = ModelRouter.fromConfig(validConfig, null, undefined, {
+        modelAliases: { fast: "gpt4o" },
+      });
+      expect(router.resolveAlias("sonnet")).toBe("sonnet");
+      expect(router.resolveAlias("unknown")).toBe("unknown");
+    });
+
+    test("setTierModel resolves aliases", async () => {
+      const router = ModelRouter.fromConfig(validConfig, null, undefined, {
+        modelAliases: { fast: "gpt4o" },
+      });
+      await router.setTierModel("eco", "fast");
+      expect(router.getTierConfig().eco).toBe("gpt4o");
+    });
+  });
+
+  describe("fallback chains", () => {
+    test("validates fallback references exist", () => {
+      expect(() =>
+        ModelRouter.fromConfig({
+          ...validConfig,
+          models: [
+            { name: "sonnet", provider: "anthropic", model: "claude-sonnet-4-5-20250514", fallback: "nonexistent" },
+            { name: "gpt4o", provider: "openai", model: "gpt-4o" },
+          ],
+        })
+      ).toThrow("does not exist");
+    });
+
+    test("detects circular fallback chains", () => {
+      expect(() =>
+        ModelRouter.fromConfig({
+          ...validConfig,
+          models: [
+            { name: "sonnet", provider: "anthropic", model: "claude-sonnet-4-5-20250514", fallback: "gpt4o" },
+            { name: "gpt4o", provider: "openai", model: "gpt-4o", fallback: "sonnet" },
+          ],
+        })
+      ).toThrow("Circular fallback");
+    });
+
+    test("allows valid fallback chains", () => {
+      const router = ModelRouter.fromConfig({
+        ...validConfig,
+        models: [
+          { name: "sonnet", provider: "anthropic", model: "claude-sonnet-4-5-20250514", fallback: "gpt4o" },
+          { name: "gpt4o", provider: "openai", model: "gpt-4o" },
+        ],
+      });
+      expect(router.listModels()).toEqual(["sonnet", "gpt4o"]);
+    });
+  });
+
   describe("getStreamOptions", () => {
     let router: ModelRouter;
 

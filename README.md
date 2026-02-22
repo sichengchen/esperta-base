@@ -65,8 +65,6 @@ sa help                 Show help
 
 ## Documentation
 
-All documentation lives in the bundled `sa` skill directory — the single source of truth:
-
 - [Architecture](src/engine/skills/bundled/sa/docs/architecture.md) — Engine subsystems, agent loop, model router, sessions, tRPC API
 - [Configuration](src/engine/skills/bundled/sa/docs/configuration.md) — config schema, providers, models, tiers, tool policy, automation
 - [Tools](src/engine/skills/bundled/sa/docs/tools.md) — tool danger classification, approval flow, exec hybrid approval, filter patterns

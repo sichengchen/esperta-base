@@ -28,6 +28,18 @@ export interface ToolPolicyConfig {
   overrides?: Record<string, ToolOverride>;
 }
 
+/** Heartbeat configuration for the engine's periodic agent check */
+export interface HeartbeatConfig {
+  /** Whether the heartbeat is enabled (default: true) */
+  enabled: boolean;
+  /** Interval in minutes between heartbeat checks (default: 30) */
+  intervalMinutes: number;
+  /** Path to the heartbeat checklist file relative to SA_HOME (default: "HEARTBEAT.md") */
+  checklistPath?: string;
+  /** Token the agent returns to indicate nothing needs attention (default: "HEARTBEAT_OK") */
+  suppressToken: string;
+}
+
 export interface RuntimeConfig {
   activeModel: string;
   telegramBotTokenEnvVar: string;
@@ -59,6 +71,8 @@ export interface RuntimeConfig {
   modelAliases?: Record<string, string>;
   /** Tool policy: per-connector verbosity and per-tool overrides */
   toolPolicy?: ToolPolicyConfig;
+  /** Heartbeat configuration */
+  heartbeat?: HeartbeatConfig;
 }
 
 /** On-disk config.json schema (v3 — merged models + runtime) */

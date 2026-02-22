@@ -1,7 +1,7 @@
 ---
 phase: 005-security-tool-policy
 title: "Security & Tool Policy"
-status: active
+status: completed
 ---
 
 # Phase 5: Security & Tool Policy
@@ -27,16 +27,16 @@ Overhaul SA's tool approval system with a 3-tier danger classification (safe / m
 - Network-level firewall / iptables rules
 
 ## Acceptance Criteria
-- [ ] All tools have a `dangerLevel` property: "safe" | "moderate" | "dangerous"
-- [ ] `exec` tool accepts a `danger` parameter; engine validates with pattern matching
-- [ ] Router supports a `utilityModel` config for cheap/fast classification tasks
-- [ ] Config.json supports `runtime.toolPolicy` with per-tool overrides and per-connector verbosity
-- [ ] Connectors only show tool status for dangerous tools, errors, and long-running tasks by default
-- [ ] TUI shows approval dialog for dangerous tools instead of auto-approving everything
-- [ ] System prompt reflects the new policy — agent self-declares danger for exec, no unnecessary narration
-- [ ] Model router supports fallback chains, per-connector defaults, and aliases
-- [ ] Security audit completed: secrets encryption, tRPC auth, exec safety — findings documented and fixes shipped
-- [ ] `bun run typecheck`, `bun run lint`, and `bun test` all pass
+- [x] All tools have a `dangerLevel` property: "safe" | "moderate" | "dangerous"
+- [x] `exec` tool accepts a `danger` parameter; engine validates with pattern matching
+- [x] Router supports a `utilityModel` config for cheap/fast classification tasks
+- [x] Config.json supports `runtime.toolPolicy` with per-tool overrides and per-connector verbosity
+- [x] Connectors only show tool status for dangerous tools, errors, and long-running tasks by default
+- [x] TUI shows approval dialog for dangerous tools instead of auto-approving everything
+- [x] System prompt reflects the new policy — agent self-declares danger for exec, no unnecessary narration
+- [x] Model router supports fallback chains, per-connector defaults, and aliases
+- [x] Security audit completed: secrets encryption, tRPC auth, exec safety — findings documented and fixes shipped
+- [x] `bun run typecheck`, `bun run lint`, and `bun test` all pass
 
 ## Phase Notes
 Phase 4 was clean — no carry-forward items. The current tool system is binary (SAFE_TOOLS set vs everything else) with hard-coded behavior. TUI auto-approves all tools, IM connectors ask for non-safe tools. There's no granular classification, no way for users to customize policy, and the reporting is all-or-nothing. The security surfaces (hostname-based key derivation, unauthenticated tRPC endpoints, unsandboxed exec) have never been audited.
@@ -50,3 +50,5 @@ Phase 4 was clean — no carry-forward items. The current tool system is binary 
 - Plan 058 — Security audit: secrets and encryption: Strengthen key derivation with machine fingerprint, add scrypt params, transparent legacy migration. Files: config/secrets.ts, config/secrets.test.ts
 - Plan 059 — Security audit: tRPC auth and network: Add auth middleware to tRPC, timing-safe webhook secret, WS connection auth. Files: context.ts, procedures.ts, server.ts, shared/client.ts
 - Plan 060 — Security audit: exec sandboxing: Env sanitization, output capping at 1MB, foreground timeout reduction to 300s. Files: tools/exec.ts, tools/exec-background.ts, tools/exec.test.ts
+- Plan 061 — Replace apple-calendar skill with apple-calendar-cli: Replace the entire content with the apple-calendar-cli skill document from the reference URL. Files: SKILL.md, cal-list.sh, cal-events.sh, cal-read.sh, cal-create.sh, cal-update.sh, cal-delete.sh, cal-search.sh
+- Plan 062 — fix: exec tool shows phantom approval dialogs for safe commands: In the `tool_approval_request` case, apply the same exec hybrid classification that the callback uses. Files: procedures.ts

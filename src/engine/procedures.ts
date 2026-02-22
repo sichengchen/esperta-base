@@ -59,6 +59,16 @@ export function createAppRouter(runtime: EngineRuntime) {
     return policyManager.getDangerLevel(toolName);
   }
 
+  /** Resolve effective danger level — applies exec hybrid classification */
+  function getEffectiveDangerLevel(toolName: string, args: Record<string, unknown>): DangerLevel {
+    let level = getDangerLevel(toolName);
+    if (toolName === "exec" && typeof args.command === "string") {
+      const agentDeclared = (args.danger as DangerLevel | undefined) ?? "dangerous";
+      level = classifyExecCommand(args.command, agentDeclared);
+    }
+    return level;
+  }
+
   /** Auth middleware — validates bearer token via AuthManager */
   const authMiddleware = middleware(async ({ ctx, next }) => {
     if (!ctx.token) {
@@ -88,13 +98,7 @@ export function createAppRouter(runtime: EngineRuntime) {
     if (!agent) {
       agent = runtime.createAgent(async (toolName, toolCallId, args) => {
         const mode = getApprovalMode(sessionId);
-
-        // For exec: use hybrid classification (agent-declared + pattern override)
-        let level = getDangerLevel(toolName);
-        if (toolName === "exec" && typeof args.command === "string") {
-          const agentDeclared = (args.danger as DangerLevel | undefined) ?? "dangerous";
-          level = classifyExecCommand(args.command, agentDeclared);
-        }
+        const level = getEffectiveDangerLevel(toolName, args);
 
         // Safe tools: always auto-approve
         if (level === "safe") return true;
@@ -162,7 +166,7 @@ export function createAppRouter(runtime: EngineRuntime) {
         case "tool_start": {
           const ctx: ToolEventContext = {
             toolName: event.name,
-            dangerLevel: getDangerLevel(event.name),
+            dangerLevel: getEffectiveDangerLevel(event.name, event.args),
           };
           if (!policyManager.shouldEmitToolStart(connectorType, ctx)) break;
           if (isIM) {
@@ -198,7 +202,7 @@ export function createAppRouter(runtime: EngineRuntime) {
         case "tool_approval_request": {
           const ctx: ToolEventContext = {
             toolName: event.name,
-            dangerLevel: getDangerLevel(event.name),
+            dangerLevel: getEffectiveDangerLevel(event.name, event.args),
           };
           if (!policyManager.shouldEmitApproval(connectorType, ctx, approvalMode)) break;
           yield {

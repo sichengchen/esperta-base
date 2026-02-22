@@ -55,9 +55,25 @@ export interface CronTask {
   runAt?: string;
 }
 
-/** Automation configuration (cron + heartbeat) */
+/** A user-defined webhook-triggered automation task */
+export interface WebhookTask {
+  /** Human-readable task name */
+  name: string;
+  /** URL slug: /webhook/tasks/<slug> */
+  slug: string;
+  /** Prompt template — use {{payload}} for the request body */
+  prompt: string;
+  enabled: boolean;
+  /** Optional model override for this task */
+  model?: string;
+  /** Which connector to deliver the response through (e.g. "telegram", "discord") */
+  connector?: string;
+}
+
+/** Automation configuration (cron + webhook tasks) */
 export interface AutomationConfig {
   cronTasks: CronTask[];
+  webhookTasks?: WebhookTask[];
 }
 
 export interface RuntimeConfig {
@@ -72,7 +88,9 @@ export interface RuntimeConfig {
   /** Webhook connector configuration */
   webhook?: {
     enabled: boolean;
-    /** Shared secret for authenticating webhook requests */
+    /** Shared bearer token for authenticating all webhook endpoints */
+    token?: string;
+    /** Legacy shared secret for authenticating webhook requests (deprecated) */
     secret?: string;
   };
   /** Audio transcription configuration */

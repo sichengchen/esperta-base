@@ -8,11 +8,29 @@ export interface EngineContext {
   token: string | null;
 }
 
-/** Create context for each tRPC request */
-export function createContext(): EngineContext {
+export interface CreateContextOptions {
+  /** HTTP request (for fetch adapter) */
+  req?: Request;
+  /** Raw token override (for WS connections where token comes from query string) */
+  rawToken?: string;
+}
+
+/** Create context for each tRPC request, extracting the bearer token if present */
+export function createContext(opts?: CreateContextOptions): EngineContext {
+  let token: string | null = null;
+
+  if (opts?.rawToken) {
+    token = opts.rawToken;
+  } else if (opts?.req) {
+    const authHeader = opts.req.headers.get("authorization");
+    if (authHeader?.startsWith("Bearer ")) {
+      token = authHeader.slice(7);
+    }
+  }
+
   return {
     sessionId: null,
     connectorId: null,
-    token: null,
+    token,
   };
 }

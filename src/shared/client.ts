@@ -23,7 +23,11 @@ export function createEngineClient(options: ClientOptions) {
     ? { authorization: `Bearer ${options.token}` }
     : {};
 
-  const wsClient = createWSClient({ url: options.wsUrl });
+  // Pass token in WS URL query string for WebSocket connection-level auth
+  const wsUrlWithAuth = options.token
+    ? `${options.wsUrl}?token=${encodeURIComponent(options.token)}`
+    : options.wsUrl;
+  const wsClient = createWSClient({ url: wsUrlWithAuth });
 
   return createTRPCClient<AppRouter>({
     links: [

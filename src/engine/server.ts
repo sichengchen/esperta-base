@@ -1,6 +1,7 @@
 import { writeFile, unlink } from "node:fs/promises";
 import { join } from "node:path";
 import { homedir } from "node:os";
+import { timingSafeEqual } from "node:crypto";
 import { fetchRequestHandler } from "@trpc/server/adapters/fetch";
 import { applyWSSHandler } from "@trpc/server/adapters/ws";
 import { WebSocketServer } from "ws";
@@ -8,6 +9,12 @@ import { createAppRouter, type AppRouter } from "./procedures.js";
 import { createContext } from "./context.js";
 import type { EngineRuntime } from "./runtime.js";
 import type { EngineEvent } from "@sa/shared/types.js";
+
+/** Timing-safe string comparison to prevent timing attacks on secret comparison */
+function safeCompare(a: string, b: string): boolean {
+  if (a.length !== b.length) return false;
+  return timingSafeEqual(Buffer.from(a), Buffer.from(b));
+}
 
 const DEFAULT_PORT = 7420;
 
@@ -46,10 +53,10 @@ async function handleWebhook(req: Request, runtime: EngineRuntime, appRouter: Re
     });
   }
 
-  // Authenticate via shared secret
+  // Authenticate via shared secret (timing-safe comparison)
   if (webhookConfig.secret) {
-    const provided = body.secret ?? req.headers.get("x-webhook-secret");
-    if (provided !== webhookConfig.secret) {
+    const provided = body.secret ?? req.headers.get("x-webhook-secret") ?? "";
+    if (!safeCompare(provided, webhookConfig.secret)) {
       return new Response(JSON.stringify({ error: "Invalid secret" }), {
         status: 401,
         headers: { "content-type": "application/json" },
@@ -77,8 +84,8 @@ async function handleWebhook(req: Request, runtime: EngineRuntime, appRouter: Re
   const acceptSSE = req.headers.get("accept")?.includes("text/event-stream");
 
   if (acceptSSE) {
-    // SSE streaming response
-    const caller = appRouter.createCaller(createContext());
+    // SSE streaming response — use master token for internal calls
+    const caller = appRouter.createCaller(createContext({ rawToken: runtime.auth.getMasterToken() }));
     const stream = new ReadableStream({
       async start(controller) {
         const encoder = new TextEncoder();
@@ -105,8 +112,8 @@ async function handleWebhook(req: Request, runtime: EngineRuntime, appRouter: Re
     });
   }
 
-  // Synchronous JSON response — collect all events
-  const caller = appRouter.createCaller(createContext());
+  // Synchronous JSON response — use master token for internal calls
+  const caller = appRouter.createCaller(createContext({ rawToken: runtime.auth.getMasterToken() }));
   let responseText = "";
   const toolCalls: { name: string; content: string; isError: boolean }[] = [];
 
@@ -176,13 +183,13 @@ export async function startServer(runtime: EngineRuntime, options: EngineServerO
         return handleWebhook(req, runtime, appRouter);
       }
 
-      // tRPC handler
+      // tRPC handler — pass request for Bearer token extraction
       if (url.pathname.startsWith("/trpc")) {
         return fetchRequestHandler({
           endpoint: "/trpc",
           req,
           router: appRouter,
-          createContext,
+          createContext: () => createContext({ req }),
         });
       }
 
@@ -195,8 +202,11 @@ export async function startServer(runtime: EngineRuntime, options: EngineServerO
   const wssHandler = applyWSSHandler<AppRouter>({
     wss,
     router: appRouter,
-    createContext() {
-      return createContext();
+    createContext({ req }) {
+      // Extract token from WS connection URL query string (?token=xxx)
+      const wsUrl = new URL(req.url ?? "", `http://${req.headers.host}`);
+      const rawToken = wsUrl.searchParams.get("token") ?? undefined;
+      return createContext({ rawToken });
     },
   });
 

@@ -1,5 +1,6 @@
 import { z } from "zod";
-import { router, publicProcedure } from "./trpc.js";
+import { TRPCError } from "@trpc/server";
+import { router, publicProcedure, middleware } from "./trpc.js";
 import type { EngineRuntime } from "./runtime.js";
 import type { Agent, AgentEvent } from "./agent/index.js";
 import type { DangerLevel } from "./agent/types.js";
@@ -57,6 +58,20 @@ export function createAppRouter(runtime: EngineRuntime) {
   function getDangerLevel(toolName: string): DangerLevel {
     return policyManager.getDangerLevel(toolName);
   }
+
+  /** Auth middleware — validates bearer token via AuthManager */
+  const authMiddleware = middleware(async ({ ctx, next }) => {
+    if (!ctx.token) {
+      throw new TRPCError({ code: "UNAUTHORIZED", message: "Missing auth token" });
+    }
+    const entry = runtime.auth.validate(ctx.token);
+    if (!entry) {
+      throw new TRPCError({ code: "UNAUTHORIZED", message: "Invalid auth token" });
+    }
+    return next({ ctx: { ...ctx, connectorId: entry.connectorId } });
+  });
+
+  const protectedProcedure = publicProcedure.use(authMiddleware);
 
   /** Resolve the tool approval mode for a session */
   function getApprovalMode(sessionId: string): ToolApprovalMode {
@@ -214,7 +229,7 @@ export function createAppRouter(runtime: EngineRuntime) {
     /** Chat procedures */
     chat: router({
       /** Send a user message and stream back AgentEvents */
-      send: publicProcedure
+      send: protectedProcedure
         .input(z.object({ sessionId: z.string(), message: z.string() }))
         .mutation(async ({ input }): Promise<{ sessionId: string }> => {
           const session = runtime.sessions.getSession(input.sessionId);
@@ -226,7 +241,7 @@ export function createAppRouter(runtime: EngineRuntime) {
         }),
 
       /** Stream AgentEvents for a chat turn */
-      stream: publicProcedure
+      stream: protectedProcedure
         .input(z.object({ sessionId: z.string(), message: z.string() }))
         .subscription(async function* ({ input }): AsyncGenerator<EngineEvent> {
           const session = runtime.sessions.getSession(input.sessionId);
@@ -248,7 +263,7 @@ export function createAppRouter(runtime: EngineRuntime) {
         }),
 
       /** Get conversation history for a session */
-      history: publicProcedure
+      history: protectedProcedure
         .input(z.object({ sessionId: z.string() }))
         .query(({ input }): { sessionId: string; messages: unknown[] } => {
           const agent = sessionAgents.get(input.sessionId);
@@ -257,7 +272,7 @@ export function createAppRouter(runtime: EngineRuntime) {
         }),
 
       /** Transcribe audio and send as a chat message */
-      transcribeAndSend: publicProcedure
+      transcribeAndSend: protectedProcedure
         .input(z.object({
           sessionId: z.string(),
           audio: z.string(), // base64-encoded audio
@@ -312,7 +327,7 @@ export function createAppRouter(runtime: EngineRuntime) {
     /** Session management */
     session: router({
       /** Create a new session for a Connector */
-      create: publicProcedure
+      create: protectedProcedure
         .input(
           z.object({
             connectorType: z.enum(["tui", "telegram", "discord", "webhook"]),
@@ -324,12 +339,12 @@ export function createAppRouter(runtime: EngineRuntime) {
         }),
 
       /** List active sessions */
-      list: publicProcedure.query(() => {
+      list: protectedProcedure.query(() => {
         return runtime.sessions.listSessions();
       }),
 
       /** Destroy a session and its Agent */
-      destroy: publicProcedure
+      destroy: protectedProcedure
         .input(z.object({ sessionId: z.string() }))
         .mutation(({ input }): { destroyed: boolean } => {
           sessionAgents.delete(input.sessionId);
@@ -341,14 +356,14 @@ export function createAppRouter(runtime: EngineRuntime) {
     /** Tool execution */
     tool: router({
       /** Get the tool approval mode for a session */
-      config: publicProcedure
+      config: protectedProcedure
         .input(z.object({ sessionId: z.string() }))
         .query(({ input }): { mode: ToolApprovalMode } => {
           return { mode: getApprovalMode(input.sessionId) };
         }),
 
       /** Approve or reject a pending tool execution */
-      approve: publicProcedure
+      approve: protectedProcedure
         .input(
           z.object({
             toolCallId: z.string(),
@@ -367,7 +382,7 @@ export function createAppRouter(runtime: EngineRuntime) {
         }),
 
       /** Accept all calls to a tool for the rest of this session, and approve the current call */
-      acceptForSession: publicProcedure
+      acceptForSession: protectedProcedure
         .input(
           z.object({
             toolCallId: z.string(),
@@ -399,17 +414,17 @@ export function createAppRouter(runtime: EngineRuntime) {
     /** Model management */
     model: router({
       /** List all model configurations */
-      list: publicProcedure.query((): ModelConfig[] => {
+      list: protectedProcedure.query((): ModelConfig[] => {
         return runtime.router.listModelConfigs();
       }),
 
       /** Get the active model name */
-      active: publicProcedure.query((): { name: string } => {
+      active: protectedProcedure.query((): { name: string } => {
         return { name: runtime.router.getActiveModelName() };
       }),
 
       /** Switch the active model (supports aliases) */
-      switch: publicProcedure
+      switch: protectedProcedure
         .input(z.object({ name: z.string() }))
         .mutation(async ({ input }): Promise<{ name: string }> => {
           const resolved = runtime.router.resolveAlias(input.name);
@@ -418,7 +433,7 @@ export function createAppRouter(runtime: EngineRuntime) {
         }),
 
       /** Add a model configuration */
-      add: publicProcedure
+      add: protectedProcedure
         .input(
           z.object({
             name: z.string(),
@@ -434,7 +449,7 @@ export function createAppRouter(runtime: EngineRuntime) {
         }),
 
       /** Remove a model configuration */
-      remove: publicProcedure
+      remove: protectedProcedure
         .input(z.object({ name: z.string() }))
         .mutation(async ({ input }): Promise<{ removed: boolean }> => {
           await runtime.router.removeModel(input.name);
@@ -442,12 +457,12 @@ export function createAppRouter(runtime: EngineRuntime) {
         }),
 
       /** Get the current tier-to-model mapping */
-      tiers: publicProcedure.query(() => {
+      tiers: protectedProcedure.query(() => {
         return runtime.router.getTierConfig();
       }),
 
       /** Set a tier's model */
-      setTier: publicProcedure
+      setTier: protectedProcedure
         .input(z.object({
           tier: z.enum(["performance", "normal", "eco"]),
           modelName: z.string(),
@@ -458,7 +473,7 @@ export function createAppRouter(runtime: EngineRuntime) {
         }),
 
       /** Get full routing state (tiers, aliases, active/default model) */
-      routing: publicProcedure.query(() => {
+      routing: protectedProcedure.query(() => {
         return runtime.router.getRoutingState();
       }),
     }),
@@ -466,12 +481,12 @@ export function createAppRouter(runtime: EngineRuntime) {
     /** Provider management */
     provider: router({
       /** List all configured providers */
-      list: publicProcedure.query((): ProviderConfig[] => {
+      list: protectedProcedure.query((): ProviderConfig[] => {
         return runtime.router.listProviders();
       }),
 
       /** Add a provider configuration */
-      add: publicProcedure
+      add: protectedProcedure
         .input(
           z.object({
             id: z.string(),
@@ -486,7 +501,7 @@ export function createAppRouter(runtime: EngineRuntime) {
         }),
 
       /** Remove a provider configuration */
-      remove: publicProcedure
+      remove: protectedProcedure
         .input(z.object({ id: z.string() }))
         .mutation(async ({ input }): Promise<{ removed: boolean }> => {
           await runtime.router.removeProvider(input.id);
@@ -497,7 +512,7 @@ export function createAppRouter(runtime: EngineRuntime) {
     /** Skills */
     skill: router({
       /** List loaded skills */
-      list: publicProcedure.query((): SkillInfo[] => {
+      list: protectedProcedure.query((): SkillInfo[] => {
         return runtime.skills.getMetadataList().map((s) => ({
           name: s.name,
           description: s.description,
@@ -506,7 +521,7 @@ export function createAppRouter(runtime: EngineRuntime) {
       }),
 
       /** Manually activate a skill */
-      activate: publicProcedure
+      activate: protectedProcedure
         .input(z.object({ name: z.string() }))
         .mutation(async ({ input }): Promise<{ activated: boolean }> => {
           return { activated: await runtime.skills.activate(input.name) };
@@ -546,12 +561,12 @@ export function createAppRouter(runtime: EngineRuntime) {
     /** Cron scheduler */
     cron: router({
       /** List all scheduled tasks */
-      list: publicProcedure.query(() => {
+      list: protectedProcedure.query(() => {
         return runtime.scheduler.list();
       }),
 
       /** Add a user-defined scheduled task */
-      add: publicProcedure
+      add: protectedProcedure
         .input(z.object({ name: z.string(), schedule: z.string(), prompt: z.string() }))
         .mutation(({ input }) => {
           runtime.scheduler.register({
@@ -568,7 +583,7 @@ export function createAppRouter(runtime: EngineRuntime) {
         }),
 
       /** Remove a user-defined scheduled task */
-      remove: publicProcedure
+      remove: protectedProcedure
         .input(z.object({ name: z.string() }))
         .mutation(({ input }) => {
           return { removed: runtime.scheduler.unregister(input.name) };

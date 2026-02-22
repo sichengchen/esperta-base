@@ -6,6 +6,7 @@ import { Input } from "./Input.js";
 import { StatusBar } from "./StatusBar.js";
 import { ModelPicker } from "./ModelPicker.js";
 import { SessionPicker } from "./SessionPicker.js";
+import { ToolApproval } from "./ToolApproval.js";
 import { createTuiClient } from "./client.js";
 import type { ModelConfig, ProviderConfig } from "@sa/engine/router/types.js";
 import type { Session } from "@sa/shared/types.js";
@@ -32,6 +33,11 @@ export function App({ client }: AppProps) {
   const [sessions, setSessions] = useState<Session[]>([]);
   const [agentName, setAgentName] = useState("SA");
   const [sessionConnectorType, setSessionConnectorType] = useState("tui");
+  const [pendingApproval, setPendingApproval] = useState<{
+    toolName: string;
+    toolCallId: string;
+    args: Record<string, unknown>;
+  } | null>(null);
 
   const msgIdRef = useRef(0);
   const nextId = () => ++msgIdRef.current;
@@ -239,7 +245,11 @@ export function App({ client }: AppProps) {
                   addMessage({ role: "tool", content: event.content.slice(0, 500), toolName: event.name });
                   break;
                 case "tool_approval_request":
-                  client.tool.approve.mutate({ toolCallId: event.id, approved: true });
+                  setPendingApproval({
+                    toolName: event.name,
+                    toolCallId: event.id,
+                    args: event.args,
+                  });
                   break;
                 case "reaction":
                   addMessage({ role: "tool", content: event.emoji, toolName: "reaction" });
@@ -330,6 +340,30 @@ export function App({ client }: AppProps) {
     [client, sessionId],
   );
 
+  const handleToolApprove = useCallback(
+    (toolCallId: string) => {
+      client.tool.approve.mutate({ toolCallId, approved: true });
+      setPendingApproval(null);
+    },
+    [client],
+  );
+
+  const handleToolReject = useCallback(
+    (toolCallId: string) => {
+      client.tool.approve.mutate({ toolCallId, approved: false });
+      setPendingApproval(null);
+    },
+    [client],
+  );
+
+  const handleToolAcceptForSession = useCallback(
+    (toolCallId: string) => {
+      client.tool.acceptForSession.mutate({ toolCallId });
+      setPendingApproval(null);
+    },
+    [client],
+  );
+
   const pickerOverlay = showModelPicker ? (
     <ModelPicker
       models={models}
@@ -364,7 +398,16 @@ export function App({ client }: AppProps) {
           <Text color="yellow">{"▊"}</Text>
         </Box>
       )}
-      {pickerOverlay ?? (
+      {pendingApproval ? (
+        <ToolApproval
+          toolName={pendingApproval.toolName}
+          toolCallId={pendingApproval.toolCallId}
+          args={pendingApproval.args}
+          onApprove={handleToolApprove}
+          onReject={handleToolReject}
+          onAcceptForSession={handleToolAcceptForSession}
+        />
+      ) : pickerOverlay ?? (
         <Input onSubmit={handleSubmit} disabled={isStreaming || !connected} commands={TUI_COMMANDS} />
       )}
       <StatusBar

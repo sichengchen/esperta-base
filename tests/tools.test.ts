@@ -1,9 +1,9 @@
 import { describe, test, expect, beforeEach, afterEach } from "bun:test";
-import { readTool } from "../src/engine/tools/read.js";
-import { writeTool } from "../src/engine/tools/write.js";
-import { editTool } from "../src/engine/tools/edit.js";
-import { bashTool } from "../src/engine/tools/bash.js";
-import { getBuiltinTools } from "../src/engine/tools/index.js";
+import { readTool } from "@sa/engine/tools/read.js";
+import { writeTool } from "@sa/engine/tools/write.js";
+import { editTool } from "@sa/engine/tools/edit.js";
+import { bashTool } from "@sa/engine/tools/bash.js";
+import { getBuiltinTools } from "@sa/engine/tools/index.js";
 import { writeFile, rm, mkdir } from "node:fs/promises";
 import { join } from "node:path";
 import { tmpdir } from "node:os";
@@ -170,9 +170,9 @@ describe("Bash tool", () => {
 });
 
 describe("getBuiltinTools", () => {
-  test("returns all 10 builtin tools", () => {
+  test("returns all 9 builtin tools", () => {
     const tools = getBuiltinTools();
-    expect(tools).toHaveLength(10);
+    expect(tools).toHaveLength(9);
     const names = tools.map((t) => t.name);
     expect(names).toContain("read");
     expect(names).toContain("write");
@@ -183,6 +183,5 @@ describe("getBuiltinTools", () => {
     expect(names).toContain("web_fetch");
     expect(names).toContain("web_search");
     expect(names).toContain("reaction");
-    expect(names).toContain("clawhub_search");
   });
 });

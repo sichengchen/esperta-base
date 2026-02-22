@@ -1,4 +1,12 @@
-import type { SAConfigFile } from "./types.js";
+import type { SAConfigFile, HeartbeatConfig } from "./types.js";
+
+/** Default heartbeat configuration */
+export const DEFAULT_HEARTBEAT: HeartbeatConfig = {
+  enabled: true,
+  intervalMinutes: 30,
+  checklistPath: "HEARTBEAT.md",
+  suppressToken: "HEARTBEAT_OK",
+};
 
 export const DEFAULT_IDENTITY_MD = `# SA (Sasa)
 
@@ -7,6 +15,12 @@ You are SA, a helpful personal AI assistant. You are concise, friendly, and proa
 
 ## System Prompt
 You are SA (Sasa), a personal AI agent assistant. You help with tasks, answer questions, and use tools when needed. Keep responses concise and actionable.
+`;
+
+/** Default HEARTBEAT.md content created on first run */
+export const DEFAULT_HEARTBEAT_MD = `# Heartbeat checklist
+- Check if any background tasks have completed — summarize results
+- If idle for 8+ hours, send a brief check-in
 `;
 
 /** Default config.json (v3 — merged runtime + providers + models) */

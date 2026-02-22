@@ -71,9 +71,62 @@ SA uses the Agent Skills spec (agentskills.io). Skills are SKILL.md files with Y
 
 - **Bundled skills**: Ship with SA in `src/engine/skills/bundled/`
 - **User skills**: Installed to `~/.sa/skills/`
-- **ClawHub skills**: Searchable and installable from clawhub.ai
+- **ClawHub skills**: Searchable and installable from clawhub.ai via the `clawhub` bundled skill (uses scripts)
 
 Skills are NOT tools — they are prompt-level instructions that teach you how to use existing tools effectively.
+
+## Sessions
+
+SA uses a **3-tier session model** with structured `<prefix>:<id>` IDs:
+
+| Session type | Prefix format | Purpose |
+|-------------|---------------|---------|
+| Main | `main:<id>` | Engine-level persistent session, heartbeat runs here |
+| TUI | `tui:<id>` | Per-TUI connector session |
+| Telegram | `telegram:<chatId>:<id>` | Per-chat Telegram session |
+| Discord | `discord:<channelId>:<id>` | Per-channel Discord session |
+| Cron | `cron:<task>:<id>` | Isolated per-task cron session |
+| Webhook | `webhook:<slug>:<id>` | Webhook-triggered session |
+
+- `/new` creates a fresh session under the same prefix (old session preserved)
+- The main session is created at engine startup and accumulates context across heartbeats
+- `SessionManager` methods: `create(prefix, type)`, `getLatest(prefix)`, `listByPrefix(prefix)`
+
+## Heartbeat
+
+The engine runs a periodic agent-based heartbeat in the **main session**:
+
+- **Interval**: Configurable (default 30 min) via `config.json → runtime.heartbeat.intervalMinutes`
+- **Checklist**: Reads `~/.sa/HEARTBEAT.md` — edit this file to customize what gets checked
+- **Suppression**: If the agent replies exactly `HEARTBEAT_OK`, no notification is sent
+- **Health file**: `~/.sa/engine.heartbeat` is always written with pid/memory/timestamp
+
+Configuration in `config.json`:
+```json
+{
+  "runtime": {
+    "heartbeat": {
+      "enabled": true,
+      "intervalMinutes": 30,
+      "checklistPath": "HEARTBEAT.md",
+      "suppressToken": "HEARTBEAT_OK"
+    }
+  }
+}
+```
+
+## Notify Tool
+
+The `notify` tool pushes messages to the user's Telegram and/or Discord:
+
+```
+notify(message: "Your task completed!", connector?: "telegram" | "discord" | "all")
+```
+
+- **Safe tool** (auto-approved) — sends to the paired chat/channel only
+- Uses HTTP directly (no Grammy/discord.js dependency)
+- Requires: Telegram bot token + paired chat ID, or Discord bot token + SA_DISCORD_NOTIFY_CHANNEL env var
+- Used by heartbeat, cron tasks, and any agent flow that needs to alert the user
 
 ## Common User Tasks
 
@@ -116,6 +169,21 @@ Or re-run: `sa onboard`
 
 ### Installing a skill from ClawHub
 Ask: "Search ClawHub for [topic]" — uses the clawhub bundled skill.
+
+## Documentation
+
+Detailed docs live alongside this skill in the `docs/` directory. Use the `read` tool to access them when deeper knowledge is needed:
+
+| Doc | Path | Covers |
+|-----|------|--------|
+| Architecture | `src/engine/skills/bundled/sa/docs/architecture.md` | Engine subsystems, agent loop, model router, session lifecycle, tRPC API, streaming events, connector architecture |
+| Configuration | `src/engine/skills/bundled/sa/docs/configuration.md` | Config schema, providers, models, model tiers/aliases, tool policy, automation config, full annotated example |
+| Tools | `src/engine/skills/bundled/sa/docs/tools.md` | Tool danger classification, 3-tier approval flow, exec hybrid approval, filter patterns, per-tool config |
+| Development | `src/engine/skills/bundled/sa/docs/development.md` | Testing strategy, test helpers, CI/CD pipeline, CalVer versioning, contributing guidelines, debugging |
+| Skills | `src/engine/skills/bundled/sa/docs/skills.md` | SKILL.md format, bundled vs user vs ClawHub skills, activation, discovery catalog, creating custom skills |
+| Sessions | `src/engine/skills/bundled/sa/docs/sessions.md` | Structured session IDs, 3-tier model (main/connector/cron), SessionManager API, /new command |
+| Automation | `src/engine/skills/bundled/sa/docs/automation.md` | Heartbeat (HEARTBEAT.md, smart suppression), cron dispatch, webhook tasks, decision guide |
+| Security | `src/engine/skills/bundled/sa/docs/security.md` | Tool danger levels, approval modes, encrypted secrets vault, auth model, webhook auth |
 
 ## Tech Stack
 

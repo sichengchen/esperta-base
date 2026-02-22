@@ -1,7 +1,7 @@
 import { describe, test, expect, beforeEach, afterEach, mock } from "bun:test";
-import { Agent, ToolRegistry } from "../src/engine/agent/index.js";
-import type { ToolImpl } from "../src/engine/agent/index.js";
-import { ModelRouter } from "../src/engine/router/index.js";
+import { Agent, ToolRegistry } from "@sa/engine/agent/index.js";
+import type { ToolImpl } from "@sa/engine/agent/index.js";
+import { ModelRouter } from "@sa/engine/router/index.js";
 import { Type } from "@mariozechner/pi-ai";
 import { rm } from "node:fs/promises";
 import { join } from "node:path";
@@ -122,6 +122,17 @@ describe("Agent", () => {
     // Manually add a message via chat start (will fail since stream is real, but that's ok)
     // We just test that clearHistory works on whatever state
     agent.clearHistory();
+    expect(agent.getMessages()).toHaveLength(0);
+  });
+
+  test("accepts modelOverride option", () => {
+    const router = setupRouter();
+    // Agent should construct successfully with modelOverride
+    const agent = new Agent({
+      router,
+      systemPrompt: "Test",
+      modelOverride: "test-model",
+    });
     expect(agent.getMessages()).toHaveLength(0);
   });
 });

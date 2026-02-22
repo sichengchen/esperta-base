@@ -57,7 +57,7 @@ export function App({ client }: AppProps) {
 
         const session = await client.session.create.mutate({
           connectorType: "tui",
-          connectorId: `tui-${Date.now()}`,
+          prefix: "tui",
         });
         setSessionId(session.id);
       } catch (err) {
@@ -103,11 +103,11 @@ export function App({ client }: AppProps) {
           await client.session.destroy.mutate({ sessionId });
           const session = await client.session.create.mutate({
             connectorType: "tui",
-            connectorId: `tui-${Date.now()}`,
+            prefix: "tui",
           });
           setSessionId(session.id);
           setSessionConnectorType("tui");
-          addMessage({ role: "tool", content: "New session started.", toolName: "system" });
+          addMessage({ role: "tool", content: `New session started: ${session.id.slice(0, 12)}`, toolName: "system" });
         } catch {}
         return;
       }

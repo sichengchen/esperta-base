@@ -1,5 +1,7 @@
 import { z } from "zod";
 import { TRPCError } from "@trpc/server";
+import { writeFile, mkdir } from "node:fs/promises";
+import { join } from "node:path";
 import { router, publicProcedure, middleware } from "./trpc.js";
 import type { EngineRuntime } from "./runtime.js";
 import type { Agent, AgentEvent } from "./agent/index.js";
@@ -8,6 +10,7 @@ import { classifyExecCommand } from "./tools/exec-classifier.js";
 import { ToolPolicyManager, type ToolEventContext } from "./tools/policy.js";
 import type { EngineEvent, SkillInfo, ConnectorType, ToolApprovalMode } from "@sa/shared/types.js";
 import type { ModelConfig, ProviderConfig } from "./router/types.js";
+import { heartbeatState, createHeartbeatTask } from "./scheduler.js";
 
 /** Format tool args as a compact summary for IM display */
 function formatArgsForIM(toolName: string, args: Record<string, unknown>): string {
@@ -43,6 +46,92 @@ const sessionToolOverrides = new Map<string, Set<string>>();
 
 /** Pending approval metadata: toolCallId -> { sessionId, toolName } */
 const pendingApprovalMeta = new Map<string, { sessionId: string; toolName: string }>();
+
+/** Register a cron task with the scheduler that dispatches to an isolated agent session */
+function registerCronTask(
+  runtime: EngineRuntime,
+  name: string,
+  schedule: string,
+  prompt: string,
+  opts?: { oneShot?: boolean; model?: string },
+): void {
+  runtime.scheduler.register({
+    name,
+    schedule,
+    prompt,
+    oneShot: opts?.oneShot,
+    async handler() {
+      const session = runtime.sessions.create(`cron:${name}`, "cron");
+      const agent = runtime.createAgent(undefined, opts?.model);
+      sessionAgents.set(session.id, agent);
+
+      let responseText = "";
+      const toolCalls: { name: string; content: string }[] = [];
+
+      try {
+        for await (const event of agent.chat(prompt)) {
+          if (event.type === "text_delta") responseText += event.delta;
+          if (event.type === "tool_end") {
+            toolCalls.push({ name: event.name, content: event.result.content });
+          }
+        }
+      } catch (err) {
+        responseText = `Error: ${err instanceof Error ? err.message : String(err)}`;
+      }
+
+      // Log result to automation directory
+      try {
+        const autoDir = join(runtime.config.homeDir, "automation");
+        await mkdir(autoDir, { recursive: true });
+        const ts = new Date().toISOString().replace(/[:.]/g, "-");
+        const logContent = [
+          `# ${name} — ${new Date().toISOString()}`,
+          "## Prompt",
+          prompt,
+          "## Response",
+          responseText || "(no response)",
+          toolCalls.length > 0 ? "## Tool calls" : "",
+          ...toolCalls.map((t) => `- ${t.name}: ${t.content.slice(0, 200)}`),
+        ].filter(Boolean).join("\n");
+        await writeFile(join(autoDir, `${name}-${ts}.md`), logContent + "\n");
+      } catch {
+        // Log failure is non-fatal
+      }
+
+      console.log(`[cron] Task "${name}" completed: ${responseText.slice(0, 100)}`);
+    },
+    onComplete: opts?.oneShot ? async (taskName) => {
+      await removeCronTaskFromConfig(runtime, taskName);
+    } : undefined,
+  });
+}
+
+/** Persist a cron task to config.json */
+async function persistCronTask(
+  runtime: EngineRuntime,
+  task: { name: string; schedule: string; prompt: string; enabled: boolean; oneShot?: boolean; model?: string },
+): Promise<void> {
+  const configFile = runtime.config.getConfigFile();
+  const automation = configFile.runtime.automation ?? { cronTasks: [] };
+  // Remove existing task with same name
+  automation.cronTasks = automation.cronTasks.filter((t) => t.name !== task.name);
+  automation.cronTasks.push(task);
+  await runtime.config.saveConfig({
+    ...configFile,
+    runtime: { ...configFile.runtime, automation },
+  });
+}
+
+/** Remove a cron task from config.json */
+async function removeCronTaskFromConfig(runtime: EngineRuntime, name: string): Promise<void> {
+  const configFile = runtime.config.getConfigFile();
+  const automation = configFile.runtime.automation ?? { cronTasks: [] };
+  automation.cronTasks = automation.cronTasks.filter((t) => t.name !== name);
+  await runtime.config.saveConfig({
+    ...configFile,
+    runtime: { ...configFile.runtime, automation },
+  });
+}
 
 /** Create the tRPC router bound to a runtime instance */
 export function createAppRouter(runtime: EngineRuntime) {
@@ -331,16 +420,25 @@ export function createAppRouter(runtime: EngineRuntime) {
 
     /** Session management */
     session: router({
-      /** Create a new session for a Connector */
+      /** Create a new session for a Connector.
+       *  prefix: structured session prefix (e.g. "tui", "telegram:123456")
+       */
       create: protectedProcedure
         .input(
           z.object({
-            connectorType: z.enum(["tui", "telegram", "discord", "webhook"]),
-            connectorId: z.string(),
+            connectorType: z.enum(["tui", "telegram", "discord", "webhook", "engine"]),
+            prefix: z.string(),
           }),
         )
         .mutation(({ input }) => {
-          return runtime.sessions.createSession(input.connectorId, input.connectorType);
+          return runtime.sessions.create(input.prefix, input.connectorType);
+        }),
+
+      /** Get the most recently active session for a prefix */
+      getLatest: protectedProcedure
+        .input(z.object({ prefix: z.string() }))
+        .query(({ input }) => {
+          return runtime.sessions.getLatest(input.prefix) ?? null;
         }),
 
       /** List active sessions */
@@ -532,6 +630,13 @@ export function createAppRouter(runtime: EngineRuntime) {
           return { activated: await runtime.skills.activate(input.name) };
         }),
 
+      /** Reload all skills from disk (used by ClawHub scripts after install/update) */
+      reload: protectedProcedure
+        .mutation(async (): Promise<{ reloaded: boolean; count: number }> => {
+          await runtime.skills.loadAll();
+          return { reloaded: true, count: runtime.skills.size };
+        }),
+
     }),
 
     /** Authentication */
@@ -542,7 +647,7 @@ export function createAppRouter(runtime: EngineRuntime) {
           z.object({
             credential: z.string(),
             connectorId: z.string(),
-            connectorType: z.enum(["tui", "telegram", "discord", "webhook"]),
+            connectorType: z.enum(["tui", "telegram", "discord", "webhook", "engine"]),
           }),
         )
         .mutation(({ input }) => {
@@ -570,29 +675,211 @@ export function createAppRouter(runtime: EngineRuntime) {
         return runtime.scheduler.list();
       }),
 
-      /** Add a user-defined scheduled task */
+      /** Add a user-defined scheduled task with real agent dispatch */
       add: protectedProcedure
-        .input(z.object({ name: z.string(), schedule: z.string(), prompt: z.string() }))
-        .mutation(({ input }) => {
-          runtime.scheduler.register({
+        .input(z.object({
+          name: z.string(),
+          schedule: z.string(),
+          prompt: z.string(),
+          oneShot: z.boolean().optional(),
+          model: z.string().optional(),
+        }))
+        .mutation(async ({ input }) => {
+          // Register with the scheduler — handler dispatches to an isolated agent
+          registerCronTask(runtime, input.name, input.schedule, input.prompt, {
+            oneShot: input.oneShot,
+            model: input.model,
+          });
+
+          // Persist to config
+          await persistCronTask(runtime, {
             name: input.name,
             schedule: input.schedule,
             prompt: input.prompt,
-            handler: async () => {
-              // User-defined cron tasks send a prompt to the agent
-              // The prompt will be dispatched when the scheduler ticks
-              console.log(`[cron] Running user task "${input.name}": ${input.prompt}`);
-            },
+            enabled: true,
+            oneShot: input.oneShot,
+            model: input.model,
           });
+
           return { added: true, name: input.name };
         }),
 
       /** Remove a user-defined scheduled task */
       remove: protectedProcedure
         .input(z.object({ name: z.string() }))
-        .mutation(({ input }) => {
-          return { removed: runtime.scheduler.unregister(input.name) };
+        .mutation(async ({ input }) => {
+          const removed = runtime.scheduler.unregister(input.name);
+          if (removed) {
+            await removeCronTaskFromConfig(runtime, input.name);
+          }
+          return { removed };
         }),
+    }),
+
+    /** Webhook task management */
+    webhookTask: router({
+      /** List configured webhook tasks */
+      list: protectedProcedure.query(() => {
+        const configFile = runtime.config.getConfigFile();
+        return configFile.runtime.automation?.webhookTasks ?? [];
+      }),
+
+      /** Add a new webhook task */
+      add: protectedProcedure
+        .input(z.object({
+          name: z.string(),
+          slug: z.string().regex(/^[a-zA-Z0-9_-]+$/),
+          prompt: z.string(),
+          enabled: z.boolean().default(true),
+          model: z.string().optional(),
+          connector: z.string().optional(),
+        }))
+        .mutation(async ({ input }) => {
+          const configFile = runtime.config.getConfigFile();
+          const tasks = configFile.runtime.automation?.webhookTasks ?? [];
+
+          // Check for duplicate slug
+          if (tasks.some((t) => t.slug === input.slug)) {
+            throw new TRPCError({ code: "CONFLICT", message: `Webhook task with slug "${input.slug}" already exists` });
+          }
+
+          tasks.push({
+            name: input.name,
+            slug: input.slug,
+            prompt: input.prompt,
+            enabled: input.enabled,
+            model: input.model,
+            connector: input.connector,
+          });
+
+          await runtime.config.saveConfig({
+            ...configFile,
+            runtime: {
+              ...configFile.runtime,
+              automation: {
+                ...configFile.runtime.automation,
+                cronTasks: configFile.runtime.automation?.cronTasks ?? [],
+                webhookTasks: tasks,
+              },
+            },
+          });
+
+          return { added: true, slug: input.slug };
+        }),
+
+      /** Update an existing webhook task */
+      update: protectedProcedure
+        .input(z.object({
+          slug: z.string(),
+          name: z.string().optional(),
+          prompt: z.string().optional(),
+          enabled: z.boolean().optional(),
+          model: z.string().optional(),
+          connector: z.string().optional(),
+        }))
+        .mutation(async ({ input }) => {
+          const configFile = runtime.config.getConfigFile();
+          const tasks = configFile.runtime.automation?.webhookTasks ?? [];
+          const task = tasks.find((t) => t.slug === input.slug);
+          if (!task) {
+            throw new TRPCError({ code: "NOT_FOUND", message: `Webhook task not found: ${input.slug}` });
+          }
+
+          if (input.name !== undefined) task.name = input.name;
+          if (input.prompt !== undefined) task.prompt = input.prompt;
+          if (input.enabled !== undefined) task.enabled = input.enabled;
+          if (input.model !== undefined) task.model = input.model;
+          if (input.connector !== undefined) task.connector = input.connector;
+
+          await runtime.config.saveConfig({
+            ...configFile,
+            runtime: {
+              ...configFile.runtime,
+              automation: {
+                ...configFile.runtime.automation,
+                cronTasks: configFile.runtime.automation?.cronTasks ?? [],
+                webhookTasks: tasks,
+              },
+            },
+          });
+
+          return { updated: true, slug: input.slug };
+        }),
+
+      /** Remove a webhook task */
+      remove: protectedProcedure
+        .input(z.object({ slug: z.string() }))
+        .mutation(async ({ input }) => {
+          const configFile = runtime.config.getConfigFile();
+          const tasks = configFile.runtime.automation?.webhookTasks ?? [];
+          const idx = tasks.findIndex((t) => t.slug === input.slug);
+          if (idx === -1) {
+            return { removed: false };
+          }
+
+          tasks.splice(idx, 1);
+
+          await runtime.config.saveConfig({
+            ...configFile,
+            runtime: {
+              ...configFile.runtime,
+              automation: {
+                ...configFile.runtime.automation,
+                cronTasks: configFile.runtime.automation?.cronTasks ?? [],
+                webhookTasks: tasks,
+              },
+            },
+          });
+
+          return { removed: true };
+        }),
+    }),
+
+    /** Heartbeat management */
+    heartbeat: router({
+      /** Get heartbeat status */
+      status: protectedProcedure.query(() => {
+        return {
+          config: heartbeatState.config,
+          lastResult: heartbeatState.lastResult,
+          mainSessionId: runtime.mainSessionId,
+        };
+      }),
+
+      /** Update heartbeat configuration (in-memory only — persisting requires config save) */
+      configure: protectedProcedure
+        .input(z.object({
+          enabled: z.boolean().optional(),
+          intervalMinutes: z.number().min(1).max(1440).optional(),
+        }))
+        .mutation(({ input }) => {
+          if (input.enabled !== undefined) {
+            heartbeatState.config.enabled = input.enabled;
+          }
+          if (input.intervalMinutes !== undefined) {
+            heartbeatState.config.intervalMinutes = input.intervalMinutes;
+            runtime.scheduler.updateSchedule("heartbeat", `*/${input.intervalMinutes} * * * *`);
+          }
+          return { config: heartbeatState.config };
+        }),
+
+      /** Manually trigger a heartbeat check (runs only heartbeat, not all cron jobs) */
+      trigger: protectedProcedure.mutation(async () => {
+        await runtime.scheduler.runTask("heartbeat");
+        return { triggered: true, lastResult: heartbeatState.lastResult };
+      }),
+    }),
+
+    /** Main session info */
+    mainSession: router({
+      /** Get main session metadata */
+      info: protectedProcedure.query(() => {
+        const session = runtime.sessions.getSession(runtime.mainSessionId);
+        return {
+          sessionId: runtime.mainSessionId,
+          session: session ?? null,
+        };
+      }),
     }),
   });
 }

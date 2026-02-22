@@ -1,5 +1,5 @@
 import { describe, test, expect, beforeEach } from "bun:test";
-import { Scheduler, matchesCron, createHeartbeatTask } from "../src/engine/scheduler.js";
+import { Scheduler, matchesCron, createHeartbeatTask } from "@sa/engine/scheduler.js";
 import { mkdir, rm, readFile } from "node:fs/promises";
 import { join } from "node:path";
 import { tmpdir } from "node:os";
@@ -145,6 +145,139 @@ describe("Scheduler", () => {
 
     const tasks = scheduler.list();
     expect(tasks[0]!.prompt).toBe("Good morning briefing");
+  });
+
+  test("runTask runs only the named task", async () => {
+    let heartbeatRan = false;
+    let cronRan = false;
+
+    scheduler.register({
+      name: "heartbeat",
+      schedule: "* * * * *",
+      handler: () => { heartbeatRan = true; },
+      builtin: true,
+    });
+    scheduler.register({
+      name: "user-cron",
+      schedule: "* * * * *",
+      handler: () => { cronRan = true; },
+    });
+
+    await scheduler.runTask("heartbeat");
+
+    expect(heartbeatRan).toBe(true);
+    expect(cronRan).toBe(false);
+  });
+
+  test("runTask returns false for nonexistent task", async () => {
+    const result = await scheduler.runTask("nonexistent");
+    expect(result).toBe(false);
+  });
+
+  test("runTask catches handler errors", async () => {
+    scheduler.register({
+      name: "failing",
+      schedule: "* * * * *",
+      handler: () => { throw new Error("boom"); },
+    });
+
+    const result = await scheduler.runTask("failing");
+    expect(result).toBe(true);
+  });
+
+  test("runTask removes one-shot tasks after execution", async () => {
+    let completed = false;
+    scheduler.register({
+      name: "one-time",
+      schedule: "* * * * *",
+      handler: () => {},
+      oneShot: true,
+      onComplete: () => { completed = true; },
+    });
+
+    expect(scheduler.size).toBe(1);
+    await scheduler.runTask("one-time");
+    expect(scheduler.size).toBe(0);
+    expect(completed).toBe(true);
+  });
+
+  test("tick removes one-shot tasks and calls onComplete after execution", async () => {
+    let removedName = "";
+    scheduler.register({
+      name: "one-shot-tick",
+      schedule: "* * * * *",
+      handler: () => {},
+      oneShot: true,
+      onComplete: (name) => { removedName = name; },
+    });
+
+    expect(scheduler.size).toBe(1);
+    await scheduler.tick();
+    expect(scheduler.size).toBe(0);
+    expect(removedName).toBe("one-shot-tick");
+  });
+
+  test("updateSchedule changes the cron expression of a task", () => {
+    scheduler.register({
+      name: "heartbeat",
+      schedule: "*/30 * * * *",
+      handler: () => {},
+      builtin: true,
+    });
+
+    const updated = scheduler.updateSchedule("heartbeat", "*/5 * * * *");
+    expect(updated).toBe(true);
+
+    const tasks = scheduler.list();
+    expect(tasks[0]!.schedule).toBe("*/5 * * * *");
+  });
+
+  test("updateSchedule returns false for nonexistent task", () => {
+    const updated = scheduler.updateSchedule("nope", "*/5 * * * *");
+    expect(updated).toBe(false);
+  });
+
+  test("updateSchedule resets lastRun so task can fire immediately", async () => {
+    let ran = false;
+    scheduler.register({
+      name: "test",
+      schedule: "* * * * *",
+      handler: () => { ran = true; },
+    });
+
+    // First tick runs it
+    await scheduler.tick();
+    expect(ran).toBe(true);
+    ran = false;
+
+    // Second tick in same minute skips it
+    await scheduler.tick();
+    expect(ran).toBe(false);
+
+    // Update schedule resets lastRun, so next tick runs it again
+    scheduler.updateSchedule("test", "* * * * *");
+    await scheduler.tick();
+    expect(ran).toBe(true);
+  });
+
+  test("restored one-shot task with onComplete simulates config cleanup", async () => {
+    // Simulates runtime.ts restore pattern: one-shot tasks get onComplete that removes from config
+    const configStore = { cronTasks: [{ name: "reminder", oneShot: true }] };
+
+    scheduler.register({
+      name: "reminder",
+      schedule: "* * * * *",
+      handler: () => {},
+      oneShot: true,
+      onComplete: async (taskName) => {
+        configStore.cronTasks = configStore.cronTasks.filter((t) => t.name !== taskName);
+      },
+    });
+
+    expect(configStore.cronTasks).toHaveLength(1);
+    await scheduler.tick();
+    expect(configStore.cronTasks).toHaveLength(0);
+    expect(scheduler.size).toBe(0);
   });
 });
 

@@ -1,6 +1,6 @@
 {
   "backlog_mode": "local",
-  "current_phase": "005-security-tool-policy",
+  "current_phase": "006-full-stack-polish",
   "commands": {
     "test": "bun test",
     "lint": "bun run lint",

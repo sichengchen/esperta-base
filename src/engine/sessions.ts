@@ -1,23 +1,41 @@
 import type { Session, ConnectorType } from "@sa/shared/types.js";
 
-/** Manages active sessions between Engine and Connectors */
+/** Generate a short random suffix for session IDs */
+function shortId(): string {
+  return crypto.randomUUID().slice(0, 8);
+}
+
+/** Manages active sessions between Engine and Connectors.
+ *
+ * Session IDs use a structured `<prefix>:<suffix>` format:
+ *   main:<id>                    — engine-level main session
+ *   tui:<id>                     — TUI connector session
+ *   telegram:<chatId>:<id>       — Telegram per-chat session
+ *   discord:<channelId>:<id>     — Discord per-channel session
+ *   cron:<task-name>:<id>        — isolated cron task session
+ *   webhook:<slug>:<id>          — webhook-triggered session
+ */
 export class SessionManager {
   private sessions = new Map<string, Session>();
 
-  /** Create a new session for a Connector */
-  createSession(connectorId: string, connectorType: ConnectorType): Session {
+  /** Create a new session under a prefix with a generated unique suffix.
+   *  e.g. create("main", "engine") → "main:a1b2c3d4"
+   *       create("telegram:123456", "telegram") → "telegram:123456:e5f6g7h8"
+   */
+  create(prefix: string, connectorType: ConnectorType): Session {
+    const id = `${prefix}:${shortId()}`;
     const session: Session = {
-      id: crypto.randomUUID(),
+      id,
       connectorType,
-      connectorId,
+      connectorId: prefix,
       createdAt: Date.now(),
       lastActiveAt: Date.now(),
     };
-    this.sessions.set(session.id, session);
+    this.sessions.set(id, session);
     return session;
   }
 
-  /** Retrieve a session by ID */
+  /** Retrieve a session by its full ID */
   getSession(sessionId: string): Session | undefined {
     return this.sessions.get(sessionId);
   }
@@ -25,6 +43,45 @@ export class SessionManager {
   /** List all active sessions */
   listSessions(): Session[] {
     return Array.from(this.sessions.values());
+  }
+
+  /** List all sessions whose ID starts with the given prefix.
+   *  e.g. listByPrefix("telegram:123456") returns all sessions for that chat.
+   */
+  listByPrefix(prefix: string): Session[] {
+    const needle = prefix + ":";
+    return Array.from(this.sessions.values()).filter(
+      (s) => s.id.startsWith(needle),
+    );
+  }
+
+  /** Get the most recently active session under a prefix, or undefined. */
+  getLatest(prefix: string): Session | undefined {
+    const matches = this.listByPrefix(prefix);
+    if (matches.length === 0) return undefined;
+    return matches.reduce((a, b) => (a.lastActiveAt >= b.lastActiveAt ? a : b));
+  }
+
+  /** Parse the prefix from a session ID.
+   *  "main:a1b2" → "main"
+   *  "cron:daily-report:x7y8" → "cron:daily-report"
+   *  "telegram:123456:e5f6" → "telegram:123456"
+   */
+  static getPrefix(sessionId: string): string {
+    const lastColon = sessionId.lastIndexOf(":");
+    if (lastColon <= 0) return sessionId;
+    return sessionId.slice(0, lastColon);
+  }
+
+  /** Parse the type (first segment) from a session ID.
+   *  "telegram:123456:e5f6" → "telegram"
+   *  "main:a1b2" → "main"
+   *  "cron:daily-report:x7y8" → "cron"
+   */
+  static getType(sessionId: string): string {
+    const firstColon = sessionId.indexOf(":");
+    if (firstColon < 0) return sessionId;
+    return sessionId.slice(0, firstColon);
   }
 
   /** Transfer a session to a different Connector */

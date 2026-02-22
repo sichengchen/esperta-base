@@ -143,9 +143,15 @@ ${recurringContext}
             const src = join(BUNDLED_SKILLS_DIR, name);
             await cp(src, dest, { recursive: true });
           } else if (EMBEDDED_SKILLS[name]) {
-            // Single-binary build: write embedded SKILL.md directly
+            // Single-binary build: write embedded .md files directly
             await mkdir(dest, { recursive: true });
-            await writeFile(join(dest, "SKILL.md"), EMBEDDED_SKILLS[name]);
+            const skillFiles = EMBEDDED_SKILLS[name]!;
+            for (const [relPath, content] of Object.entries(skillFiles)) {
+              const fileDest = join(dest, relPath);
+              const fileDir = join(dest, relPath.includes("/") ? relPath.slice(0, relPath.lastIndexOf("/")) : "");
+              if (fileDir !== dest) await mkdir(fileDir, { recursive: true });
+              await writeFile(fileDest, content);
+            }
           }
         }
       }

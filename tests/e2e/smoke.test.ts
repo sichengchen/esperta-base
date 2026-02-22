@@ -1,10 +1,10 @@
 import { describe, test, expect, afterEach } from "bun:test";
-import { ConfigManager } from "../../src/engine/config/index.js";
-import { ModelRouter } from "../../src/engine/router/index.js";
-import { Agent } from "../../src/engine/agent/index.js";
-import { MemoryManager } from "../../src/engine/memory/index.js";
-import { getBuiltinTools } from "../../src/engine/tools/index.js";
-import { createRememberTool } from "../../src/engine/tools/remember.js";
+import { ConfigManager } from "@sa/engine/config/index.js";
+import { ModelRouter } from "@sa/engine/router/index.js";
+import { Agent } from "@sa/engine/agent/index.js";
+import { MemoryManager } from "@sa/engine/memory/index.js";
+import { getBuiltinTools } from "@sa/engine/tools/index.js";
+import { createRememberTool } from "@sa/engine/tools/remember.js";
 import { rm } from "node:fs/promises";
 import { join } from "node:path";
 import { tmpdir } from "node:os";
@@ -49,7 +49,7 @@ describe("E2E smoke test", () => {
 
     // 5. Verify tool definitions are available for LLM
     // (We can't call agent.chat() without a real LLM, but we can verify the setup is correct)
-    expect(tools).toHaveLength(11); // read, write, edit, exec, exec_status, exec_kill, web_fetch, web_search, reaction, clawhub_search, remember
+    expect(tools).toHaveLength(10); // read, write, edit, exec, exec_status, exec_kill, web_fetch, web_search, reaction, remember
     expect(tools.map((t) => t.name)).toEqual([
       "read",
       "write",
@@ -60,7 +60,6 @@ describe("E2E smoke test", () => {
       "web_fetch",
       "web_search",
       "reaction",
-      "clawhub_search",
       "remember",
     ]);
   });

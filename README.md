@@ -65,10 +65,14 @@ sa help                 Show help
 
 ## Documentation
 
-- [Architecture](docs/architecture.md) — Engine, connectors, runtime flow, tRPC surface
-- [Configuration](docs/configuration.md) — config schema, env vars, secrets, file layout
-- [Built-in tools](docs/tools.md) — tool names, parameters, and behavior
-- [Development](docs/development.md) — scripts, testing, and project structure
+- [Architecture](src/engine/skills/bundled/sa/docs/architecture.md) — Engine subsystems, agent loop, model router, sessions, tRPC API
+- [Configuration](src/engine/skills/bundled/sa/docs/configuration.md) — config schema, providers, models, tiers, tool policy, automation
+- [Tools](src/engine/skills/bundled/sa/docs/tools.md) — tool danger classification, approval flow, exec hybrid approval, filter patterns
+- [Development](src/engine/skills/bundled/sa/docs/development.md) — testing, CI/CD, CalVer, contributing, debugging
+- [Skills](src/engine/skills/bundled/sa/docs/skills.md) — SKILL.md format, bundled/user/ClawHub skills, creating custom skills
+- [Sessions](src/engine/skills/bundled/sa/docs/sessions.md) — structured IDs, 3-tier session model, SessionManager API
+- [Automation](src/engine/skills/bundled/sa/docs/automation.md) — heartbeat, cron dispatch, webhook tasks
+- [Security](src/engine/skills/bundled/sa/docs/security.md) — tool danger levels, approval modes, secrets vault, auth
 
 ## Config location
 

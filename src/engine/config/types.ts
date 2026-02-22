@@ -28,6 +28,54 @@ export interface ToolPolicyConfig {
   overrides?: Record<string, ToolOverride>;
 }
 
+/** Heartbeat configuration for the engine's periodic agent check */
+export interface HeartbeatConfig {
+  /** Whether the heartbeat is enabled (default: true) */
+  enabled: boolean;
+  /** Interval in minutes between heartbeat checks (default: 30) */
+  intervalMinutes: number;
+  /** Path to the heartbeat checklist file relative to SA_HOME (default: "HEARTBEAT.md") */
+  checklistPath?: string;
+  /** Token the agent returns to indicate nothing needs attention (default: "HEARTBEAT_OK") */
+  suppressToken: string;
+}
+
+/** A user-defined scheduled task */
+export interface CronTask {
+  name: string;
+  /** 5-field cron expression */
+  schedule: string;
+  prompt: string;
+  enabled: boolean;
+  /** If true, auto-remove after first execution */
+  oneShot?: boolean;
+  /** Optional model override for this task */
+  model?: string;
+  /** ISO timestamp for one-shot tasks scheduled at a specific time */
+  runAt?: string;
+}
+
+/** A user-defined webhook-triggered automation task */
+export interface WebhookTask {
+  /** Human-readable task name */
+  name: string;
+  /** URL slug: /webhook/tasks/<slug> */
+  slug: string;
+  /** Prompt template — use {{payload}} for the request body */
+  prompt: string;
+  enabled: boolean;
+  /** Optional model override for this task */
+  model?: string;
+  /** Which connector to deliver the response through (e.g. "telegram", "discord") */
+  connector?: string;
+}
+
+/** Automation configuration (cron + webhook tasks) */
+export interface AutomationConfig {
+  cronTasks: CronTask[];
+  webhookTasks?: WebhookTask[];
+}
+
 export interface RuntimeConfig {
   activeModel: string;
   telegramBotTokenEnvVar: string;
@@ -40,8 +88,8 @@ export interface RuntimeConfig {
   /** Webhook connector configuration */
   webhook?: {
     enabled: boolean;
-    /** Shared secret for authenticating webhook requests */
-    secret?: string;
+    /** Shared bearer token for authenticating all webhook endpoints */
+    token?: string;
   };
   /** Audio transcription configuration */
   audio?: {
@@ -59,6 +107,10 @@ export interface RuntimeConfig {
   modelAliases?: Record<string, string>;
   /** Tool policy: per-connector verbosity and per-tool overrides */
   toolPolicy?: ToolPolicyConfig;
+  /** Heartbeat configuration */
+  heartbeat?: HeartbeatConfig;
+  /** Automation configuration (cron tasks) */
+  automation?: AutomationConfig;
 }
 
 /** On-disk config.json schema (v3 — merged models + runtime) */

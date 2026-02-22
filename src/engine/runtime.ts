@@ -7,14 +7,16 @@ import type { ToolImpl, ToolApprovalCallback } from "./agent/index.js";
 import { MemoryManager } from "./memory/index.js";
 import { getBuiltinTools, formatToolsSection } from "./tools/index.js";
 import { createRememberTool } from "./tools/remember.js";
-import { createClawHubInstallTool } from "./tools/clawhub-install.js";
-import { createClawHubUpdateTool } from "./tools/clawhub-update.js";
 import { createSetEnvSecretTool, createSetEnvVariableTool } from "./tools/set-api-key.js";
+import { createNotifyTool } from "./tools/notify.js";
 import { SessionManager } from "./sessions.js";
 import { AuthManager } from "./auth.js";
 import { SkillRegistry, formatSkillsDiscovery } from "./skills/index.js";
 import { createReadSkillTool } from "./tools/read-skill.js";
 import { Scheduler, createHeartbeatTask } from "./scheduler.js";
+import { DEFAULT_HEARTBEAT_MD } from "./config/defaults.js";
+import { existsSync } from "node:fs";
+import { writeFile } from "node:fs/promises";
 import { createTranscriber, type Transcriber } from "./audio/index.js";
 
 const SAFETY_ADVISORY = `## Safety
@@ -38,6 +40,11 @@ const TOOL_CALL_STYLE = `## Tool Call Style
   - "dangerous" for destructive or irreversible commands (rm, sudo, kill, chmod 777, curl|sh)
 - If unsure about danger level, default to "dangerous" — the engine will ask the user.
 - Never narrate tool results the user can already see.`;
+
+const GROUP_CHAT_GUIDE = `## Group Chats
+When messages are prefixed with [Name]:, you are in a group chat. Address users by name when relevant. \
+Keep responses concise in group settings. You are still a personal assistant — other users in the group \
+are friends/family of your owner. Do not confuse different users' messages.`;
 
 const REACTIONS_GUIDE = `## Reactions
 React with emoji liberally. Not every message needs a text reply — a 👍 or ❤️ is often enough. \
@@ -72,8 +79,10 @@ export interface EngineRuntime {
   scheduler: Scheduler;
   transcriber: Transcriber;
   agentName: string;
+  /** The main session ID (engine-level, not tied to any connector) */
+  mainSessionId: string;
   /** Create a new Agent instance for a session (each session gets its own Agent) */
-  createAgent(onToolApproval?: ToolApprovalCallback): Agent;
+  createAgent(onToolApproval?: ToolApprovalCallback, modelOverride?: string): Agent;
 }
 
 /** Bootstrap all Engine subsystems */
@@ -148,15 +157,14 @@ export async function createRuntime(): Promise<EngineRuntime> {
   const skills = new SkillRegistry();
   await skills.loadAll(saHome);
 
-  // Build tools (ClawHub tools are self-contained, install/update need saHome + registry)
+  // Build tools
   const tools = [
     ...getBuiltinTools(),
     createRememberTool(memory),
     createReadSkillTool(skills),
-    createClawHubInstallTool(saHome, skills),
-    createClawHubUpdateTool(saHome, skills),
     createSetEnvSecretTool(config),
     createSetEnvVariableTool(config),
+    createNotifyTool(secrets),
   ];
 
   // Assemble system prompt
@@ -174,6 +182,7 @@ export async function createRuntime(): Promise<EngineRuntime> {
     `\n${toolsSection}`,
     `\n${TOOL_CALL_STYLE}`,
     `\n${REACTIONS_GUIDE}`,
+    `\n${GROUP_CHAT_GUIDE}`,
     `\n${SAFETY_ADVISORY}`,
     userProfile ? `\n## User Profile\n${userProfile}` : "",
     `\n${heartbeat}`,
@@ -182,11 +191,6 @@ export async function createRuntime(): Promise<EngineRuntime> {
   ]
     .filter(Boolean)
     .join("\n");
-
-  // Initialize scheduler with built-in tasks
-  const scheduler = new Scheduler();
-  scheduler.register(createHeartbeatTask(saHome));
-  scheduler.start();
 
   // Initialize audio transcriber
   const audioConfig = saConfig.runtime.audio ?? { enabled: true, preferLocal: true };
@@ -198,6 +202,64 @@ export async function createRuntime(): Promise<EngineRuntime> {
   const sessions = new SessionManager();
   const auth = new AuthManager(saHome);
   await auth.init();
+
+  // Create or resume the main session
+  let mainSession = sessions.getLatest("main");
+  if (!mainSession) {
+    mainSession = sessions.create("main", "engine");
+  }
+
+  // Create the main agent (used by heartbeat and engine-level tasks)
+  const mainAgent = new Agent({ router, tools, systemPrompt });
+
+  // Ensure HEARTBEAT.md exists
+  const heartbeatMdPath = join(saHome, saConfig.runtime.heartbeat?.checklistPath ?? "HEARTBEAT.md");
+  if (!existsSync(heartbeatMdPath)) {
+    await writeFile(heartbeatMdPath, DEFAULT_HEARTBEAT_MD);
+  }
+
+  // Initialize scheduler with agent-based heartbeat
+  const scheduler = new Scheduler();
+  scheduler.register(createHeartbeatTask(saHome, mainAgent, saConfig.runtime.heartbeat));
+
+  // Restore persisted cron tasks from config
+  const cronTasks = saConfig.runtime.automation?.cronTasks ?? [];
+  for (const task of cronTasks) {
+    if (!task.enabled) continue;
+    scheduler.register({
+      name: task.name,
+      schedule: task.schedule,
+      prompt: task.prompt,
+      oneShot: task.oneShot,
+      async handler() {
+        const session = sessions.create(`cron:${task.name}`, "cron");
+        const agent = new Agent({ router, tools, systemPrompt, modelOverride: task.model });
+        let responseText = "";
+        try {
+          for await (const event of agent.chat(task.prompt)) {
+            if (event.type === "text_delta") responseText += event.delta;
+          }
+        } catch (err) {
+          responseText = `Error: ${err instanceof Error ? err.message : String(err)}`;
+        }
+        console.log(`[cron] Task "${task.name}" completed: ${responseText.slice(0, 100)}`);
+      },
+      onComplete: task.oneShot ? async (taskName) => {
+        const configFile = config.getConfigFile();
+        const automation = configFile.runtime.automation ?? { cronTasks: [] };
+        automation.cronTasks = automation.cronTasks.filter((t) => t.name !== taskName);
+        await config.saveConfig({
+          ...configFile,
+          runtime: { ...configFile.runtime, automation },
+        });
+      } : undefined,
+    });
+  }
+  if (cronTasks.length > 0) {
+    console.log(`[sa] Restored ${cronTasks.filter((t) => t.enabled).length} cron task(s)`);
+  }
+
+  scheduler.start();
 
   return {
     config,
@@ -211,12 +273,14 @@ export async function createRuntime(): Promise<EngineRuntime> {
     scheduler,
     transcriber,
     agentName: saConfig.identity.name,
-    createAgent(onToolApproval?: ToolApprovalCallback): Agent {
+    mainSessionId: mainSession.id,
+    createAgent(onToolApproval?: ToolApprovalCallback, modelOverride?: string): Agent {
       return new Agent({
         router,
         tools,
         systemPrompt,
         onToolApproval,
+        modelOverride,
       });
     },
   };

@@ -26,6 +26,7 @@ SA (nicknamed Sasa) is a personal AI agent assistant with minimalist design. It 
   - `bun test` — run all tests
   - `bun run lint` — lint
   - `bun run typecheck` — type checking
+- See `TESTING.md` for detailed testing guidance and patterns.
 
 ## Principles
 1. **Minimalism over features** — every feature must justify its complexity; less is more
@@ -35,3 +36,4 @@ SA (nicknamed Sasa) is a personal AI agent assistant with minimalist design. It 
 5. **Composable, not monolithic** — subsystems (router, tools, memory, transports) are loosely coupled and independently testable
 6. **Keep the bundled `sa` skill up to date** — `src/engine/skills/bundled/sa/SKILL.md` documents SA's architecture, commands, and capabilities. Update it as features evolve.
 7. **Credentials and config through SA, not the shell** — When introducing features that require API keys or credentials: store secrets in `secrets.enc` (encrypted) via `set_env_secret`, store plain config in `config.json` via `set_env_variable`, inject both into `process.env` at engine startup, and update the bundled `sa` skill. Never use shell profiles (`.zshrc`, `.bashrc`, etc.).
+8. **Keep documentation current** — The `sa` bundled skill directory (`src/engine/skills/bundled/sa/`) is the single source of truth for all project documentation. When features are added or changed, update the relevant doc files in `sa/docs/`. The `SKILL.md` stays concise (agent quick-reference); detailed docs live in `sa/docs/`.

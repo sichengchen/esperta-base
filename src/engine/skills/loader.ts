@@ -3,7 +3,11 @@ import { join } from "node:path";
 import { existsSync } from "node:fs";
 import type { SkillMetadata } from "./types.js";
 
-/** In-memory cache for embedded skill content (keyed by "embedded:<name>") */
+/**
+ * In-memory cache for embedded skill content.
+ * Keys are "embedded:<skillName>/<relativePath>" (e.g. "embedded:sa/SKILL.md").
+ * Values are file content (full content for non-SKILL.md, body-only for SKILL.md).
+ */
 const embeddedContentCache = new Map<string, string>();
 
 /** Parse YAML-like frontmatter from a SKILL.md file */
@@ -71,15 +75,26 @@ export async function scanSkillDirectory(dir: string): Promise<SkillMetadata[]> 
 }
 
 /** Parse embedded skill content into SkillMetadata (for single-binary builds) */
-export function parseEmbeddedSkills(embedded: Record<string, string>): SkillMetadata[] {
+export function parseEmbeddedSkills(embedded: Record<string, Record<string, string>>): SkillMetadata[] {
   const skills: SkillMetadata[] = [];
 
-  for (const [dirName, content] of Object.entries(embedded)) {
-    const { meta, body } = parseFrontmatter(content);
+  for (const [dirName, files] of Object.entries(embedded)) {
+    // SKILL.md is required for metadata
+    const skillContent = files["SKILL.md"];
+    if (!skillContent) continue;
+
+    const { meta, body } = parseFrontmatter(skillContent);
     if (!meta.name || !meta.description) continue;
 
-    const filePath = `embedded:${dirName}`;
+    const filePath = `embedded:${dirName}/SKILL.md`;
     embeddedContentCache.set(filePath, body);
+
+    // Cache all other .md files in this skill directory
+    for (const [relPath, content] of Object.entries(files)) {
+      if (relPath === "SKILL.md") continue;
+      const embeddedPath = `embedded:${dirName}/${relPath}`;
+      embeddedContentCache.set(embeddedPath, content);
+    }
 
     skills.push({
       name: meta.name,
@@ -100,6 +115,31 @@ export async function loadSkillContent(filePath: string): Promise<string> {
   const content = await readFile(filePath, "utf-8");
   const { body } = parseFrontmatter(content);
   return body;
+}
+
+/**
+ * Load an embedded doc file by skill name and relative path.
+ * Used by the `read` tool to access skill docs in binary builds.
+ * Returns undefined if not found in the embedded cache.
+ */
+export function loadEmbeddedDoc(skillName: string, relativePath: string): string | undefined {
+  const key = `embedded:${skillName}/${relativePath}`;
+  return embeddedContentCache.get(key);
+}
+
+/**
+ * List all embedded file paths for a given skill.
+ * Returns relative paths (e.g. ["SKILL.md", "docs/architecture.md", ...]).
+ */
+export function listEmbeddedFiles(skillName: string): string[] {
+  const prefix = `embedded:${skillName}/`;
+  const paths: string[] = [];
+  for (const key of embeddedContentCache.keys()) {
+    if (key.startsWith(prefix)) {
+      paths.push(key.slice(prefix.length));
+    }
+  }
+  return paths.sort();
 }
 
 // Export for testing

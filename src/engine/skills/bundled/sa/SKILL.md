@@ -75,6 +75,46 @@ SA uses the Agent Skills spec (agentskills.io). Skills are SKILL.md files with Y
 
 Skills are NOT tools — they are prompt-level instructions that teach you how to use existing tools effectively.
 
+## Sessions
+
+SA uses a **3-tier session model** with structured `<prefix>:<id>` IDs:
+
+| Session type | Prefix format | Purpose |
+|-------------|---------------|---------|
+| Main | `main:<id>` | Engine-level persistent session, heartbeat runs here |
+| TUI | `tui:<id>` | Per-TUI connector session |
+| Telegram | `telegram:<chatId>:<id>` | Per-chat Telegram session |
+| Discord | `discord:<channelId>:<id>` | Per-channel Discord session |
+| Cron | `cron:<task>:<id>` | Isolated per-task cron session |
+| Webhook | `webhook:<slug>:<id>` | Webhook-triggered session |
+
+- `/new` creates a fresh session under the same prefix (old session preserved)
+- The main session is created at engine startup and accumulates context across heartbeats
+- `SessionManager` methods: `create(prefix, type)`, `getLatest(prefix)`, `listByPrefix(prefix)`
+
+## Heartbeat
+
+The engine runs a periodic agent-based heartbeat in the **main session**:
+
+- **Interval**: Configurable (default 30 min) via `config.json → runtime.heartbeat.intervalMinutes`
+- **Checklist**: Reads `~/.sa/HEARTBEAT.md` — edit this file to customize what gets checked
+- **Suppression**: If the agent replies exactly `HEARTBEAT_OK`, no notification is sent
+- **Health file**: `~/.sa/engine.heartbeat` is always written with pid/memory/timestamp
+
+Configuration in `config.json`:
+```json
+{
+  "runtime": {
+    "heartbeat": {
+      "enabled": true,
+      "intervalMinutes": 30,
+      "checklistPath": "HEARTBEAT.md",
+      "suppressToken": "HEARTBEAT_OK"
+    }
+  }
+}
+```
+
 ## Common User Tasks
 
 ### Setting environment variables

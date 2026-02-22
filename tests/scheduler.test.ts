@@ -200,6 +200,42 @@ describe("Scheduler", () => {
     expect(scheduler.size).toBe(0);
     expect(completed).toBe(true);
   });
+
+  test("tick removes one-shot tasks and calls onComplete after execution", async () => {
+    let removedName = "";
+    scheduler.register({
+      name: "one-shot-tick",
+      schedule: "* * * * *",
+      handler: () => {},
+      oneShot: true,
+      onComplete: (name) => { removedName = name; },
+    });
+
+    expect(scheduler.size).toBe(1);
+    await scheduler.tick();
+    expect(scheduler.size).toBe(0);
+    expect(removedName).toBe("one-shot-tick");
+  });
+
+  test("restored one-shot task with onComplete simulates config cleanup", async () => {
+    // Simulates runtime.ts restore pattern: one-shot tasks get onComplete that removes from config
+    const configStore = { cronTasks: [{ name: "reminder", oneShot: true }] };
+
+    scheduler.register({
+      name: "reminder",
+      schedule: "* * * * *",
+      handler: () => {},
+      oneShot: true,
+      onComplete: async (taskName) => {
+        configStore.cronTasks = configStore.cronTasks.filter((t) => t.name !== taskName);
+      },
+    });
+
+    expect(configStore.cronTasks).toHaveLength(1);
+    await scheduler.tick();
+    expect(configStore.cronTasks).toHaveLength(0);
+    expect(scheduler.size).toBe(0);
+  });
 });
 
 describe("createHeartbeatTask", () => {

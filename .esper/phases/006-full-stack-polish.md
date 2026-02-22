@@ -82,3 +82,4 @@ Connectors track the "current session" per chat context. `/new` calls `create(pr
 
 ## Shipped Plans
 - Plan 063 — Test infrastructure + guidance: Shared temp directory lifecycle helper, live LLM model factory, echo/fail/slow test tools, TESTING.md agent guidance doc. Files: temp-dir.ts, live-model.ts, test-tools.ts, helpers.test.ts, TESTING.md, CONSTITUTION.md
+- Plan 072 — Main session + heartbeat overhaul: Structured prefix:id session IDs, main session at startup, agent-based heartbeat with HEARTBEAT.md checklist and smart suppression. Files: sessions.ts, runtime.ts, scheduler.ts, procedures.ts, types.ts, defaults.ts, server.ts, SKILL.md

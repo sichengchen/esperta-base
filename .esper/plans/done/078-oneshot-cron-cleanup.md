@@ -8,6 +8,7 @@ phase: 006-full-stack-polish
 branch: fix/oneshot-cron-cleanup
 created: 2026-02-22
 shipped_at: 2026-02-22
+pr: https://github.com/sichengchen/sa/pull/15
 ---
 # fix: remove restored one-shot cron tasks from persisted config
 

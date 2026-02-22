@@ -32,6 +32,15 @@ export const DEFAULT_CONFIG: SAConfigFile = {
       enabled: true,
       preferLocal: true,
     },
+    toolPolicy: {
+      verbosity: {
+        tui: "minimal",
+        telegram: "silent",
+        discord: "silent",
+        webhook: "silent",
+      },
+      overrides: {},
+    },
   },
   providers: [
     {

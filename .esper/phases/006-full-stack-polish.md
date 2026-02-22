@@ -94,3 +94,11 @@ Connectors track the "current session" per chat context. `/new` calls `create(pr
 - Plan 074 — TruffleHog secret scanning in CI: Added secret-scan job with --only-verified --fail. Files: .github/workflows/ci.yml
 - Plan 075 — Comprehensive docs bundled in sa skill: Relocate docs/ into sa skill directory as single source of truth (8 docs, 4200+ lines). Files: architecture.md, configuration.md, tools.md, development.md, skills.md, sessions.md, automation.md, security.md, SKILL.md, README.md, CONSTITUTION.md, embed-skills.ts, loader.ts, Wizard.tsx
 - Plan 069 — Skill-based agent orchestration: Claude Code and Codex orchestration skills for delegating coding tasks via exec. Files: claude-code/SKILL.md, codex/SKILL.md, skills.test.ts
+- Plan 076 — fix: remove legacy webhook secret auth, enforce bearer token on all routes: Remove legacy secret branch from authenticateWebhook, enforce bearer-token-only on all webhook routes. Files: server.ts, types.ts, webhook-tasks.test.ts, security.md, configuration.md, architecture.md
+
+## Post-Review Findings (2026-02-22)
+- [ ] **[P1] Enforce legacy webhook secret on task + heartbeat routes** (`src/engine/server.ts`): `authenticateWebhook` only checks `webhook.secret` when a request body is passed, so `/webhook/tasks/:slug` and `/webhook/heartbeat` are not protected when token auth is unset.
+- [ ] **[P1] Trigger only heartbeat for manual heartbeat APIs** (`src/engine/procedures.ts`, `src/engine/server.ts`): `heartbeat.trigger` and `/webhook/heartbeat` call `runtime.scheduler.tick()`, which can also run unrelated user cron jobs due in the same minute.
+- [ ] **[P2] Remove restored one-shot cron tasks from persisted config** (`src/engine/runtime.ts`): restored one-shot tasks are registered without completion cleanup, so they can be restored and run again after restart.
+- [ ] **[P2] Re-register heartbeat schedule when interval changes** (`src/engine/procedures.ts`): `heartbeat.configure` mutates in-memory config only; scheduler cron expression is not updated until restart.
+- [ ] **[P2] Honor cron task model override during execution** (`src/engine/procedures.ts`, `src/engine/runtime.ts`): `cron.add` accepts/persists `model`, but cron execution always uses runtime active model.

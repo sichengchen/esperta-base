@@ -14,6 +14,15 @@ export const execTool: ToolImpl = {
   dangerLevel: "dangerous",
   parameters: Type.Object({
     command: Type.String({ description: "The shell command to execute" }),
+    danger: Type.Optional(
+      Type.Union(
+        [Type.Literal("safe"), Type.Literal("moderate"), Type.Literal("dangerous")],
+        {
+          description:
+            'Self-declared danger level: "safe" for read-only (ls, cat, git status), "moderate" for reversible writes (git commit, npm install), "dangerous" for destructive ops (rm, sudo, kill). Defaults to "dangerous" if omitted.',
+        },
+      ),
+    ),
     workdir: Type.Optional(Type.String({ description: "Working directory (defaults to cwd)" })),
     env: Type.Optional(
       Type.Record(Type.String(), Type.String(), {

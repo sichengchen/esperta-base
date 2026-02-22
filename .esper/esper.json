@@ -1,6 +1,6 @@
 {
   "backlog_mode": "local",
-  "current_phase": "004-dx-distribution",
+  "current_phase": "005-security-tool-policy",
   "commands": {
     "test": "bun test",
     "lint": "bun run lint",

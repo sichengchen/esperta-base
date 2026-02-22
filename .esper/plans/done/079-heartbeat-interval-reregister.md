@@ -8,6 +8,7 @@ phase: 006-full-stack-polish
 branch: fix/heartbeat-interval-reregister
 created: 2026-02-22
 shipped_at: 2026-02-22
+pr: https://github.com/sichengchen/sa/pull/16
 ---
 # fix: re-register heartbeat schedule when interval changes
 

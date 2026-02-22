@@ -13,8 +13,8 @@ interface DiscordSetupProps {
 }
 
 export function DiscordSetup({ onNext, onBack, currentValues }: DiscordSetupProps) {
-  const [token, setToken] = useState("");
-  const [guildId, setGuildId] = useState("");
+  const [token, setToken] = useState(currentValues?.discordToken ?? "");
+  const [guildId, setGuildId] = useState(currentValues?.discordGuildId ?? "");
   const [phase, setPhase] = useState<"keep-or-change" | "token" | "guild">(
     currentValues ? "keep-or-change" : "token"
   );

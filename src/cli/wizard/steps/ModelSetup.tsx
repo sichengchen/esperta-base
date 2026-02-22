@@ -42,13 +42,17 @@ export function ModelSetup({ onNext, onBack, currentValues }: ModelSetupProps) {
   const [substep, setSubstep] = useState<Substep>(
     currentValues ? "keep-or-change" : "provider"
   );
-  const [providerIdx, setProviderIdx] = useState(0);
+  const [providerIdx, setProviderIdx] = useState(() => {
+    if (!currentValues) return 0;
+    const idx = PROVIDER_OPTIONS.findIndex((p) => p.type === currentValues.providerType);
+    return idx >= 0 ? idx : 0;
+  });
 
   // Credentials state
   const [compatField, setCompatField] = useState<CompatField>("name");
-  const [customName, setCustomName] = useState("");
-  const [baseUrl, setBaseUrl] = useState("");
-  const [apiKey, setApiKey] = useState("");
+  const [customName, setCustomName] = useState(currentValues?.providerId ?? "");
+  const [baseUrl, setBaseUrl] = useState(currentValues?.baseUrl ?? "");
+  const [apiKey, setApiKey] = useState(currentValues?.apiKey ?? "");
 
   // Model selection state
   const [fetchedModels, setFetchedModels] = useState<string[]>([]);

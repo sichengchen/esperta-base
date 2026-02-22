@@ -17,11 +17,11 @@ interface TelegramSetupProps {
 }
 
 export function TelegramSetup({ onNext, onBack, currentValues }: TelegramSetupProps) {
-  const [token, setToken] = useState("");
+  const [token, setToken] = useState(currentValues?.botToken ?? "");
   const [phase, setPhase] = useState<"keep-or-change" | "token" | "code">(
     currentValues ? "keep-or-change" : "token"
   );
-  const [pairingCode, setPairingCode] = useState("");
+  const [pairingCode, setPairingCode] = useState(currentValues?.pairingCode ?? "");
 
   useInput((input, key) => {
     if (phase === "keep-or-change") {

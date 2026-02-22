@@ -12,9 +12,9 @@ export function Identity({ onNext, onBack, currentValues }: IdentityProps) {
     currentValues ? "keep-or-change" : "edit"
   );
   const [field, setField] = useState<"name" | "personality">("name");
-  const [name, setName] = useState("Sasa");
+  const [name, setName] = useState(currentValues?.name ?? "Sasa");
   const [personality, setPersonality] = useState(
-    "Helpful, concise, and proactive personal assistant"
+    currentValues?.personality ?? "Helpful, concise, and proactive personal assistant"
   );
 
   useInput((input, key) => {

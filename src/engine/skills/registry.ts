@@ -1,7 +1,9 @@
 import { join, dirname } from "node:path";
 import { homedir } from "node:os";
+import { existsSync } from "node:fs";
 import { fileURLToPath } from "node:url";
-import { scanSkillDirectory, loadSkillContent } from "./loader.js";
+import { scanSkillDirectory, loadSkillContent, parseEmbeddedSkills } from "./loader.js";
+import { EMBEDDED_SKILLS } from "./embedded-skills.generated.js";
 import type { SkillMetadata, LoadedSkill } from "./types.js";
 
 const __dirname = dirname(fileURLToPath(import.meta.url));
@@ -17,8 +19,10 @@ export class SkillRegistry {
     const home = saHome ?? process.env.SA_HOME ?? join(homedir(), ".sa");
     const skillsDir = join(home, "skills");
 
-    // Scan bundled skills first, then user skills (user overrides bundled on name collision)
-    const bundled = await scanSkillDirectory(BUNDLED_SKILLS_DIR);
+    // Scan bundled skills — filesystem first, embedded fallback for single-binary builds
+    const bundled = existsSync(BUNDLED_SKILLS_DIR)
+      ? await scanSkillDirectory(BUNDLED_SKILLS_DIR)
+      : parseEmbeddedSkills(EMBEDDED_SKILLS);
     const userSkills = await scanSkillDirectory(skillsDir);
 
     for (const meta of [...bundled, ...userSkills]) {

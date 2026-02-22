@@ -13,6 +13,7 @@ import { UserProfile, type UserProfileData } from "./steps/UserProfile.js";
 import { Confirm, type WizardData } from "./steps/Confirm.js";
 import { saveSecrets } from "@sa/engine/config/secrets.js";
 import { BUNDLED_SKILLS_DIR } from "@sa/engine/skills/registry.js";
+import { EMBEDDED_SKILLS } from "@sa/engine/skills/embedded-skills.generated.js";
 
 type Step = "welcome" | "identity" | "profile" | "model" | "telegram" | "discord" | "skills" | "confirm" | "done";
 
@@ -135,10 +136,17 @@ ${recurringContext}
       if (data.selectedSkills && data.selectedSkills.length > 0) {
         const skillsDir = join(homeDir, "skills");
         await mkdir(skillsDir, { recursive: true });
+        const useFsSkills = existsSync(BUNDLED_SKILLS_DIR);
         for (const name of data.selectedSkills) {
-          const src = join(BUNDLED_SKILLS_DIR, name);
           const dest = join(skillsDir, name);
-          await cp(src, dest, { recursive: true });
+          if (useFsSkills) {
+            const src = join(BUNDLED_SKILLS_DIR, name);
+            await cp(src, dest, { recursive: true });
+          } else if (EMBEDDED_SKILLS[name]) {
+            // Single-binary build: write embedded SKILL.md directly
+            await mkdir(dest, { recursive: true });
+            await writeFile(join(dest, "SKILL.md"), EMBEDDED_SKILLS[name]);
+          }
         }
       }
 

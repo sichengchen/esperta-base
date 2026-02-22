@@ -1,7 +1,9 @@
 import React, { useState, useEffect } from "react";
 import { Box, Text, useInput } from "ink";
-import { scanSkillDirectory } from "@sa/engine/skills/loader.js";
+import { existsSync } from "node:fs";
+import { scanSkillDirectory, parseEmbeddedSkills } from "@sa/engine/skills/loader.js";
 import { BUNDLED_SKILLS_DIR } from "@sa/engine/skills/registry.js";
+import { EMBEDDED_SKILLS } from "@sa/engine/skills/embedded-skills.generated.js";
 import type { SkillMetadata } from "@sa/engine/skills/types.js";
 
 export interface SkillSetupData {
@@ -21,7 +23,11 @@ export function SkillSetup({ currentValues, onNext, onBack }: SkillSetupProps) {
   const [loading, setLoading] = useState(true);
 
   useEffect(() => {
-    scanSkillDirectory(BUNDLED_SKILLS_DIR).then((found) => {
+    const discover = existsSync(BUNDLED_SKILLS_DIR)
+      ? scanSkillDirectory(BUNDLED_SKILLS_DIR)
+      : Promise.resolve(parseEmbeddedSkills(EMBEDDED_SKILLS));
+
+    discover.then((found) => {
       setSkills(found);
       if (currentValues) {
         setChecked(new Set(currentValues.selectedSkills));

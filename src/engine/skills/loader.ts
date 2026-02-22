@@ -3,6 +3,9 @@ import { join } from "node:path";
 import { existsSync } from "node:fs";
 import type { SkillMetadata } from "./types.js";
 
+/** In-memory cache for embedded skill content (keyed by "embedded:<name>") */
+const embeddedContentCache = new Map<string, string>();
+
 /** Parse YAML-like frontmatter from a SKILL.md file */
 function parseFrontmatter(content: string): { meta: Record<string, string>; body: string } {
   const match = content.match(/^---\s*\n([\s\S]*?)\n---\s*\n([\s\S]*)$/);
@@ -67,8 +70,33 @@ export async function scanSkillDirectory(dir: string): Promise<SkillMetadata[]> 
   return skills;
 }
 
+/** Parse embedded skill content into SkillMetadata (for single-binary builds) */
+export function parseEmbeddedSkills(embedded: Record<string, string>): SkillMetadata[] {
+  const skills: SkillMetadata[] = [];
+
+  for (const [dirName, content] of Object.entries(embedded)) {
+    const { meta, body } = parseFrontmatter(content);
+    if (!meta.name || !meta.description) continue;
+
+    const filePath = `embedded:${dirName}`;
+    embeddedContentCache.set(filePath, body);
+
+    skills.push({
+      name: meta.name,
+      description: meta.description,
+      filePath,
+    });
+  }
+
+  return skills;
+}
+
 /** Load the full content (body) of a SKILL.md file */
 export async function loadSkillContent(filePath: string): Promise<string> {
+  // Check embedded cache first (for single-binary builds)
+  const cached = embeddedContentCache.get(filePath);
+  if (cached !== undefined) return cached;
+
   const content = await readFile(filePath, "utf-8");
   const { body } = parseFrontmatter(content);
   return body;

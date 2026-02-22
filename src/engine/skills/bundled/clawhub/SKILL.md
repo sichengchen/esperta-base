@@ -4,18 +4,18 @@ description: Search, install, and update agent skills from ClawHub (clawhub.ai).
 ---
 # ClawHub Skill Manager
 
-You can help the user find, install, and update agent skills from the ClawHub registry (clawhub.ai).
+You can help the user find, install, and update agent skills from the ClawHub registry (clawhub.ai) using the `clawhub` CLI.
 
-## Scripts
+## Commands
 
-Use `exec` to run the ClawHub scripts. All scripts are located at `{baseDir}/scripts/`.
+Use `exec` to run ClawHub CLI commands. The `--workdir` flag must point to the SA home directory so skills are installed into `~/.sa/skills/`.
 
 ### Search
 
 Find skills on ClawHub by keyword:
 
 ```
-exec(command: "bun run {baseDir}/scripts/search.ts '<query>'", danger: "safe")
+exec(command: "clawhub search '<query>'", danger: "safe")
 ```
 
 ### Install
@@ -23,10 +23,14 @@ exec(command: "bun run {baseDir}/scripts/search.ts '<query>'", danger: "safe")
 Install a skill by its ClawHub slug (e.g. `steipete/apple-notes`):
 
 ```
-exec(command: "bun run {baseDir}/scripts/install.ts '<slug>' [version]", danger: "moderate")
+exec(command: "clawhub install '<slug>' --workdir ~/.sa --no-input", danger: "moderate")
 ```
 
-The script downloads the skill, installs it to `~/.sa/skills/`, and reloads the engine's skill registry automatically.
+To install a specific version:
+
+```
+exec(command: "clawhub install '<slug>' --version <version> --workdir ~/.sa --no-input", danger: "moderate")
+```
 
 ### Update
 
@@ -34,32 +38,42 @@ Check for and apply updates to installed ClawHub skills:
 
 ```
 # Update all installed skills
-exec(command: "bun run {baseDir}/scripts/update.ts", danger: "moderate")
+exec(command: "clawhub update --all --workdir ~/.sa --no-input", danger: "moderate")
 
 # Update a specific skill
-exec(command: "bun run {baseDir}/scripts/update.ts '<slug>'", danger: "moderate")
+exec(command: "clawhub update '<slug>' --workdir ~/.sa --no-input", danger: "moderate")
+```
+
+### List installed
+
+Show locally installed ClawHub skills:
+
+```
+exec(command: "clawhub list --workdir ~/.sa", danger: "safe")
 ```
 
 ## When to use
 
-- User asks to find, browse, or search for skills -> run the **search** script
-- User asks to install a specific skill -> run the **install** script with the slug
-- User asks to update skills or check for newer versions -> run the **update** script
+- User asks to find, browse, or search for skills -> run **search**
+- User asks to install a specific skill -> run **install** with the slug
+- User asks to update skills or check for newer versions -> run **update**
+- User asks what ClawHub skills are installed -> run **list**
 
 ## Workflow: Finding and installing a skill
 
-1. Run the search script with a descriptive query (e.g. "apple calendar", "code review", "weather")
+1. Run `clawhub search` with a descriptive query (e.g. "apple calendar", "code review", "weather")
 2. Present the results to the user with name, description, and version
-3. If the user picks one, run the install script with the skill's slug
+3. If the user picks one, run `clawhub install` with the skill's slug
 4. Confirm installation succeeded and tell the user the skill is now available
 
 ## Workflow: Updating installed skills
 
-1. Run the update script with no arguments to check all installed skills
+1. Run `clawhub update --all` to check all installed skills
 2. Report which skills were updated and their version changes
 
 ## Notes
 
 - Skills are installed to `~/.sa/skills/<name>/` and automatically discovered by the skill registry
 - Installed skills override bundled skills of the same name
-- The ClawHub registry is at clawhub.ai -- all searches use vector embeddings for relevance
+- The ClawHub registry is at clawhub.ai — all searches use vector embeddings for relevance
+- The `clawhub` CLI must be installed (`npm i -g clawhub` or `pnpm add -g clawhub`)

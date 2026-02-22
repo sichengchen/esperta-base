@@ -1,14 +1,14 @@
 ---
-id: 078
-title: "fix: remove restored one-shot cron tasks from persisted config"
-status: pending
+id: 78
+title: fix: remove restored one-shot cron tasks from persisted config
+status: done
 type: fix
 priority: 2
 phase: 006-full-stack-polish
 branch: fix/oneshot-cron-cleanup
 created: 2026-02-22
+shipped_at: 2026-02-22
 ---
-
 # fix: remove restored one-shot cron tasks from persisted config
 
 ## Context
@@ -32,3 +32,10 @@ Compare with `registerCronTask` in procedures.ts (line 103), which correctly pas
 - Run: `bun test tests/procedures.test.ts`
 - Expected: After a restored one-shot task fires, it is removed from config.json
 - Regression check: Non-one-shot tasks are not removed; newly added one-shot tasks still clean up correctly
+
+## Progress
+- Added `onComplete` callback to restored one-shot cron tasks in runtime.ts, mirroring the pattern from `registerCronTask` in procedures.ts
+- When a restored one-shot task fires, onComplete removes it from config.json automation.cronTasks
+- Added 2 tests: tick removes one-shot + calls onComplete, and simulated config cleanup for restored tasks
+- Modified: `src/engine/runtime.ts`, `tests/scheduler.test.ts`
+- Verification: all 22 scheduler tests pass, typecheck clean, lint clean

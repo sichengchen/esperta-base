@@ -1,5 +1,7 @@
 import { z } from "zod";
 import { TRPCError } from "@trpc/server";
+import { writeFile, mkdir } from "node:fs/promises";
+import { join } from "node:path";
 import { router, publicProcedure, middleware } from "./trpc.js";
 import type { EngineRuntime } from "./runtime.js";
 import type { Agent, AgentEvent } from "./agent/index.js";
@@ -44,6 +46,92 @@ const sessionToolOverrides = new Map<string, Set<string>>();
 
 /** Pending approval metadata: toolCallId -> { sessionId, toolName } */
 const pendingApprovalMeta = new Map<string, { sessionId: string; toolName: string }>();
+
+/** Register a cron task with the scheduler that dispatches to an isolated agent session */
+function registerCronTask(
+  runtime: EngineRuntime,
+  name: string,
+  schedule: string,
+  prompt: string,
+  opts?: { oneShot?: boolean; model?: string },
+): void {
+  runtime.scheduler.register({
+    name,
+    schedule,
+    prompt,
+    oneShot: opts?.oneShot,
+    async handler() {
+      const session = runtime.sessions.create(`cron:${name}`, "cron");
+      const agent = runtime.createAgent();
+      sessionAgents.set(session.id, agent);
+
+      let responseText = "";
+      const toolCalls: { name: string; content: string }[] = [];
+
+      try {
+        for await (const event of agent.chat(prompt)) {
+          if (event.type === "text_delta") responseText += event.delta;
+          if (event.type === "tool_end") {
+            toolCalls.push({ name: event.name, content: event.result.content });
+          }
+        }
+      } catch (err) {
+        responseText = `Error: ${err instanceof Error ? err.message : String(err)}`;
+      }
+
+      // Log result to automation directory
+      try {
+        const autoDir = join(runtime.config.homeDir, "automation");
+        await mkdir(autoDir, { recursive: true });
+        const ts = new Date().toISOString().replace(/[:.]/g, "-");
+        const logContent = [
+          `# ${name} — ${new Date().toISOString()}`,
+          "## Prompt",
+          prompt,
+          "## Response",
+          responseText || "(no response)",
+          toolCalls.length > 0 ? "## Tool calls" : "",
+          ...toolCalls.map((t) => `- ${t.name}: ${t.content.slice(0, 200)}`),
+        ].filter(Boolean).join("\n");
+        await writeFile(join(autoDir, `${name}-${ts}.md`), logContent + "\n");
+      } catch {
+        // Log failure is non-fatal
+      }
+
+      console.log(`[cron] Task "${name}" completed: ${responseText.slice(0, 100)}`);
+    },
+    onComplete: opts?.oneShot ? async (taskName) => {
+      await removeCronTaskFromConfig(runtime, taskName);
+    } : undefined,
+  });
+}
+
+/** Persist a cron task to config.json */
+async function persistCronTask(
+  runtime: EngineRuntime,
+  task: { name: string; schedule: string; prompt: string; enabled: boolean; oneShot?: boolean; model?: string },
+): Promise<void> {
+  const configFile = runtime.config.getConfigFile();
+  const automation = configFile.runtime.automation ?? { cronTasks: [] };
+  // Remove existing task with same name
+  automation.cronTasks = automation.cronTasks.filter((t) => t.name !== task.name);
+  automation.cronTasks.push(task);
+  await runtime.config.saveConfig({
+    ...configFile,
+    runtime: { ...configFile.runtime, automation },
+  });
+}
+
+/** Remove a cron task from config.json */
+async function removeCronTaskFromConfig(runtime: EngineRuntime, name: string): Promise<void> {
+  const configFile = runtime.config.getConfigFile();
+  const automation = configFile.runtime.automation ?? { cronTasks: [] };
+  automation.cronTasks = automation.cronTasks.filter((t) => t.name !== name);
+  await runtime.config.saveConfig({
+    ...configFile,
+    runtime: { ...configFile.runtime, automation },
+  });
+}
 
 /** Create the tRPC router bound to a runtime instance */
 export function createAppRouter(runtime: EngineRuntime) {
@@ -573,28 +661,44 @@ export function createAppRouter(runtime: EngineRuntime) {
         return runtime.scheduler.list();
       }),
 
-      /** Add a user-defined scheduled task */
+      /** Add a user-defined scheduled task with real agent dispatch */
       add: protectedProcedure
-        .input(z.object({ name: z.string(), schedule: z.string(), prompt: z.string() }))
-        .mutation(({ input }) => {
-          runtime.scheduler.register({
+        .input(z.object({
+          name: z.string(),
+          schedule: z.string(),
+          prompt: z.string(),
+          oneShot: z.boolean().optional(),
+          model: z.string().optional(),
+        }))
+        .mutation(async ({ input }) => {
+          // Register with the scheduler — handler dispatches to an isolated agent
+          registerCronTask(runtime, input.name, input.schedule, input.prompt, {
+            oneShot: input.oneShot,
+            model: input.model,
+          });
+
+          // Persist to config
+          await persistCronTask(runtime, {
             name: input.name,
             schedule: input.schedule,
             prompt: input.prompt,
-            handler: async () => {
-              // User-defined cron tasks send a prompt to the agent
-              // The prompt will be dispatched when the scheduler ticks
-              console.log(`[cron] Running user task "${input.name}": ${input.prompt}`);
-            },
+            enabled: true,
+            oneShot: input.oneShot,
+            model: input.model,
           });
+
           return { added: true, name: input.name };
         }),
 
       /** Remove a user-defined scheduled task */
       remove: protectedProcedure
         .input(z.object({ name: z.string() }))
-        .mutation(({ input }) => {
-          return { removed: runtime.scheduler.unregister(input.name) };
+        .mutation(async ({ input }) => {
+          const removed = runtime.scheduler.unregister(input.name);
+          if (removed) {
+            await removeCronTaskFromConfig(runtime, input.name);
+          }
+          return { removed };
         }),
     }),
 

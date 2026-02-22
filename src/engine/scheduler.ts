@@ -15,6 +15,10 @@ export interface ScheduledTask {
   builtin?: boolean;
   /** Optional prompt to send to agent (for user-defined tasks) */
   prompt?: string;
+  /** If true, auto-unregister after first execution */
+  oneShot?: boolean;
+  /** Callback invoked when a one-shot task completes */
+  onComplete?: (name: string) => void;
 }
 
 interface RegisteredTask extends ScheduledTask {
@@ -105,6 +109,7 @@ export class Scheduler {
   async tick(): Promise<void> {
     const now = new Date();
     const nowMinute = Math.floor(now.getTime() / 60_000);
+    const toRemove: string[] = [];
 
     for (const task of this.tasks.values()) {
       // Skip if already ran this minute
@@ -117,7 +122,16 @@ export class Scheduler {
         } catch (err) {
           console.error(`[scheduler] Task "${task.name}" failed:`, err);
         }
+        if (task.oneShot) {
+          toRemove.push(task.name);
+          task.onComplete?.(task.name);
+        }
       }
+    }
+
+    // Remove one-shot tasks after iteration
+    for (const name of toRemove) {
+      this.tasks.delete(name);
     }
   }
 

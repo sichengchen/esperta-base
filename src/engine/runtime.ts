@@ -217,6 +217,35 @@ export async function createRuntime(): Promise<EngineRuntime> {
   // Initialize scheduler with agent-based heartbeat
   const scheduler = new Scheduler();
   scheduler.register(createHeartbeatTask(saHome, mainAgent, saConfig.runtime.heartbeat));
+
+  // Restore persisted cron tasks from config
+  const cronTasks = saConfig.runtime.automation?.cronTasks ?? [];
+  for (const task of cronTasks) {
+    if (!task.enabled) continue;
+    scheduler.register({
+      name: task.name,
+      schedule: task.schedule,
+      prompt: task.prompt,
+      oneShot: task.oneShot,
+      async handler() {
+        const session = sessions.create(`cron:${task.name}`, "cron");
+        const agent = new Agent({ router, tools, systemPrompt });
+        let responseText = "";
+        try {
+          for await (const event of agent.chat(task.prompt)) {
+            if (event.type === "text_delta") responseText += event.delta;
+          }
+        } catch (err) {
+          responseText = `Error: ${err instanceof Error ? err.message : String(err)}`;
+        }
+        console.log(`[cron] Task "${task.name}" completed: ${responseText.slice(0, 100)}`);
+      },
+    });
+  }
+  if (cronTasks.length > 0) {
+    console.log(`[sa] Restored ${cronTasks.filter((t) => t.enabled).length} cron task(s)`);
+  }
+
   scheduler.start();
 
   return {

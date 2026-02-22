@@ -40,6 +40,26 @@ export interface HeartbeatConfig {
   suppressToken: string;
 }
 
+/** A user-defined scheduled task */
+export interface CronTask {
+  name: string;
+  /** 5-field cron expression */
+  schedule: string;
+  prompt: string;
+  enabled: boolean;
+  /** If true, auto-remove after first execution */
+  oneShot?: boolean;
+  /** Optional model override for this task */
+  model?: string;
+  /** ISO timestamp for one-shot tasks scheduled at a specific time */
+  runAt?: string;
+}
+
+/** Automation configuration (cron + heartbeat) */
+export interface AutomationConfig {
+  cronTasks: CronTask[];
+}
+
 export interface RuntimeConfig {
   activeModel: string;
   telegramBotTokenEnvVar: string;
@@ -73,6 +93,8 @@ export interface RuntimeConfig {
   toolPolicy?: ToolPolicyConfig;
   /** Heartbeat configuration */
   heartbeat?: HeartbeatConfig;
+  /** Automation configuration (cron tasks) */
+  automation?: AutomationConfig;
 }
 
 /** On-disk config.json schema (v3 — merged models + runtime) */

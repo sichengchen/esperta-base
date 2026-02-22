@@ -1,4 +1,4 @@
-import { writeFile, unlink } from "node:fs/promises";
+import { writeFile, unlink, mkdir } from "node:fs/promises";
 import { join } from "node:path";
 import { homedir } from "node:os";
 import { timingSafeEqual } from "node:crypto";
@@ -9,6 +9,8 @@ import { createAppRouter, type AppRouter } from "./procedures.js";
 import { createContext } from "./context.js";
 import type { EngineRuntime } from "./runtime.js";
 import type { EngineEvent } from "@sa/shared/types.js";
+import { heartbeatState } from "./scheduler.js";
+import { Agent } from "./agent/index.js";
 
 /** Timing-safe string comparison to prevent timing attacks on secret comparison */
 function safeCompare(a: string, b: string): boolean {
@@ -24,8 +26,44 @@ interface WebhookBody {
   secret?: string;
 }
 
-/** Handle POST /webhook requests */
-async function handleWebhook(req: Request, runtime: EngineRuntime, appRouter: ReturnType<typeof createAppRouter>): Promise<Response> {
+/**
+ * Authenticate a webhook request using bearer token or legacy secret.
+ * Returns a Response if authentication fails, or null if authenticated.
+ */
+function authenticateWebhook(
+  req: Request,
+  webhookConfig: { token?: string; secret?: string } | undefined,
+  body?: WebhookBody,
+): Response | null {
+  // Bearer token takes precedence
+  if (webhookConfig?.token) {
+    const authHeader = req.headers.get("authorization") ?? "";
+    const bearerToken = authHeader.startsWith("Bearer ") ? authHeader.slice(7) : "";
+    if (!bearerToken || !safeCompare(bearerToken, webhookConfig.token)) {
+      return new Response(JSON.stringify({ error: "Unauthorized" }), {
+        status: 401,
+        headers: { "content-type": "application/json" },
+      });
+    }
+    return null; // Authenticated
+  }
+
+  // Legacy secret check (for /webhook/agent backwards compat)
+  if (webhookConfig?.secret && body) {
+    const provided = body.secret ?? req.headers.get("x-webhook-secret") ?? "";
+    if (!safeCompare(provided, webhookConfig.secret)) {
+      return new Response(JSON.stringify({ error: "Invalid secret" }), {
+        status: 401,
+        headers: { "content-type": "application/json" },
+      });
+    }
+  }
+
+  return null; // No auth configured = open
+}
+
+/** Handle POST /webhook/agent requests (direct agent chat) */
+async function handleWebhookAgent(req: Request, runtime: EngineRuntime, appRouter: ReturnType<typeof createAppRouter>): Promise<Response> {
   const configFile = runtime.config.getConfigFile();
   const webhookConfig = configFile.runtime.webhook;
 
@@ -53,16 +91,9 @@ async function handleWebhook(req: Request, runtime: EngineRuntime, appRouter: Re
     });
   }
 
-  // Authenticate via shared secret (timing-safe comparison)
-  if (webhookConfig.secret) {
-    const provided = body.secret ?? req.headers.get("x-webhook-secret") ?? "";
-    if (!safeCompare(provided, webhookConfig.secret)) {
-      return new Response(JSON.stringify({ error: "Invalid secret" }), {
-        status: 401,
-        headers: { "content-type": "application/json" },
-      });
-    }
-  }
+  // Authenticate (bearer token or legacy secret)
+  const authError = authenticateWebhook(req, webhookConfig, body);
+  if (authError) return authError;
 
   // Create or resume session
   let sessionId = body.sessionId;
@@ -146,6 +177,142 @@ async function handleWebhook(req: Request, runtime: EngineRuntime, appRouter: Re
   );
 }
 
+/** Handle POST /webhook/tasks/:slug — routed webhook automation tasks */
+async function handleWebhookTask(req: Request, slug: string, runtime: EngineRuntime): Promise<Response> {
+  const configFile = runtime.config.getConfigFile();
+  const webhookConfig = configFile.runtime.webhook;
+
+  if (!webhookConfig?.enabled) {
+    return new Response(JSON.stringify({ error: "Webhook connector is disabled" }), {
+      status: 403,
+      headers: { "content-type": "application/json" },
+    });
+  }
+
+  // Authenticate
+  const authError = authenticateWebhook(req, webhookConfig);
+  if (authError) return authError;
+
+  // Look up task by slug
+  const tasks = configFile.runtime.automation?.webhookTasks ?? [];
+  const task = tasks.find((t) => t.slug === slug);
+  if (!task) {
+    return new Response(JSON.stringify({ error: `Webhook task not found: ${slug}` }), {
+      status: 404,
+      headers: { "content-type": "application/json" },
+    });
+  }
+  if (!task.enabled) {
+    return new Response(JSON.stringify({ error: `Webhook task is disabled: ${slug}` }), {
+      status: 403,
+      headers: { "content-type": "application/json" },
+    });
+  }
+
+  // Parse request body
+  let payloadStr = "{}";
+  try {
+    const rawBody = await req.json();
+    payloadStr = JSON.stringify(rawBody);
+  } catch {
+    // No body or invalid JSON — use empty payload
+  }
+
+  // Truncate very large payloads
+  if (payloadStr.length > 10000) {
+    payloadStr = payloadStr.slice(0, 10000) + "...(truncated)";
+  }
+
+  // Interpolate {{payload}} in prompt template
+  const prompt = task.prompt.replace(/\{\{payload\}\}/g, payloadStr);
+
+  // Dispatch to isolated agent session
+  const session = runtime.sessions.create(`webhook:${slug}`, "webhook");
+  const agent = runtime.createAgent();
+  let responseText = "";
+
+  try {
+    for await (const event of agent.chat(prompt)) {
+      if (event.type === "text_delta") responseText += event.delta;
+    }
+  } catch (err) {
+    responseText = `Error: ${err instanceof Error ? err.message : String(err)}`;
+  }
+
+  // Log result
+  const saHome = process.env.SA_HOME ?? join(homedir(), ".sa");
+  const logDir = join(saHome, "automation");
+  try {
+    await mkdir(logDir, { recursive: true });
+    const timestamp = new Date().toISOString().replace(/[:.]/g, "-");
+    await writeFile(
+      join(logDir, `webhook-${slug}-${timestamp}.log`),
+      `Task: ${task.name}\nSlug: ${slug}\nPrompt: ${prompt}\n---\n${responseText}`,
+    );
+  } catch {
+    // Logging failure is non-fatal
+  }
+
+  // Deliver to connector if configured
+  if (task.connector) {
+    const notifyTool = runtime.tools.find((t) => t.name === "notify");
+    if (notifyTool) {
+      try {
+        await notifyTool.execute({ message: responseText, connector: task.connector });
+      } catch {
+        // Notification failure is non-fatal
+      }
+    }
+  }
+
+  console.log(`[webhook] Task "${task.name}" (${slug}) completed: ${responseText.slice(0, 100)}`);
+
+  return new Response(
+    JSON.stringify({ slug, task: task.name, response: responseText, sessionId: session.id }),
+    { headers: { "content-type": "application/json" } },
+  );
+}
+
+/** Handle POST /webhook/heartbeat — trigger heartbeat immediately */
+async function handleWebhookHeartbeat(req: Request, runtime: EngineRuntime): Promise<Response> {
+  const configFile = runtime.config.getConfigFile();
+  const webhookConfig = configFile.runtime.webhook;
+
+  // Authenticate (heartbeat webhook requires webhook to be enabled)
+  if (!webhookConfig?.enabled) {
+    return new Response(JSON.stringify({ error: "Webhook connector is disabled" }), {
+      status: 403,
+      headers: { "content-type": "application/json" },
+    });
+  }
+
+  const authError = authenticateWebhook(req, webhookConfig);
+  if (authError) return authError;
+
+  // Check if heartbeat is enabled
+  if (heartbeatState.config && !heartbeatState.config.enabled) {
+    return new Response(JSON.stringify({ error: "Heartbeat is disabled" }), {
+      status: 409,
+      headers: { "content-type": "application/json" },
+    });
+  }
+
+  // Trigger heartbeat
+  try {
+    await runtime.scheduler.tick();
+    return new Response(
+      JSON.stringify({ triggered: true, lastResult: heartbeatState.lastResult }),
+      { headers: { "content-type": "application/json" } },
+    );
+  } catch (err) {
+    const msg = err instanceof Error ? err.message : String(err);
+    return new Response(JSON.stringify({ error: msg }), {
+      status: 500,
+      headers: { "content-type": "application/json" },
+    });
+  }
+}
+
 export interface EngineServerOptions {
   port?: number;
   hostname?: string;
@@ -178,9 +345,21 @@ export async function startServer(runtime: EngineRuntime, options: EngineServerO
         });
       }
 
-      // Webhook endpoint
+      // Webhook endpoints (all under /webhook/*)
+      if (url.pathname === "/webhook/agent" && req.method === "POST") {
+        return handleWebhookAgent(req, runtime, appRouter);
+      }
+      // Legacy /webhook route (backwards compat → redirects to /webhook/agent)
       if (url.pathname === "/webhook" && req.method === "POST") {
-        return handleWebhook(req, runtime, appRouter);
+        return handleWebhookAgent(req, runtime, appRouter);
+      }
+      if (url.pathname === "/webhook/heartbeat" && req.method === "POST") {
+        return handleWebhookHeartbeat(req, runtime);
+      }
+      // /webhook/tasks/:slug
+      const taskMatch = url.pathname.match(/^\/webhook\/tasks\/([a-zA-Z0-9_-]+)$/);
+      if (taskMatch && req.method === "POST") {
+        return handleWebhookTask(req, taskMatch[1]!, runtime);
       }
 
       // tRPC handler — pass request for Bearer token extraction

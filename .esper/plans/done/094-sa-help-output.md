@@ -8,6 +8,7 @@ phase: 007-memory-redesign
 branch: fix/sa-help-output
 created: 2026-02-23
 shipped_at: 2026-02-23
+pr: https://github.com/sichengchen/sa/pull/27
 ---
 # fix: sa --help shows error instead of usage text
 

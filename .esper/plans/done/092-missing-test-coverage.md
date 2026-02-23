@@ -8,6 +8,7 @@ phase: 007-memory-redesign
 branch: fix/missing-test-coverage
 created: 2026-02-23
 shipped_at: 2026-02-23
+pr: https://github.com/sichengchen/sa/pull/25
 ---
 # fix: add missing tests for agent timeout and memory embedding fallback
 

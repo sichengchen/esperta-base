@@ -348,8 +348,19 @@ export function createAppRouter(runtime: EngineRuntime) {
           const agent = getSessionAgent(input.sessionId);
           const connectorType = session.connectorType as ConnectorType;
 
+          // Augment message with relevant memory context
+          let chatMessage = input.message;
           try {
-            yield* filterAgentEvents(agent.chat(input.message), connectorType, getApprovalMode(input.sessionId));
+            const memContext = await runtime.memory.getMemoryContext(input.message);
+            if (memContext) {
+              chatMessage = `<memory_context>\n${memContext}\n</memory_context>\n\n${input.message}`;
+            }
+          } catch {
+            // Memory context fetch failed — continue without it
+          }
+
+          try {
+            yield* filterAgentEvents(agent.chat(chatMessage), connectorType, getApprovalMode(input.sessionId));
           } catch (err) {
             const message = err instanceof Error ? err.message : String(err);
             yield { type: "error", message };

@@ -320,6 +320,39 @@ export class MemoryManager {
     return keys;
   }
 
+  /**
+   * Get relevant memory context for a user query.
+   * Searches across all memory and returns formatted snippets + today's journal.
+   * Used for dynamic memory injection before agent chat turns.
+   */
+  async getMemoryContext(query: string): Promise<string> {
+    const parts: string[] = [];
+
+    // Search for relevant snippets
+    if (query.trim()) {
+      const results = await this.searchIndex(query, { maxResults: 5 });
+      if (results.length > 0) {
+        const snippets = results.map((r) => {
+          const snippet = r.content.length > 300
+            ? r.content.slice(0, 300) + "..."
+            : r.content;
+          return `[${r.source}] ${snippet}`;
+        });
+        parts.push(snippets.join("\n"));
+      }
+    }
+
+    // Include today's journal if it exists
+    const today = new Date().toISOString().slice(0, 10);
+    const journal = await this.getJournal(today);
+    if (journal) {
+      const truncated = journal.length > 500 ? journal.slice(0, 500) + "..." : journal;
+      parts.push(`[Today's journal — ${today}]\n${truncated}`);
+    }
+
+    return parts.join("\n\n");
+  }
+
   /** Append content to today's journal entry (creates file if needed) */
   async appendJournal(content: string, date?: string): Promise<void> {
     const dateStr = date ?? new Date().toISOString().slice(0, 10);

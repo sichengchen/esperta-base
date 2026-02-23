@@ -4,7 +4,10 @@ import { ModelRouter } from "@sa/engine/router/index.js";
 import { Agent } from "@sa/engine/agent/index.js";
 import { MemoryManager } from "@sa/engine/memory/index.js";
 import { getBuiltinTools } from "@sa/engine/tools/index.js";
-import { createRememberTool } from "@sa/engine/tools/remember.js";
+import { createMemoryWriteTool } from "@sa/engine/tools/memory-write.js";
+import { createMemorySearchTool } from "@sa/engine/tools/memory-search.js";
+import { createMemoryReadTool } from "@sa/engine/tools/memory-read.js";
+import { createMemoryDeleteTool } from "@sa/engine/tools/memory-delete.js";
 import { rm } from "node:fs/promises";
 import { join } from "node:path";
 import { tmpdir } from "node:os";
@@ -38,7 +41,13 @@ describe("E2E smoke test", () => {
     expect(router.listModels().length).toBeGreaterThan(0);
 
     // 4. Agent initializes with all components
-    const tools = [...getBuiltinTools(), createRememberTool(memory)];
+    const tools = [
+      ...getBuiltinTools(),
+      createMemoryWriteTool(memory),
+      createMemorySearchTool(memory),
+      createMemoryReadTool(memory),
+      createMemoryDeleteTool(memory),
+    ];
     const agent = new Agent({
       router,
       tools,
@@ -49,7 +58,7 @@ describe("E2E smoke test", () => {
 
     // 5. Verify tool definitions are available for LLM
     // (We can't call agent.chat() without a real LLM, but we can verify the setup is correct)
-    expect(tools).toHaveLength(10); // read, write, edit, exec, exec_status, exec_kill, web_fetch, web_search, reaction, remember
+    expect(tools).toHaveLength(13); // read, write, edit, exec, exec_status, exec_kill, web_fetch, web_search, reaction, memory_write, memory_search, memory_read, memory_delete
     expect(tools.map((t) => t.name)).toEqual([
       "read",
       "write",
@@ -60,11 +69,14 @@ describe("E2E smoke test", () => {
       "web_fetch",
       "web_search",
       "reaction",
-      "remember",
+      "memory_write",
+      "memory_search",
+      "memory_read",
+      "memory_delete",
     ]);
   });
 
-  test("memory round-trip through the remember tool", async () => {
+  test("memory round-trip through the memory_write tool", async () => {
     const config = new ConfigManager(testHome);
     await config.load();
 
@@ -72,10 +84,10 @@ describe("E2E smoke test", () => {
     const memory = new MemoryManager(memoryDir);
     await memory.init();
 
-    const rememberTool = createRememberTool(memory);
+    const writeTool = createMemoryWriteTool(memory);
 
     // Save via tool
-    const saveResult = await rememberTool.execute({
+    const saveResult = await writeTool.execute({
       key: "test-fact",
       content: "The user prefers concise answers.",
     });

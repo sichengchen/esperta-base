@@ -25,8 +25,7 @@ Use `--quiet` for non-interactive output:
 ```
 exec({
   command: "codex --quiet 'Your detailed task description here'",
-  background: true,
-  env: { "OPENAI_API_KEY": "<key>" }
+  background: true
 })
 ```
 
@@ -41,16 +40,30 @@ Include file paths, error messages, and constraints in the prompt:
 exec({
   command: "codex --quiet 'Refactor the function parseConfig in src/config.ts to use async/await instead of callbacks. Keep the same interface.'",
   background: true,
-  danger: "moderate",
-  env: { "OPENAI_API_KEY": "<key>" }
+  danger: "moderate"
 })
 ```
 
-## API key handling
+## Authentication
 
-**Important**: The `exec` tool sanitizes environment variables — `OPENAI_API_KEY` is stripped from the subprocess environment by default. You MUST pass it explicitly via the `env` parameter.
+Codex supports **OAuth login** — users who have run `codex auth login` already have a valid session stored locally. Try the OAuth path first and only fall back to explicit API key passing if needed.
 
-To get the key:
+### OAuth-first flow
+
+1. **Try without an API key first** — invoke `codex --quiet '...'` without passing `OPENAI_API_KEY` in `env`. This works if the user has an active OAuth session from `codex auth login`.
+2. **Check for auth errors** — if the command fails (non-zero exit) and the output contains auth-related messages (e.g. "not authenticated", "API key required", "unauthorized"), the user does not have an active OAuth session.
+3. **Fall back to explicit key** — pass `OPENAI_API_KEY` explicitly via the `env` parameter:
+   ```
+   exec({
+     command: "codex --quiet '...'",
+     background: true,
+     env: { "OPENAI_API_KEY": "<key>" }
+   })
+   ```
+
+**Note**: The `exec` tool sanitizes environment variables — `OPENAI_API_KEY` is stripped from the subprocess environment by default. When falling back to explicit key mode, you MUST pass it via the `env` parameter.
+
+To get the key for fallback:
 1. Check if the user has configured an OpenAI provider — the key is in `secrets.enc`
 2. If you don't have the key value, ask the user to provide it or use `set_env_secret` to store it
 
@@ -64,7 +77,11 @@ To get the key:
 
 - **No interactive mode** — SA cannot pipe stdin to subprocesses
 - **One-shot only** — each invocation is independent
-- **Not installed by default** — if `codex` is not found, inform the user: "OpenAI Codex CLI is not installed. Install it with `npm install -g @openai/codex`"
+- **Not installed by default** — if `codex` is not found, inform the user: "OpenAI Codex CLI is not installed. Install it with `npm install -g @openai/codex` or `brew install --cask codex`"
+
+## Documentation
+
+Official docs: https://developers.openai.com/codex/cli/
 
 ## Danger classification
 

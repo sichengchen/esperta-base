@@ -1,12 +1,13 @@
 ---
 id: 95
 title: Update Claude Code & Codex skills: OAuth-first auth, docs links
-status: active
+status: done
 type: feature
 priority: 2
 phase: 007-memory-redesign
 branch: fix/update-orchestration-skills
 created: 2026-02-23
+shipped_at: 2026-02-23
 ---
 # Update Claude Code & Codex skills: OAuth-first auth, docs links
 

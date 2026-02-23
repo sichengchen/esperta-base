@@ -59,3 +59,4 @@ Phase 6 shipped cleanly — no carry-forward. This phase is informed by explorat
 
 ## Shipped Plans
 - Plan 084 — Core MemoryManager rewrite: SQLite FTS5 index, journal support, BM25 search, Markdown chunking, migration. Files: manager.ts, types.ts, chunker.ts, index.ts, config/types.ts, config/defaults.ts, memory.test.ts, memory-chunker.test.ts
+- Plan 085 — Vector embeddings + hybrid search with temporal decay: Add embed() to ModelRouter, embeddings SQLite table, hybrid BM25+vector merge, temporal decay for journal entries. Files: router.ts, types.ts, manager.ts, types.ts, index.ts, config/types.ts, config/defaults.ts, memory-embeddings.test.ts, memory-hybrid-search.test.ts

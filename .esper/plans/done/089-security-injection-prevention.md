@@ -8,6 +8,7 @@ phase: 007-memory-redesign
 branch: fix/security-injection-prevention
 created: 2026-02-23
 shipped_at: 2026-02-23
+pr: https://github.com/sichengchen/sa/pull/21
 ---
 # fix: webhook prompt injection and env-var injection allowlist
 

@@ -1,12 +1,13 @@
 ---
 id: 89
 title: fix: webhook prompt injection and env-var injection allowlist
-status: active
+status: done
 type: fix
 priority: 1
 phase: 007-memory-redesign
 branch: fix/security-injection-prevention
 created: 2026-02-23
+shipped_at: 2026-02-23
 ---
 # fix: webhook prompt injection and env-var injection allowlist
 

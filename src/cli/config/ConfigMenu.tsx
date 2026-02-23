@@ -158,7 +158,11 @@ function ConfigMenuScreen({ config, onSelect, onExit }: ConfigMenuScreenProps) {
       {MENU_ITEMS.map((item, i) => {
         let detail = "";
         if (item.key === "providers") detail = ` (${config.providers.length} configured)`;
-        if (item.key === "models") detail = ` (${config.models.length} configured, default: ${config.defaultModel})`;
+        if (item.key === "models") {
+          const chat = config.models.filter((m) => m.type !== "embedding").length;
+          const embed = config.models.filter((m) => m.type === "embedding").length;
+          detail = ` (${chat} chat${embed > 0 ? `, ${embed} embedding` : ""}, default: ${config.defaultModel})`;
+        }
         if (item.key === "memory") detail = config.runtime.memory.enabled ? " (enabled)" : " (disabled)";
 
         return (

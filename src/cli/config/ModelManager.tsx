@@ -1,14 +1,19 @@
 import React, { useState, useEffect } from "react";
 import { Box, Text, useInput } from "ink";
 import type { SAConfigFile } from "@sa/engine/config/index.js";
-import type { ModelConfig } from "@sa/engine/router/index.js";
+import type { ModelConfig, ProviderConfig } from "@sa/engine/router/index.js";
+import type { ModelTier } from "@sa/engine/router/task-types.js";
 import { loadSecrets } from "@sa/engine/config/secrets.js";
 import { fetchModelList, lookupModelMeta } from "../shared/fetch-models.js";
 
-type Substep = "list" | "add-provider" | "fetching" | "select-model" | "add-fields" | "confirm-remove";
+type Screen = "categories" | "chat-list" | "embedding-list" | "tier-assign"
+  | "add-provider" | "fetching" | "select-model" | "add-fields"
+  | "confirm-remove";
 type AddField = "name" | "temperature" | "maxTokens";
+type AddModelType = "chat" | "embedding";
 
 const VISIBLE_MODELS = 8;
+const TIERS: ModelTier[] = ["performance", "normal", "eco"];
 
 interface ModelManagerProps {
   config: SAConfigFile;
@@ -18,12 +23,13 @@ interface ModelManagerProps {
 }
 
 export function ModelManager({ config, homeDir, onSave, onBack }: ModelManagerProps) {
-  const [substep, setSubstep] = useState<Substep>("list");
+  const [screen, setScreen] = useState<Screen>("categories");
   const [selected, setSelected] = useState(0);
-  const [removeTarget, setRemoveTarget] = useState<string>("");
-  const [notice, setNotice] = useState<string>("");
+  const [notice, setNotice] = useState("");
+  const [removeTarget, setRemoveTarget] = useState("");
 
-  // Add form state
+  // Add flow state
+  const [addModelType, setAddModelType] = useState<AddModelType>("chat");
   const [providerIdx, setProviderIdx] = useState(0);
   const [addField, setAddField] = useState<AddField>("name");
   const [newName, setNewName] = useState("");
@@ -31,29 +37,29 @@ export function ModelManager({ config, homeDir, onSave, onBack }: ModelManagerPr
   const [newTemp, setNewTemp] = useState("0.7");
   const [newMaxTokens, setNewMaxTokens] = useState("8192");
 
-  // Fetched model list state
+  // Tier assignment state
+  const [tierIdx, setTierIdx] = useState(0);
+  const [tierModelIdx, setTierModelIdx] = useState(0);
+
+  // Model fetch state
   const [fetchedModels, setFetchedModels] = useState<string[]>([]);
   const [fetchError, setFetchError] = useState<string | null>(null);
   const [selectedModelIdx, setSelectedModelIdx] = useState(0);
   const [scrollOffset, setScrollOffset] = useState(0);
   const [manualModel, setManualModel] = useState("");
 
-  const models = config.models;
-  // List items: models + add
-  const listItems = [
-    ...models.map((m) => `${m.name} (${m.provider}/${m.model})${m.name === config.defaultModel ? " *default" : ""}`),
-    "+ Add new model",
-  ];
+  const chatModels = config.models.filter((m) => m.type !== "embedding");
+  const embeddingModels = config.models.filter((m) => m.type === "embedding");
+  const tiers = config.runtime.modelTiers ?? {};
 
-  // Trigger model fetch when entering "fetching" substep
+  // Trigger model fetch
   useEffect(() => {
-    if (substep !== "fetching") return;
+    if (screen !== "fetching") return;
     const provider = config.providers[providerIdx];
-    if (!provider) { setSubstep("add-provider"); return; }
+    if (!provider) { setScreen("add-provider"); return; }
 
     (async () => {
       try {
-        // Resolve API key: env var first, then secrets
         let apiKey = process.env[provider.apiKeyEnvVar] ?? "";
         if (!apiKey) {
           const secrets = await loadSecrets(homeDir);
@@ -62,7 +68,7 @@ export function ModelManager({ config, homeDir, onSave, onBack }: ModelManagerPr
         if (!apiKey) {
           setFetchedModels([]);
           setFetchError(`No API key found for ${provider.apiKeyEnvVar}`);
-          setSubstep("select-model");
+          setScreen("select-model");
           return;
         }
         const modelList = await fetchModelList(
@@ -79,78 +85,177 @@ export function ModelManager({ config, homeDir, onSave, onBack }: ModelManagerPr
       setSelectedModelIdx(0);
       setScrollOffset(0);
       setManualModel("");
-      setSubstep("select-model");
+      setScreen("select-model");
     })();
-  }, [substep]);
+  }, [screen]);
 
   function selectModel(modelId: string) {
     setNewModel(modelId);
+    if (addModelType === "embedding") {
+      // Embedding models skip name/temp/maxTokens — save immediately
+      const name = `embedding${embeddingModels.length > 0 ? `-${embeddingModels.length + 1}` : ""}`;
+      const newModelConfig: ModelConfig = {
+        name,
+        provider: config.providers[providerIdx].id,
+        model: modelId,
+        type: "embedding",
+      };
+      const updated = { ...config, models: [...config.models, newModelConfig] };
+      onSave(updated).then(() => {
+        setScreen("embedding-list");
+        setSelected(0);
+      });
+      return;
+    }
+    // Chat model — go to add-fields
     const provider = config.providers[providerIdx];
     const meta = lookupModelMeta(provider.type, modelId);
     setNewName("");
     setNewTemp("0.7");
     setNewMaxTokens(meta ? String(meta.maxTokens) : "8192");
     setAddField("name");
-    setSubstep("add-fields");
+    setScreen("add-fields");
+  }
+
+  function getTierModel(tier: ModelTier): string {
+    return tiers[tier] ?? config.defaultModel;
+  }
+
+  function setTier(tier: ModelTier, modelName: string) {
+    const newTiers = { ...tiers, [tier]: modelName };
+    // If all tiers point to default, remove modelTiers entirely
+    const allDefault = TIERS.every((t) => (newTiers[t] ?? config.defaultModel) === config.defaultModel);
+    const updated: SAConfigFile = {
+      ...config,
+      runtime: {
+        ...config.runtime,
+        modelTiers: allDefault ? undefined : newTiers,
+      },
+    };
+    onSave(updated);
   }
 
   useInput((input, key) => {
-    // --- LIST ---
-    if (substep === "list") {
+    // --- CATEGORIES ---
+    if (screen === "categories") {
       if (key.escape) { onBack(); return; }
+      if (key.upArrow) { setSelected((s) => Math.max(0, s - 1)); return; }
+      if (key.downArrow) { setSelected((s) => Math.min(1, s + 1)); return; }
+      if (key.return) {
+        setSelected(0);
+        setScreen(selected === 0 ? "chat-list" : "embedding-list");
+      }
+      return;
+    }
+
+    // --- CHAT LIST ---
+    if (screen === "chat-list") {
+      // Items: chat models + "Tier Assignments" separator + tier rows + "+ Add chat model"
+      const items = chatModels.length + 1 + TIERS.length + 1; // models + separator + tiers + add
+      if (key.escape) { setScreen("categories"); setSelected(0); return; }
       if (key.upArrow) { setSelected((s) => Math.max(0, s - 1)); setNotice(""); return; }
-      if (key.downArrow) { setSelected((s) => Math.min(listItems.length - 1, s + 1)); setNotice(""); return; }
+      if (key.downArrow) { setSelected((s) => Math.min(items - 1, s + 1)); setNotice(""); return; }
 
       if (key.return) {
-        if (selected < models.length) {
-          // Set selected model as default
-          const target = models[selected];
+        if (selected < chatModels.length) {
+          // Set as default
+          const target = chatModels[selected];
           if (target.name !== config.defaultModel) {
-            const updated = { ...config, defaultModel: target.name };
-            onSave(updated);
+            onSave({ ...config, defaultModel: target.name });
           }
           return;
         }
-        if (selected === models.length) {
-          // "Add new"
-          setSubstep("add-provider");
+        if (selected === chatModels.length) return; // Separator — no action
+        const tierOff = selected - chatModels.length - 1;
+        if (tierOff >= 0 && tierOff < TIERS.length) {
+          // Tier assignment
+          setTierIdx(tierOff);
+          setTierModelIdx(0);
+          setScreen("tier-assign");
+          return;
+        }
+        if (selected === items - 1) {
+          // Add chat model
+          setAddModelType("chat");
           setProviderIdx(0);
+          setScreen("add-provider");
           return;
         }
       }
 
-      if (input === "d" && selected < models.length) {
-        const target = models[selected];
+      if (input === "d" && selected < chatModels.length) {
+        const target = chatModels[selected];
         if (target.name === config.defaultModel) {
           setNotice("Can't delete the default model — set another as default first");
           return;
         }
+        if (chatModels.length <= 1) {
+          setNotice("Must have at least one chat model");
+          return;
+        }
         setRemoveTarget(target.name);
-        setSubstep("confirm-remove");
+        setScreen("confirm-remove");
+      }
+      return;
+    }
+
+    // --- EMBEDDING LIST ---
+    if (screen === "embedding-list") {
+      const items = embeddingModels.length + 1; // models + add
+      if (key.escape) { setScreen("categories"); setSelected(0); return; }
+      if (key.upArrow) { setSelected((s) => Math.max(0, s - 1)); return; }
+      if (key.downArrow) { setSelected((s) => Math.min(items - 1, s + 1)); return; }
+
+      if (key.return && selected === items - 1) {
+        // Add embedding model
+        setAddModelType("embedding");
+        setProviderIdx(0);
+        setScreen("add-provider");
+        return;
+      }
+
+      if (input === "d" && selected < embeddingModels.length) {
+        setRemoveTarget(embeddingModels[selected].name);
+        setScreen("confirm-remove");
+      }
+      return;
+    }
+
+    // --- TIER ASSIGN ---
+    if (screen === "tier-assign") {
+      if (key.escape) { setScreen("chat-list"); return; }
+      if (key.upArrow) { setTierModelIdx((i) => Math.max(0, i - 1)); return; }
+      if (key.downArrow) { setTierModelIdx((i) => Math.min(chatModels.length - 1, i + 1)); return; }
+      if (key.return) {
+        setTier(TIERS[tierIdx], chatModels[tierModelIdx].name);
+        setScreen("chat-list");
       }
       return;
     }
 
     // --- ADD PROVIDER ---
-    if (substep === "add-provider") {
-      if (key.escape) { setSubstep("list"); setSelected(0); return; }
+    if (screen === "add-provider") {
+      if (key.escape) {
+        setScreen(addModelType === "chat" ? "chat-list" : "embedding-list");
+        setSelected(0);
+        return;
+      }
       if (key.upArrow) { setProviderIdx((i) => Math.max(0, i - 1)); return; }
       if (key.downArrow) { setProviderIdx((i) => Math.min(config.providers.length - 1, i + 1)); return; }
       if (key.return) {
         setFetchedModels([]);
         setFetchError(null);
-        setSubstep("fetching");
+        setScreen("fetching");
       }
       return;
     }
 
-    // --- FETCHING --- (no keyboard input during fetch)
-    if (substep === "fetching") return;
+    // --- FETCHING ---
+    if (screen === "fetching") return;
 
     // --- SELECT MODEL ---
-    if (substep === "select-model") {
-      if (key.escape) { setSubstep("add-provider"); return; }
-
+    if (screen === "select-model") {
+      if (key.escape) { setScreen("add-provider"); return; }
       if (fetchedModels.length > 0) {
         if (key.upArrow) {
           setSelectedModelIdx((i) => {
@@ -175,7 +280,6 @@ export function ModelManager({ config, homeDir, onSave, onBack }: ModelManagerPr
           return;
         }
       } else {
-        // Manual entry fallback
         if (key.return) {
           if (manualModel.trim()) selectModel(manualModel.trim());
           return;
@@ -186,15 +290,15 @@ export function ModelManager({ config, homeDir, onSave, onBack }: ModelManagerPr
       return;
     }
 
-    // --- ADD FIELDS ---
-    if (substep === "add-fields") {
-      if (key.escape) { setSubstep("select-model"); return; }
+    // --- ADD FIELDS (chat only) ---
+    if (screen === "add-fields") {
+      if (key.escape) { setScreen("select-model"); return; }
       if (key.return) {
         if (addField === "name") { setAddField("temperature"); return; }
         if (addField === "temperature") { setAddField("maxTokens"); return; }
         // Save
         if (!newName.trim()) return;
-        if (models.some((m) => m.name === newName.trim())) return;
+        if (config.models.some((m) => m.name === newName.trim())) return;
         const newModelConfig: ModelConfig = {
           name: newName.trim(),
           provider: config.providers[providerIdx].id,
@@ -204,19 +308,17 @@ export function ModelManager({ config, homeDir, onSave, onBack }: ModelManagerPr
         };
         const updated = { ...config, models: [...config.models, newModelConfig] };
         onSave(updated).then(() => {
-          setSubstep("list");
-          setSelected(updated.models.length - 1);
+          setScreen("chat-list");
+          setSelected(0);
         });
         return;
       }
-
       if (key.backspace || key.delete) {
         if (addField === "name") setNewName((v) => v.slice(0, -1));
         else if (addField === "temperature") setNewTemp((v) => v.slice(0, -1));
         else setNewMaxTokens((v) => v.slice(0, -1));
         return;
       }
-
       if (input && !key.ctrl && !key.meta) {
         if (addField === "name") setNewName((v) => v + input);
         else if (addField === "temperature") setNewTemp((v) => v + input);
@@ -226,43 +328,139 @@ export function ModelManager({ config, homeDir, onSave, onBack }: ModelManagerPr
     }
 
     // --- CONFIRM REMOVE ---
-    if (substep === "confirm-remove") {
-      if (key.escape || input === "n") { setSubstep("list"); return; }
+    if (screen === "confirm-remove") {
+      if (key.escape || input === "n") {
+        const isEmb = embeddingModels.some((m) => m.name === removeTarget);
+        setScreen(isEmb ? "embedding-list" : "chat-list");
+        return;
+      }
       if (input === "y") {
-        const updated = {
+        // Also clean up tier references
+        const newTiers = { ...tiers };
+        for (const tier of TIERS) {
+          if (newTiers[tier] === removeTarget) delete newTiers[tier];
+        }
+        const updated: SAConfigFile = {
           ...config,
           models: config.models.filter((m) => m.name !== removeTarget),
+          runtime: {
+            ...config.runtime,
+            modelTiers: Object.keys(newTiers).length > 0 ? newTiers : undefined,
+          },
         };
+        const isEmb = embeddingModels.some((m) => m.name === removeTarget);
         onSave(updated).then(() => {
           setSelected(0);
-          setSubstep("list");
+          setScreen(isEmb ? "embedding-list" : "chat-list");
         });
       }
     }
   });
+
+  // ── Render ──────────────────────────────────────────────────────────────────
 
   return (
     <Box flexDirection="column" padding={1}>
       <Text bold color="cyan">Models</Text>
       <Text />
 
-      {substep === "list" && (
+      {screen === "categories" && (
         <>
-          {listItems.map((item, i) => (
-            <Text key={i}>
+          {[
+            { label: "Chat models", detail: `${chatModels.length} configured` },
+            { label: "Embedding models", detail: `${embeddingModels.length} configured` },
+          ].map((item, i) => (
+            <Text key={item.label}>
               {i === selected ? <Text color="green">{"● "}</Text> : <Text>{"○ "}</Text>}
-              {item}
+              {item.label} <Text dimColor>({item.detail})</Text>
             </Text>
           ))}
           <Text />
-          <Text dimColor>↑↓ navigate | Enter set default | d delete | Esc back</Text>
+          <Text dimColor>↑↓ navigate | Enter select | Esc back</Text>
+        </>
+      )}
+
+      {screen === "chat-list" && (
+        <>
+          {chatModels.map((m, i) => {
+            const tierLabels = TIERS.filter((t) => getTierModel(t) === m.name);
+            const isDefault = m.name === config.defaultModel;
+            return (
+              <Text key={m.name}>
+                {i === selected ? <Text color="green">{"● "}</Text> : <Text>{"○ "}</Text>}
+                {m.name} ({m.provider}/{m.model})
+                {isDefault && <Text color="yellow"> *default</Text>}
+                {tierLabels.length > 0 && (
+                  <Text dimColor> [{tierLabels.join(", ")}]</Text>
+                )}
+              </Text>
+            );
+          })}
+          <Text dimColor>  ─────────────────</Text>
+          <Text bold>  Tier Assignments</Text>
+          {TIERS.map((tier, i) => {
+            const idx = chatModels.length + 1 + i;
+            const assigned = getTierModel(tier);
+            return (
+              <Text key={tier}>
+                {idx === selected ? <Text color="green">{"● "}</Text> : <Text>{"○ "}</Text>}
+                {"  "}{tier} → {assigned}
+              </Text>
+            );
+          })}
+          {(() => {
+            const addIdx = chatModels.length + 1 + TIERS.length;
+            return (
+              <Text>
+                {addIdx === selected ? <Text color="green">{"● "}</Text> : <Text>{"○ "}</Text>}
+                + Add chat model
+              </Text>
+            );
+          })()}
+          <Text />
+          <Text dimColor>Enter set default/tier | d delete | Esc back</Text>
           {notice !== "" && <Text color="yellow">{notice}</Text>}
         </>
       )}
 
-      {substep === "add-provider" && (
+      {screen === "embedding-list" && (
         <>
-          <Text>Select provider for new model:</Text>
+          {embeddingModels.length === 0 && (
+            <Text dimColor>No embedding models configured. Memory uses keyword search only.</Text>
+          )}
+          {embeddingModels.map((m, i) => (
+            <Text key={m.name}>
+              {i === selected ? <Text color="green">{"● "}</Text> : <Text>{"○ "}</Text>}
+              {m.name} ({m.provider}/{m.model})
+            </Text>
+          ))}
+          <Text>
+            {embeddingModels.length === selected ? <Text color="green">{"● "}</Text> : <Text>{"○ "}</Text>}
+            + Add embedding model
+          </Text>
+          <Text />
+          <Text dimColor>d delete | Esc back</Text>
+        </>
+      )}
+
+      {screen === "tier-assign" && (
+        <>
+          <Text bold>Assign {TIERS[tierIdx]} tier to:</Text>
+          <Text />
+          {chatModels.map((m, i) => (
+            <Text key={m.name}>
+              {i === tierModelIdx ? <Text color="green">{"● "}</Text> : <Text>{"○ "}</Text>}
+              {m.name} ({m.provider}/{m.model})
+            </Text>
+          ))}
+          <Text />
+          <Text dimColor>↑↓ navigate | Enter assign | Esc cancel</Text>
+        </>
+      )}
+
+      {screen === "add-provider" && (
+        <>
+          <Text>Select provider for new {addModelType} model:</Text>
           {config.providers.map((p, i) => (
             <Text key={p.id}>
               {i === providerIdx ? <Text color="green">{"● "}</Text> : <Text>{"○ "}</Text>}
@@ -274,16 +472,16 @@ export function ModelManager({ config, homeDir, onSave, onBack }: ModelManagerPr
         </>
       )}
 
-      {substep === "fetching" && (
+      {screen === "fetching" && (
         <Text>Fetching available models from {config.providers[providerIdx]?.id}...</Text>
       )}
 
-      {substep === "select-model" && (
+      {screen === "select-model" && (
         <>
           {fetchedModels.length > 0 ? (
             <>
               <Text>
-                Choose a model ({fetchedModels.length} available from {config.providers[providerIdx]?.id}):
+                Choose a {addModelType} model ({fetchedModels.length} available from {config.providers[providerIdx]?.id}):
               </Text>
               {fetchedModels.slice(scrollOffset, scrollOffset + VISIBLE_MODELS).map((m, i) => {
                 const absIdx = scrollOffset + i;
@@ -327,9 +525,9 @@ export function ModelManager({ config, homeDir, onSave, onBack }: ModelManagerPr
         </>
       )}
 
-      {substep === "add-fields" && (
+      {screen === "add-fields" && (
         <>
-          <Text bold>New model (provider: {config.providers[providerIdx]?.id}, model: {newModel})</Text>
+          <Text bold>New chat model (provider: {config.providers[providerIdx]?.id}, model: {newModel})</Text>
           <Text />
           <Box>
             <Text color={addField === "name" ? "blue" : "white"} bold={addField === "name"}>Name: </Text>
@@ -351,7 +549,7 @@ export function ModelManager({ config, homeDir, onSave, onBack }: ModelManagerPr
         </>
       )}
 
-      {substep === "confirm-remove" && (
+      {screen === "confirm-remove" && (
         <Text>Remove model "{removeTarget}"? (y/n)</Text>
       )}
     </Box>

@@ -68,7 +68,7 @@ export class DiscordConnector {
     }
 
     // Create a new session
-    const session = await this.client.session.create.mutate({
+    const { session } = await this.client.session.create.mutate({
       connectorType: "discord",
       prefix,
     });
@@ -225,7 +225,7 @@ export class DiscordConnector {
       if (text === "/new") {
         const prefix = `discord:${message.channelId}`;
         // Create a fresh session under the same prefix (old session preserved)
-        const session = await this.client.session.create.mutate({
+        const { session } = await this.client.session.create.mutate({
           connectorType: "discord",
           prefix,
         });

@@ -53,7 +53,7 @@ export class TelegramConnector {
     }
 
     // Create a new session
-    const session = await this.client.session.create.mutate({
+    const { session } = await this.client.session.create.mutate({
       connectorType: "telegram",
       prefix,
     });
@@ -91,7 +91,7 @@ export class TelegramConnector {
       const chatId = ctx.message!.chat.id;
       const prefix = `telegram:${chatId}`;
       // Create a fresh session under the same prefix (old session preserved)
-      const session = await this.client.session.create.mutate({
+      const { session } = await this.client.session.create.mutate({
         connectorType: "telegram",
         prefix,
       });

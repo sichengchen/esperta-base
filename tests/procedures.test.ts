@@ -119,7 +119,7 @@ describe("tRPC procedures (non-live)", () => {
   describe("session.create", () => {
     test("creates a session with structured ID", async () => {
       const caller = createCaller();
-      const session = await caller.session.create({
+      const { session } = await caller.session.create({
         connectorType: "tui",
         prefix: "tui",
       });
@@ -149,7 +149,7 @@ describe("tRPC procedures (non-live)", () => {
   describe("session.destroy", () => {
     test("destroys a session", async () => {
       const caller = createCaller();
-      const session = await caller.session.create({ connectorType: "tui", prefix: "tui" });
+      const { session } = await caller.session.create({ connectorType: "tui", prefix: "tui" });
       const result = await caller.session.destroy({ sessionId: session.id });
       expect(result.destroyed).toBe(true);
 

@@ -55,7 +55,7 @@ export function App({ client }: AppProps) {
         setModelName(ping.model);
         setAgentName(ping.agentName);
 
-        const session = await client.session.create.mutate({
+        const { session } = await client.session.create.mutate({
           connectorType: "tui",
           prefix: "tui",
         });
@@ -101,7 +101,7 @@ export function App({ client }: AppProps) {
       if (text === "/new") {
         try {
           await client.session.destroy.mutate({ sessionId });
-          const session = await client.session.create.mutate({
+          const { session } = await client.session.create.mutate({
             connectorType: "tui",
             prefix: "tui",
           });

@@ -1,14 +1,15 @@
 ---
-id: 093
-title: "fix: standardize tRPC mutation return shapes and session ID pairing entropy"
-status: pending
+id: 93
+title: fix: standardize tRPC mutation return shapes and session ID pairing entropy
+status: done
 type: fix
 priority: 2
 phase: 007-memory-redesign
 branch: fix/api-consistency
 created: 2026-02-23
+shipped_at: 2026-02-23
+pr: https://github.com/sichengchen/sa/pull/26
 ---
-
 # fix: standardize tRPC mutation return shapes and session ID pairing entropy
 
 ## Context
@@ -49,3 +50,13 @@ The 6-character alphanumeric pairing code has ~2 billion combinations but there 
 - Manual test: TUI connects successfully (session.create return shape change handled)
 - Manual test pairing: 5 failed pairing attempts result in a 30s lockout; correct code succeeds on first try
 - Regression check: Telegram and Discord connectors connect without errors
+
+## Progress
+- Wrapped `session.create` return as `{ session: Session }` for consistency with other mutations
+- Updated all 6 connector call sites (TUI x2, Telegram x2, Discord x2) to destructure `{ session }`
+- Updated `tests/procedures.test.ts` for new return shape
+- Added pairing rate limiting in `AuthManager`: tracks failures in sliding 60s window, locks out for 30s after 5 failures, clears on successful pairing code use
+- Passed `error` field through `auth.pair` tRPC response
+- session.destroy kept as `{ destroyed: boolean }` (already wrapped, no change needed)
+- Modified: src/engine/procedures.ts, src/engine/auth.ts, src/connectors/tui/App.tsx, src/connectors/telegram/transport.ts, src/connectors/discord/transport.ts, tests/procedures.test.ts
+- Verification: 535 tests pass, lint clean, typecheck clean

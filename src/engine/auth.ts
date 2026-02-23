@@ -1,4 +1,4 @@
-import { randomBytes } from "node:crypto";
+import { randomBytes, timingSafeEqual } from "node:crypto";
 import { writeFile, unlink } from "node:fs/promises";
 import { readFileSync, existsSync } from "node:fs";
 import { join } from "node:path";
@@ -7,6 +7,15 @@ import { homedir } from "node:os";
 const TOKEN_BYTES = 32;
 const PAIRING_CODE_LENGTH = 6;
 const PAIRING_CODE_CHARSET = "ABCDEFGHJKLMNPQRSTUVWXYZ23456789"; // no 0/O/1/I confusion
+const PAIRING_MAX_FAILURES = 5;
+const PAIRING_WINDOW_MS = 60_000;
+const PAIRING_LOCKOUT_MS = 30_000;
+
+/** Timing-safe string comparison to prevent timing side-channel attacks */
+function safeCompare(a: string, b: string): boolean {
+  if (a.length !== b.length) return false;
+  return timingSafeEqual(Buffer.from(a), Buffer.from(b));
+}
 
 interface TokenEntry {
   token: string;
@@ -21,6 +30,8 @@ export class AuthManager {
   private pairedTokens = new Map<string, TokenEntry>();
   private activePairingCode: string | null = null;
   private tokenFilePath: string;
+  private pairingFailures: number[] = [];
+  private pairingLockedUntil = 0;
 
   constructor(saHome?: string) {
     const home = saHome ?? process.env.SA_HOME ?? join(homedir(), ".sa");
@@ -60,9 +71,16 @@ export class AuthManager {
     credential: string,
     connectorId: string,
     connectorType: string,
-  ): { success: boolean; token?: string } {
+  ): { success: boolean; token?: string; error?: string } {
+    // Rate limit pairing attempts (not master token — local connectors should always work)
+    const now = Date.now();
+    if (now < this.pairingLockedUntil) {
+      const remaining = Math.ceil((this.pairingLockedUntil - now) / 1000);
+      return { success: false, error: `Too many failed pairing attempts. Try again in ${remaining}s.` };
+    }
+
     // Master token (local Connectors read from ~/.sa/engine.token)
-    if (credential === this.masterToken) {
+    if (this.masterToken && safeCompare(credential, this.masterToken)) {
       const sessionToken = randomBytes(TOKEN_BYTES).toString("hex");
       this.pairedTokens.set(sessionToken, {
         token: sessionToken,
@@ -74,8 +92,9 @@ export class AuthManager {
     }
 
     // Pairing code (remote device-flow)
-    if (this.activePairingCode && credential === this.activePairingCode) {
+    if (this.activePairingCode && safeCompare(credential, this.activePairingCode)) {
       this.activePairingCode = null; // one-time use
+      this.pairingFailures = []; // clear on success
       const sessionToken = randomBytes(TOKEN_BYTES).toString("hex");
       this.pairedTokens.set(sessionToken, {
         token: sessionToken,
@@ -86,13 +105,21 @@ export class AuthManager {
       return { success: true, token: sessionToken };
     }
 
+    // Track failure for rate limiting
+    this.pairingFailures.push(now);
+    this.pairingFailures = this.pairingFailures.filter((t) => now - t < PAIRING_WINDOW_MS);
+    if (this.pairingFailures.length >= PAIRING_MAX_FAILURES) {
+      this.pairingLockedUntil = now + PAIRING_LOCKOUT_MS;
+      this.pairingFailures = [];
+    }
+
     return { success: false };
   }
 
   /** Validate a bearer token. Returns connector info if valid. */
   validate(token: string): TokenEntry | null {
     // Master token is always valid
-    if (token === this.masterToken) {
+    if (this.masterToken && safeCompare(token, this.masterToken)) {
       return {
         token: this.masterToken,
         connectorId: "master",

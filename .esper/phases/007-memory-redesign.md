@@ -1,7 +1,7 @@
 ---
 phase: 007-memory-redesign
 title: "Memory Redesign"
-status: active
+status: completed
 ---
 
 # Phase 7: Memory Redesign
@@ -37,21 +37,21 @@ Ground-up redesign of SA's memory system. The current system is fundamentally br
 
 ## Acceptance Criteria
 
-- [ ] MemoryManager uses SQLite (bun:sqlite) with FTS5 for search
-- [ ] Search returns ranked, chunked snippets (not full files) with source paths
-- [ ] BM25 search works with zero external dependencies
-- [ ] Journal directory created, daily logs supported
-- [ ] Existing `topics/` files migrated into index on first boot
-- [ ] Optional vector embeddings via remote provider (OpenAI/Google/Voyage)
-- [ ] Hybrid search merges BM25 + vector scores when embeddings configured
-- [ ] Temporal decay applied to journal entries (configurable half-life)
-- [ ] `memory_write`, `memory_search`, `memory_read` tools replace old 5-tool surface
-- [ ] System prompt includes memory usage instructions
-- [ ] Agent receives relevant memory context per chat turn (not just at boot)
-- [ ] Config supports `memory.search`, `memory.journal`; embedding model in models array with `type: "embedding"`
-- [ ] Onboarding wizard supports primary + eco + embedding model setup
-- [ ] Config editor models panel shows model types, tier assignments
-- [ ] `bun run typecheck`, `bun run lint`, and `bun test` all pass
+- [x] MemoryManager uses SQLite (bun:sqlite) with FTS5 for search
+- [x] Search returns ranked, chunked snippets (not full files) with source paths
+- [x] BM25 search works with zero external dependencies
+- [x] Journal directory created, daily logs supported
+- [x] Existing `topics/` files migrated into index on first boot
+- [x] Optional vector embeddings via remote provider (OpenAI/Google/Voyage)
+- [x] Hybrid search merges BM25 + vector scores when embeddings configured
+- [x] Temporal decay applied to journal entries (configurable half-life)
+- [x] `memory_write`, `memory_search`, `memory_read` tools replace old 5-tool surface
+- [x] System prompt includes memory usage instructions
+- [x] Agent receives relevant memory context per chat turn (not just at boot)
+- [x] Config supports `memory.search`, `memory.journal`; embedding model in models array with `type: "embedding"`
+- [x] Onboarding wizard supports primary + eco + embedding model setup
+- [x] Config editor models panel shows model types, tier assignments
+- [x] `bun run typecheck`, `bun run lint`, and `bun test` all pass
 
 ## Phase Notes
 

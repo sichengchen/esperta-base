@@ -2,6 +2,33 @@ import { Type } from "@mariozechner/pi-ai";
 import type { ToolImpl } from "../agent/types.js";
 import type { ConfigManager } from "../config/index.js";
 
+/** Environment variables that must not be overwritten by the agent (injection risk). */
+const BLOCKED_ENV_VARS = new Set([
+  "LD_PRELOAD",
+  "LD_LIBRARY_PATH",
+  "NODE_OPTIONS",
+  "NODE_PATH",
+  "DYLD_INSERT_LIBRARIES",
+  "DYLD_LIBRARY_PATH",
+  "PATH",
+  "PYTHONPATH",
+  "RUBYOPT",
+]);
+
+/**
+ * Validates an environment variable name.
+ * Returns an error string if invalid, or null if the name is acceptable.
+ */
+export function validateEnvVarName(name: string): string | null {
+  if (!/^[A-Za-z_][A-Za-z0-9_]*$/.test(name)) {
+    return "Error: variable name must contain only letters, digits, and underscores";
+  }
+  if (BLOCKED_ENV_VARS.has(name.toUpperCase())) {
+    return `Error: setting ${name} is not permitted for security reasons`;
+  }
+  return null;
+}
+
 /** Create a set_env_secret tool — stores values encrypted in secrets.enc */
 export function createSetEnvSecretTool(config: ConfigManager): ToolImpl {
   return {
@@ -26,6 +53,9 @@ export function createSetEnvSecretTool(config: ConfigManager): ToolImpl {
       if (!name.trim() || !value.trim()) {
         return { content: "Error: name and value must not be empty", isError: true };
       }
+
+      const nameError = validateEnvVarName(name);
+      if (nameError) return { content: nameError, isError: true };
 
       try {
         const secrets = (await config.loadSecrets()) ?? { apiKeys: {} };
@@ -70,6 +100,9 @@ export function createSetEnvVariableTool(config: ConfigManager): ToolImpl {
       if (!name.trim()) {
         return { content: "Error: name must not be empty", isError: true };
       }
+
+      const nameError = validateEnvVarName(name);
+      if (nameError) return { content: nameError, isError: true };
 
       try {
         const configFile = config.getConfigFile();

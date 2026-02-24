@@ -115,4 +115,84 @@ describe("SubAgent", () => {
     expect(subAgent.status).toBe("pending");
     expect(subAgent.result).toBeUndefined();
   });
+
+  it("excludes delegate_status tool from available tools", () => {
+    const tools: ToolImpl[] = [
+      createMockTool("read"),
+      createMockTool("delegate", "moderate"),
+      createMockTool("delegate_status"),
+    ];
+
+    // Should not throw — both delegate and delegate_status are filtered
+    const subAgent = new SubAgent(mockRouter, tools, {
+      id: "subagent:test:6",
+      task: "test task",
+    });
+    expect(subAgent.id).toBe("subagent:test:6");
+  });
+
+  it("removes memory_write and memory_delete when memoryWrite=false", () => {
+    const tools: ToolImpl[] = [
+      createMockTool("read"),
+      createMockTool("memory_write"),
+      createMockTool("memory_search"),
+      createMockTool("memory_read"),
+      createMockTool("memory_delete"),
+    ];
+
+    const subAgent = new SubAgent(mockRouter, tools, {
+      id: "subagent:test:7",
+      task: "test task",
+      memoryWrite: false,
+    });
+
+    // Verify via the agent's tool registry (getToolDefinitions returns registered tools)
+    const registeredTools = (subAgent.agent as any).registry.getToolDefinitions();
+    const toolNames = registeredTools.map((t: { name: string }) => t.name);
+    expect(toolNames).toContain("read");
+    expect(toolNames).toContain("memory_search");
+    expect(toolNames).toContain("memory_read");
+    expect(toolNames).not.toContain("memory_write");
+    expect(toolNames).not.toContain("memory_delete");
+  });
+
+  it("keeps memory_write and memory_delete when memoryWrite=true", () => {
+    const tools: ToolImpl[] = [
+      createMockTool("read"),
+      createMockTool("memory_write"),
+      createMockTool("memory_search"),
+      createMockTool("memory_read"),
+      createMockTool("memory_delete"),
+    ];
+
+    const subAgent = new SubAgent(mockRouter, tools, {
+      id: "subagent:test:8",
+      task: "test task",
+      memoryWrite: true,
+    });
+
+    const registeredTools = (subAgent.agent as any).registry.getToolDefinitions();
+    const toolNames = registeredTools.map((t: { name: string }) => t.name);
+    expect(toolNames).toContain("memory_write");
+    expect(toolNames).toContain("memory_delete");
+  });
+
+  it("defaults to memoryWrite=true (sync subagents)", () => {
+    const tools: ToolImpl[] = [
+      createMockTool("read"),
+      createMockTool("memory_write"),
+      createMockTool("memory_delete"),
+    ];
+
+    // No memoryWrite option = default = true (tools not filtered)
+    const subAgent = new SubAgent(mockRouter, tools, {
+      id: "subagent:test:9",
+      task: "test task",
+    });
+
+    const registeredTools = (subAgent.agent as any).registry.getToolDefinitions();
+    const toolNames = registeredTools.map((t: { name: string }) => t.name);
+    expect(toolNames).toContain("memory_write");
+    expect(toolNames).toContain("memory_delete");
+  });
 });

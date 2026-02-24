@@ -65,14 +65,16 @@ sa help                 Show help
 
 ## Documentation
 
-- [Architecture](src/engine/skills/bundled/sa/docs/architecture.md) — Engine subsystems, agent loop, model router, sessions, tRPC API
-- [Configuration](src/engine/skills/bundled/sa/docs/configuration.md) — config schema, providers, models, tiers, tool policy, automation
-- [Tools](src/engine/skills/bundled/sa/docs/tools.md) — tool danger classification, approval flow, exec hybrid approval, filter patterns
-- [Development](src/engine/skills/bundled/sa/docs/development.md) — testing, CI/CD, CalVer, contributing, debugging
-- [Skills](src/engine/skills/bundled/sa/docs/skills.md) — SKILL.md format, bundled/user/ClawHub skills, creating custom skills
-- [Sessions](src/engine/skills/bundled/sa/docs/sessions.md) — structured IDs, 3-tier session model, SessionManager API
-- [Automation](src/engine/skills/bundled/sa/docs/automation.md) — heartbeat, cron dispatch, webhook tasks
-- [Security](src/engine/skills/bundled/sa/docs/security.md) — tool danger levels, approval modes, secrets vault, auth
+System docs live in [`specs/`](specs/README.md). Key sections:
+
+- [Overview](specs/overview.md) — Architecture, subsystems, agent loop, model router, tRPC API
+- [Configuration](specs/configuration.md) — Config schema, providers, models, tiers, aliases
+- [Tools](specs/tools/README.md) — Danger classification, approval matrix, per-tool config
+- [Security](specs/security/README.md) — Threat model, approval flow, exec classifier, secrets vault, auth
+- [Automation](specs/automation.md) — Heartbeat, cron, webhooks
+- [Sessions](specs/sessions.md) — 3-tier session model, structured IDs
+- [Skills](specs/skills.md) — SKILL.md format, discovery, ClawHub
+- [Development](specs/development.md) — Testing, CI/CD, CalVer, contributing
 
 ## Config location
 

@@ -126,6 +126,11 @@ export interface RuntimeConfig {
   taskTierOverrides?: Partial<Record<TaskType, ModelTier>>;
   /** Shorthand aliases for model names (e.g. { "fast": "haiku", "smart": "opus" }) */
   modelAliases?: Record<string, string>;
+  /** URL policy for web_fetch — SSRF protection */
+  urlPolicy?: {
+    additionalBlockedHosts?: string[];
+    allowedExceptions?: string[];
+  };
   /** Tool policy: per-connector verbosity and per-tool overrides */
   toolPolicy?: ToolPolicyConfig;
   /** Heartbeat configuration */

@@ -58,6 +58,10 @@ export const DEFAULT_CONFIG: SAConfigFile = {
       enabled: true,
       preferLocal: true,
     },
+    urlPolicy: {
+      additionalBlockedHosts: [],
+      allowedExceptions: [],
+    },
     toolPolicy: {
       verbosity: {
         tui: "minimal",

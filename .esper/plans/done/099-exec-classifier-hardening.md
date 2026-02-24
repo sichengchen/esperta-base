@@ -1,14 +1,14 @@
 ---
-id: 099
-title: "Exec classifier hardening — default-dangerous + shell indirection"
-status: pending
+id: 99
+title: Exec classifier hardening — default-dangerous + shell indirection
+status: done
 type: feature
 priority: 1
 phase: 008-security-and-subagents
 branch: feature/008-security-and-subagents
 created: 2026-02-23
+shipped_at: 2026-02-24
 ---
-
 # Exec classifier hardening — default-dangerous + shell indirection
 
 ## Context
@@ -106,3 +106,13 @@ Update existing classifier tests and add new cases:
 - Run: `bun run typecheck && bun run lint`
 - Expected: No errors
 - Edge cases: `git config --global` vs `git config --local` (only global is dangerous), nested substitution `$($(cmd))`, commands with quoted arguments containing patterns (e.g., `echo '$(rm -rf /)'` should be safe — it's a string literal)
+
+## Progress
+- Changed fallback from agent-trusted to default-deny ("dangerous")
+- Added 14 shell indirection patterns (eval, source, $(), backticks, inline interpreters for python/perl/ruby/node/php)
+- Expanded pipe-to-shell to all common shell variants (dash, ksh, zsh, csh, tcsh, fish)
+- Added dangerous git subcommands set (push, reset, clean, checkout ., restore ., config --global)
+- Added safe commands: grep, rg, ag, ack, sed, awk, find, curl, wget, comm, column
+- Rewrote tests: 67 tests covering all categories
+- Modified: exec-classifier.ts, exec-classifier.test.ts
+- Verification: typecheck, lint, all 624 tests pass

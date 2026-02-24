@@ -1,14 +1,14 @@
 ---
 id: 104
-title: "Audit log — append-only structured event log"
-status: pending
+title: Audit log — append-only structured event log
+status: done
 type: feature
 priority: 2
 phase: 008-security-and-subagents
 branch: feature/008-security-and-subagents
 created: 2026-02-23
+shipped_at: 2026-02-24
 ---
-
 # Audit log — append-only structured event log
 
 ## Context
@@ -117,3 +117,15 @@ Default output: human-readable table format with colored event types.
 - Expected: No errors
 - Manual: Start engine, perform tool calls, run `sa audit` — entries visible
 - Edge cases: Concurrent writes (append is atomic on POSIX for small writes), rotation during active write, corrupt NDJSON line (skip on read, don't crash)
+
+## Progress
+- Created AuditLogger class with NDJSON append, rotation at 10MB, 0o600 permissions
+- 13 unit tests covering write, rotation, permissions, truncation, rapid writes
+- Wired AuditLogger into EngineRuntime as singleton
+- Instrumented procedures.ts: tool_call, tool_result, tool_approval, tool_denial, security_escalation, session_create, session_destroy, auth_success, auth_failure
+- Instrumented server.ts: webhook auth_failure
+- Created `sa audit` CLI with --tail, --tool, --event, --since, --json flags
+- Auth events logged through procedures.ts pair endpoint (not in auth.ts directly) to keep AuditLogger decoupled
+- Session events logged through procedures.ts create/destroy endpoints (not sessions.ts) for same reason
+- Modified: audit.ts, audit.test.ts, runtime.ts, procedures.ts, server.ts, cli/audit.ts, cli/index.ts
+- Verification: 684 tests pass, typecheck clean, lint clean

@@ -5,7 +5,7 @@ import { ModelRouter } from "./router/index.js";
 import { Agent } from "./agent/index.js";
 import type { ToolImpl, ToolApprovalCallback } from "./agent/index.js";
 import { MemoryManager } from "./memory/index.js";
-import { getBuiltinTools, formatToolsSection, createWebFetchTool } from "./tools/index.js";
+import { getBuiltinTools, formatToolsSection, createWebFetchTool, createDelegateTool } from "./tools/index.js";
 import { createMemoryWriteTool } from "./tools/memory-write.js";
 import { createMemorySearchTool } from "./tools/memory-search.js";
 import { createMemoryReadTool } from "./tools/memory-read.js";
@@ -214,7 +214,7 @@ export async function createRuntime(): Promise<EngineRuntime> {
   await skills.loadAll(saHome);
 
   // Build tools
-  const tools = [
+  const tools: ToolImpl[] = [
     ...getBuiltinTools(),
     createWebFetchTool(saConfig.runtime.urlPolicy),
     createMemoryWriteTool(memory),
@@ -226,6 +226,14 @@ export async function createRuntime(): Promise<EngineRuntime> {
     createSetEnvVariableTool(config),
     createNotifyTool(secrets),
   ];
+
+  // Add delegate tool (needs full tools list — the tool factory captures the reference)
+  const delegateTool = createDelegateTool({
+    router,
+    tools,
+    defaultTimeoutMs: saConfig.runtime.orchestration?.defaultTimeoutMs,
+  });
+  tools.push(delegateTool);
 
   // Assemble system prompt
   const userProfile = await config.loadUserProfile();

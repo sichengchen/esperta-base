@@ -20,6 +20,8 @@ export interface SubAgentOptions {
   tools?: string[];
   /** Per-subagent timeout in ms (default: 120_000) */
   timeoutMs?: number;
+  /** Whether this sub-agent can write/delete memory (default: true for sync, false for background) */
+  memoryWrite?: boolean;
 }
 
 export interface SubAgentResult {
@@ -46,8 +48,13 @@ export class SubAgent {
   ) {
     this.id = options.id;
 
-    // Filter tools: exclude "delegate" to prevent recursion
-    let filteredTools = allTools.filter((t) => t.name !== "delegate");
+    // Filter tools: exclude "delegate" and "delegate_status" to prevent recursion
+    let filteredTools = allTools.filter((t) => t.name !== "delegate" && t.name !== "delegate_status");
+
+    // If memory write is disabled, remove write/delete memory tools (keep read-only)
+    if (options.memoryWrite === false) {
+      filteredTools = filteredTools.filter((t) => t.name !== "memory_write" && t.name !== "memory_delete");
+    }
 
     // If a tool allowlist is provided, apply it
     if (options.tools && options.tools.length > 0) {

@@ -13,6 +13,8 @@ export interface DelegateToolDeps {
   tools: ToolImpl[];
   /** Default timeout in ms (from config, default: 120_000) */
   defaultTimeoutMs?: number;
+  /** Whether background sub-agents can write to memory (default: false) */
+  memoryWriteDefault?: boolean;
   /** Get the orchestrator for background execution (lazy init) */
   getOrchestrator?: () => Orchestrator;
 }
@@ -60,6 +62,7 @@ export function createDelegateTool(deps: DelegateToolDeps): ToolImpl {
               modelOverride: t.model ?? model,
               tools: t.tools ?? toolsFilter,
               timeoutMs: deps.defaultTimeoutMs,
+              memoryWrite: deps.memoryWriteDefault ?? false,
             });
             ids.push(id);
           } catch (err) {
@@ -93,6 +96,7 @@ export function createDelegateTool(deps: DelegateToolDeps): ToolImpl {
             modelOverride: model,
             tools: toolsFilter,
             timeoutMs: deps.defaultTimeoutMs,
+            memoryWrite: deps.memoryWriteDefault ?? false,
           });
         } catch (err) {
           const msg = err instanceof Error ? err.message : String(err);

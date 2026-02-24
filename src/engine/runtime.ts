@@ -241,6 +241,7 @@ export async function createRuntime(): Promise<EngineRuntime> {
     router,
     tools,
     defaultTimeoutMs: saConfig.runtime.orchestration?.defaultTimeoutMs,
+    memoryWriteDefault: saConfig.runtime.orchestration?.memoryWriteDefault,
     getOrchestrator: () => orchestrator,
   });
   tools.push(delegateTool);

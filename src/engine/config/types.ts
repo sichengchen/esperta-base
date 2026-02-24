@@ -134,6 +134,13 @@ export interface RuntimeConfig {
     pairingTTL?: number;
     /** Pairing code length (default: 8) */
     pairingCodeLength?: number;
+    /** Exec working directory fence */
+    exec?: {
+      /** Allowed working directories (default: ["~/projects", "/tmp"]) */
+      fence?: string[];
+      /** Always-denied paths (default: ["~/.sa", "~/.ssh", "~/.gnupg", "~/.aws", "~/.config/gcloud"]) */
+      alwaysDeny?: string[];
+    };
   };
   /** URL policy for web_fetch — SSRF protection */
   urlPolicy?: {

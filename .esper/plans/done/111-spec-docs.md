@@ -1,12 +1,13 @@
 ---
 id: 111
 title: System spec docs in /specs with embedded access
-status: active
+status: done
 type: feature
 priority: 2
 phase: 008-security-and-subagents
 branch: feature/008-security-and-subagents
 created: 2026-02-23
+shipped_at: 2026-02-24
 ---
 # System spec docs in /specs with embedded access
 

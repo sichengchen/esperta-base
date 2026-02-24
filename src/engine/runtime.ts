@@ -5,7 +5,7 @@ import { ModelRouter } from "./router/index.js";
 import { Agent } from "./agent/index.js";
 import type { ToolImpl, ToolApprovalCallback } from "./agent/index.js";
 import { MemoryManager } from "./memory/index.js";
-import { getBuiltinTools, formatToolsSection } from "./tools/index.js";
+import { getBuiltinTools, formatToolsSection, createWebFetchTool } from "./tools/index.js";
 import { createMemoryWriteTool } from "./tools/memory-write.js";
 import { createMemorySearchTool } from "./tools/memory-search.js";
 import { createMemoryReadTool } from "./tools/memory-read.js";
@@ -207,6 +207,7 @@ export async function createRuntime(): Promise<EngineRuntime> {
   // Build tools
   const tools = [
     ...getBuiltinTools(),
+    createWebFetchTool(saConfig.runtime.urlPolicy),
     createMemoryWriteTool(memory),
     createMemorySearchTool(memory),
     createMemoryReadTool(memory),

@@ -9,7 +9,8 @@ import type { DangerLevel } from "./agent/types.js";
 import { classifyExecCommand } from "./tools/exec-classifier.js";
 import { ToolPolicyManager, type ToolEventContext } from "./tools/policy.js";
 import { ConnectorTypeSchema } from "@sa/shared/types.js";
-import type { EngineEvent, SkillInfo, ConnectorType, ToolApprovalMode } from "@sa/shared/types.js";
+import type { EngineEvent, SkillInfo, ConnectorType, ToolApprovalMode, EscalationChoice } from "@sa/shared/types.js";
+import { type SessionSecurityOverrides, createEmptyOverrides } from "./agent/security-types.js";
 import type { ModelConfig, ProviderConfig } from "./router/types.js";
 import { heartbeatState, createHeartbeatTask } from "./scheduler.js";
 
@@ -45,8 +46,24 @@ const pendingApprovals = new Map<string, (approved: boolean) => void>();
 /** Session-level tool overrides: sessionId -> Set of auto-approved tool names */
 const sessionToolOverrides = new Map<string, Set<string>>();
 
+/** Session-level security overrides: sessionId -> allowed resources */
+const sessionSecurityOverrides = new Map<string, SessionSecurityOverrides>();
+
 /** Pending approval metadata: toolCallId -> { sessionId, toolName } */
 const pendingApprovalMeta = new Map<string, { sessionId: string; toolName: string }>();
+
+/** Pending security escalation resolvers: escalationId -> resolve(choice) */
+const pendingEscalations = new Map<string, { resolve: (choice: EscalationChoice) => void; sessionId: string }>();
+
+/** Get or create session security overrides */
+function getSecurityOverrides(sessionId: string): SessionSecurityOverrides {
+  let overrides = sessionSecurityOverrides.get(sessionId);
+  if (!overrides) {
+    overrides = createEmptyOverrides();
+    sessionSecurityOverrides.set(sessionId, overrides);
+  }
+  return overrides;
+}
 
 /** Register a cron task with the scheduler that dispatches to an isolated agent session */
 function registerCronTask(
@@ -465,6 +482,7 @@ export function createAppRouter(runtime: EngineRuntime) {
         .mutation(({ input }): { destroyed: boolean } => {
           sessionAgents.delete(input.sessionId);
           sessionToolOverrides.delete(input.sessionId);
+          sessionSecurityOverrides.delete(input.sessionId);
           return { destroyed: runtime.sessions.destroySession(input.sessionId) };
         }),
     }),
@@ -523,6 +541,28 @@ export function createAppRouter(runtime: EngineRuntime) {
           pendingApprovals.delete(input.toolCallId);
           pendingApprovalMeta.delete(input.toolCallId);
           resolver(true);
+          return { acknowledged: true };
+        }),
+    }),
+
+    /** Security escalation */
+    escalation: router({
+      /** Respond to a security escalation prompt */
+      respond: protectedProcedure
+        .input(z.object({
+          id: z.string(),
+          choice: z.enum(["allow_once", "allow_session", "add_persistent", "deny"]),
+        }))
+        .mutation(async ({ input }): Promise<{ acknowledged: boolean }> => {
+          const pending = pendingEscalations.get(input.id);
+          if (!pending) {
+            return { acknowledged: false };
+          }
+          pendingEscalations.delete(input.id);
+
+          // If allow_session, add the resource to session overrides
+          // (the resource info is attached to the escalation — handled by the caller)
+          pending.resolve(input.choice as EscalationChoice);
           return { acknowledged: true };
         }),
     }),

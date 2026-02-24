@@ -68,3 +68,4 @@ Informed by explorations 008 (Subagents Support) and 011 (SA Security Model v2).
 - Plan 103 — Exec working directory fence: Configurable path fence with validateExecPaths(), always-deny for credential dirs, session overrides. Files: exec-fence.ts, exec-fence.test.ts, types.ts
 - Plan 104 — Audit log: Append-only NDJSON AuditLogger with rotation, instrumented tool/auth/session events, `sa audit` CLI. Files: audit.ts, audit.test.ts, runtime.ts, procedures.ts, server.ts, cli/audit.ts, cli/index.ts
 - Plan 105 — Session security modes: SecurityModeManager with default/trusted/unrestricted, per-session auto-revert TTL, tRPC procedures. Files: security-mode.ts, security-mode.test.ts, runtime.ts, procedures.ts, config/types.ts, shared/types.ts
+- Plan 108 — Subagent core: SubAgent class with filtered tools, auto-approve, delegate tool factory. Files: sub-agent.ts, sub-agent.test.ts, delegate.ts, delegate.test.ts, index.ts, runtime.ts, config/types.ts, shared/types.ts

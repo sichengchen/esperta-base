@@ -1,3 +1,5 @@
+<img width="2000" height="506" alt="Frame 7-2" src="https://github.com/user-attachments/assets/16e538f9-7e0a-4594-b9f0-2979675e1aa3" />
+
 # SA (Sasa)
 
 Yet another personal AI assistant.

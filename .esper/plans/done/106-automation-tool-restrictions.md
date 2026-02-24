@@ -1,14 +1,14 @@
 ---
 id: 106
-title: "Cron/webhook tool restrictions + per-task security profiles"
-status: pending
+title: Cron/webhook tool restrictions + per-task security profiles
+status: done
 type: feature
 priority: 3
 phase: 008-security-and-subagents
 branch: feature/008-security-and-subagents
 created: 2026-02-23
+shipped_at: 2026-02-24
 ---
-
 # Cron/webhook tool restrictions + per-task security profiles
 
 ## Context

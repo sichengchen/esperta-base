@@ -65,3 +65,4 @@ Informed by explorations 008 (Subagents Support) and 011 (SA Security Model v2).
 - Plan 100 — Content framing + output sanitizer: frameAsData() wraps all external content in data tags, sanitizeContent() redacts secrets/paths/traces. Files: content-frame.ts, web-fetch.ts, exec.ts, server.ts, runtime.ts, agent.ts
 - Plan 101 — Auth overhaul: Webhook token separation, session TTL, 8-char pairing codes with expiry, exponential backoff. Files: auth.ts, server.ts, runtime.ts, types.ts
 - Plan 102 — Inline security escalation: SecurityBlock types, escalation events, session security overrides, tRPC procedure. Files: security-types.ts, types.ts, procedures.ts
+- Plan 103 — Exec working directory fence: Configurable path fence with validateExecPaths(), always-deny for credential dirs, session overrides. Files: exec-fence.ts, exec-fence.test.ts, types.ts

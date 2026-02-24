@@ -13,7 +13,8 @@ const BLOCKED_HOST_PATTERNS: RegExp[] = [
   /^127\.\d+\.\d+\.\d+$/, // loopback v4
   /^0\.0\.0\.0$/,
   /^::1$/, // loopback v6
-  /^::ffff:127\.\d+\.\d+\.\d+$/, // IPv6-mapped loopback
+  /^::ffff:127\.\d+\.\d+\.\d+$/, // IPv6-mapped loopback (dotted)
+  /^::ffff:7f[0-9a-f]{2}:[0-9a-f]{1,4}$/, // IPv6-mapped loopback (hex)
   /^localhost$/i,
   /^.*\.local$/i, // mDNS
   /^metadata\.google\.internal$/, // GCP metadata
@@ -24,7 +25,8 @@ const BLOCKED_HOST_PATTERNS: RegExp[] = [
   /^192\.168\.\d+\.\d+$/, // private class C
   /^fd[0-9a-f]{2}:/, // IPv6 ULA
   /^\[::1\]$/, // bracketed IPv6 loopback
-  /^\[::ffff:127\.\d+\.\d+\.\d+\]$/, // bracketed IPv6-mapped loopback
+  /^\[::ffff:127\.\d+\.\d+\.\d+\]$/, // bracketed IPv6-mapped loopback (dotted)
+  /^\[::ffff:7f[0-9a-f]{2}:[0-9a-f]{1,4}\]$/, // bracketed IPv6-mapped loopback (hex)
 ];
 
 const BLOCKED_SCHEMES = new Set(["file", "ftp", "gopher", "ldap", "dict", "data"]);

@@ -5,7 +5,8 @@ import { ModelRouter } from "./router/index.js";
 import { Agent } from "./agent/index.js";
 import type { ToolImpl, ToolApprovalCallback } from "./agent/index.js";
 import { MemoryManager } from "./memory/index.js";
-import { getBuiltinTools, formatToolsSection, createWebFetchTool, createDelegateTool } from "./tools/index.js";
+import { getBuiltinTools, formatToolsSection, createWebFetchTool, createDelegateTool, createDelegateStatusTool } from "./tools/index.js";
+import { Orchestrator } from "./agent/orchestrator.js";
 import { createMemoryWriteTool } from "./tools/memory-write.js";
 import { createMemorySearchTool } from "./tools/memory-search.js";
 import { createMemoryReadTool } from "./tools/memory-read.js";
@@ -227,13 +228,27 @@ export async function createRuntime(): Promise<EngineRuntime> {
     createNotifyTool(secrets),
   ];
 
-  // Add delegate tool (needs full tools list — the tool factory captures the reference)
+  // Create shared orchestrator for background sub-agent execution
+  const orchestrator = new Orchestrator(router, tools, {
+    maxConcurrent: saConfig.runtime.orchestration?.maxConcurrent,
+    maxSubAgentsPerTurn: saConfig.runtime.orchestration?.maxSubAgentsPerTurn,
+    resultRetentionMs: saConfig.runtime.orchestration?.resultRetentionMs,
+    defaultTimeoutMs: saConfig.runtime.orchestration?.defaultTimeoutMs,
+  });
+
+  // Add delegate tools (need full tools list — the tool factory captures the reference)
   const delegateTool = createDelegateTool({
     router,
     tools,
     defaultTimeoutMs: saConfig.runtime.orchestration?.defaultTimeoutMs,
+    getOrchestrator: () => orchestrator,
   });
   tools.push(delegateTool);
+
+  const delegateStatusTool = createDelegateStatusTool({
+    getOrchestrator: () => orchestrator,
+  });
+  tools.push(delegateStatusTool);
 
   // Assemble system prompt
   const userProfile = await config.loadUserProfile();

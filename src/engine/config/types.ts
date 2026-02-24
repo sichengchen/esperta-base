@@ -172,6 +172,12 @@ export interface RuntimeConfig {
     defaultTimeoutMs?: number;
     /** Whether sub-agents can write to memory by default (default: true) */
     memoryWriteDefault?: boolean;
+    /** Max concurrent background sub-agents (default: 3) */
+    maxConcurrent?: number;
+    /** Max sub-agents per agent turn (default: 10) */
+    maxSubAgentsPerTurn?: number;
+    /** Result retention time in ms (default: 1_800_000 = 30 min) */
+    resultRetentionMs?: number;
   };
 }
 

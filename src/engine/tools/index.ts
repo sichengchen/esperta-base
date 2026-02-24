@@ -23,6 +23,7 @@ export { createMemoryWriteTool } from "./memory-write.js";
 export { createMemorySearchTool } from "./memory-search.js";
 export { createMemoryReadTool } from "./memory-read.js";
 export { createMemoryDeleteTool } from "./memory-delete.js";
+export { createDelegateTool } from "./delegate.js";
 
 export function getBuiltinTools(): ToolImpl[] {
   return [readTool, writeTool, editTool, execTool, execStatusTool, execKillTool, webSearchTool, reactionTool];

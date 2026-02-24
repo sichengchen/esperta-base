@@ -164,6 +164,15 @@ export interface RuntimeConfig {
   heartbeat?: HeartbeatConfig;
   /** Automation configuration (cron tasks) */
   automation?: AutomationConfig;
+  /** Orchestration (sub-agent) configuration */
+  orchestration?: {
+    /** Default model tier for sub-agents (default: "eco") */
+    defaultTier?: string;
+    /** Default sub-agent timeout in ms (default: 120_000) */
+    defaultTimeoutMs?: number;
+    /** Whether sub-agents can write to memory by default (default: true) */
+    memoryWriteDefault?: boolean;
+  };
 }
 
 /** On-disk config.json schema (v3 — merged models + runtime) */

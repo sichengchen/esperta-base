@@ -82,3 +82,4 @@ Happy project (github.com/slopus/happy) informs the coding agent tool design —
 - Plan 120 — Linear connector via Chat SDK: Linear adapter with webhook server and `sa linear` CLI. Files: connectors/linear/
 - Plan 118 — Discord connector migration to Chat SDK: Replace old Discord.js connector with Chat SDK version. Files: connectors/discord/
 - Plan 121 — /stop command: Add AbortController-based abort to Agent, `chat.stop`/`chat.stopAll` tRPC procedures, `/stop` in all connectors, `sa stop` CLI. Files: agent.ts, procedures.ts, adapter.ts, App.tsx, transport.ts, index.ts
+- Plan 122 — /restart command: Add `engine.restart` tRPC procedure with restart marker file, `/restart` in all connectors, `sa restart` CLI. Files: procedures.ts, engine/index.ts, adapter.ts, App.tsx, transport.ts, cli/index.ts

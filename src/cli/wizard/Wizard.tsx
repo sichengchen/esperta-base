@@ -8,6 +8,11 @@ import { Identity } from "./steps/Identity.js";
 import { ModelSetup, type ModelSetupData } from "./steps/ModelSetup.js";
 import { TelegramSetup } from "./steps/TelegramSetup.js";
 import { DiscordSetup, type DiscordSetupData } from "./steps/DiscordSetup.js";
+import { SlackSetup, type SlackSetupData } from "./steps/SlackSetup.js";
+import { TeamsSetup, type TeamsSetupData } from "./steps/TeamsSetup.js";
+import { GChatSetup, type GChatSetupData } from "./steps/GChatSetup.js";
+import { GitHubSetup, type GitHubSetupData } from "./steps/GitHubSetup.js";
+import { LinearSetup, type LinearSetupData } from "./steps/LinearSetup.js";
 import { SkillSetup, type SkillSetupData } from "./steps/SkillSetup.js";
 import { UserProfile, type UserProfileData } from "./steps/UserProfile.js";
 import { Confirm, type WizardData } from "./steps/Confirm.js";
@@ -17,7 +22,7 @@ import { EMBEDDED_SKILLS } from "@sa/engine/skills/embedded-skills.generated.js"
 import type { ModelConfig, ProviderConfig } from "@sa/engine/router/types.js";
 import type { ModelTier } from "@sa/engine/router/task-types.js";
 
-type Step = "welcome" | "identity" | "profile" | "model" | "telegram" | "discord" | "skills" | "confirm" | "done";
+type Step = "welcome" | "identity" | "profile" | "model" | "telegram" | "discord" | "slack" | "teams" | "gchat" | "github" | "linear" | "skills" | "confirm" | "done";
 
 interface WizardProps {
   homeDir: string;
@@ -47,6 +52,15 @@ export function Wizard({ homeDir, onComplete, existingConfig }: WizardProps) {
           baseUrl: undefined,
           discordToken: "",
           discordGuildId: "",
+          slackToken: "",
+          slackSigningSecret: "",
+          teamsBotId: "",
+          teamsBotPassword: "",
+          gchatServiceAccountKey: "",
+          githubToken: "",
+          githubWebhookSecret: "",
+          linearApiKey: "",
+          linearWebhookSecret: "",
           selectedSkills: [],
         }
   );
@@ -178,6 +192,15 @@ ${recurringContext}
       if (data.botToken) apiKeys.TELEGRAM_BOT_TOKEN = data.botToken;
       if (data.discordToken) apiKeys.DISCORD_TOKEN = data.discordToken;
       if (data.discordGuildId) apiKeys.DISCORD_GUILD_ID = data.discordGuildId;
+      if (data.slackToken) apiKeys.SLACK_BOT_TOKEN = data.slackToken;
+      if (data.slackSigningSecret) apiKeys.SLACK_SIGNING_SECRET = data.slackSigningSecret;
+      if (data.teamsBotId) apiKeys.TEAMS_BOT_ID = data.teamsBotId;
+      if (data.teamsBotPassword) apiKeys.TEAMS_BOT_PASSWORD = data.teamsBotPassword;
+      if (data.gchatServiceAccountKey) apiKeys.GOOGLE_CHAT_SERVICE_ACCOUNT_KEY = data.gchatServiceAccountKey;
+      if (data.githubToken) apiKeys.GITHUB_TOKEN = data.githubToken;
+      if (data.githubWebhookSecret) apiKeys.GITHUB_WEBHOOK_SECRET = data.githubWebhookSecret;
+      if (data.linearApiKey) apiKeys.LINEAR_API_KEY = data.linearApiKey;
+      if (data.linearWebhookSecret) apiKeys.LINEAR_WEBHOOK_SECRET = data.linearWebhookSecret;
       await saveSecrets(homeDir, {
         apiKeys,
         pairingCode: data.pairingCode,
@@ -303,9 +326,84 @@ ${recurringContext}
           }
           onNext={(discordData: DiscordSetupData) => {
             setData((d) => ({ ...d, ...discordData }));
-            setStep("skills");
+            setStep("slack");
           }}
           onBack={() => setStep("telegram")}
+        />
+      );
+    case "slack":
+      return (
+        <SlackSetup
+          currentValues={
+            existingConfig
+              ? { slackToken: data.slackToken ?? "", slackSigningSecret: data.slackSigningSecret ?? "" }
+              : undefined
+          }
+          onNext={(slackData: SlackSetupData) => {
+            setData((d) => ({ ...d, ...slackData }));
+            setStep("teams");
+          }}
+          onBack={() => setStep("discord")}
+        />
+      );
+    case "teams":
+      return (
+        <TeamsSetup
+          currentValues={
+            existingConfig
+              ? { teamsBotId: data.teamsBotId ?? "", teamsBotPassword: data.teamsBotPassword ?? "" }
+              : undefined
+          }
+          onNext={(teamsData: TeamsSetupData) => {
+            setData((d) => ({ ...d, ...teamsData }));
+            setStep("gchat");
+          }}
+          onBack={() => setStep("slack")}
+        />
+      );
+    case "gchat":
+      return (
+        <GChatSetup
+          currentValues={
+            existingConfig
+              ? { gchatServiceAccountKey: data.gchatServiceAccountKey ?? "" }
+              : undefined
+          }
+          onNext={(gchatData: GChatSetupData) => {
+            setData((d) => ({ ...d, ...gchatData }));
+            setStep("github");
+          }}
+          onBack={() => setStep("teams")}
+        />
+      );
+    case "github":
+      return (
+        <GitHubSetup
+          currentValues={
+            existingConfig
+              ? { githubToken: data.githubToken ?? "", githubWebhookSecret: data.githubWebhookSecret ?? "" }
+              : undefined
+          }
+          onNext={(githubData: GitHubSetupData) => {
+            setData((d) => ({ ...d, ...githubData }));
+            setStep("linear");
+          }}
+          onBack={() => setStep("gchat")}
+        />
+      );
+    case "linear":
+      return (
+        <LinearSetup
+          currentValues={
+            existingConfig
+              ? { linearApiKey: data.linearApiKey ?? "", linearWebhookSecret: data.linearWebhookSecret ?? "" }
+              : undefined
+          }
+          onNext={(linearData: LinearSetupData) => {
+            setData((d) => ({ ...d, ...linearData }));
+            setStep("skills");
+          }}
+          onBack={() => setStep("github")}
         />
       );
     case "skills":
@@ -320,7 +418,7 @@ ${recurringContext}
             setData((d) => ({ ...d, ...skillData }));
             setStep("confirm");
           }}
-          onBack={() => setStep("discord")}
+          onBack={() => setStep("linear")}
         />
       );
     case "confirm":

@@ -23,6 +23,15 @@ export interface WizardData {
   pairingCode?: string;
   discordToken?: string;
   discordGuildId?: string;
+  slackToken?: string;
+  slackSigningSecret?: string;
+  teamsBotId?: string;
+  teamsBotPassword?: string;
+  gchatServiceAccountKey?: string;
+  githubToken?: string;
+  githubWebhookSecret?: string;
+  linearApiKey?: string;
+  linearWebhookSecret?: string;
   selectedSkills?: string[];
   /** Max output tokens from PI-mono model metadata */
   maxTokens?: number;
@@ -86,6 +95,21 @@ export function Confirm({ data, onConfirm, onBack }: ConfirmProps) {
       <Text bold>Discord:</Text>
       <Text> {data.discordToken ? "Configured" : "Skipped"}</Text>
       {data.discordGuildId && <Text> Guild: {data.discordGuildId}</Text>}
+      <Text />
+      <Text bold>Slack:</Text>
+      <Text> {data.slackToken ? "Configured" : "Skipped"}</Text>
+      <Text />
+      <Text bold>Teams:</Text>
+      <Text> {data.teamsBotId ? "Configured" : "Skipped"}</Text>
+      <Text />
+      <Text bold>Google Chat:</Text>
+      <Text> {data.gchatServiceAccountKey ? "Configured" : "Skipped"}</Text>
+      <Text />
+      <Text bold>GitHub:</Text>
+      <Text> {data.githubToken ? "Configured" : "Skipped"}</Text>
+      <Text />
+      <Text bold>Linear:</Text>
+      <Text> {data.linearApiKey ? "Configured" : "Skipped"}</Text>
       <Text />
       <Text bold>Skills:</Text>
       <Text> {data.selectedSkills && data.selectedSkills.length > 0

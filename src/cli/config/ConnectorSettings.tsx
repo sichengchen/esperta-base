@@ -5,7 +5,12 @@ import { loadSecrets, saveSecrets } from "@sa/engine/config/secrets.js";
 import type { SecretsFile } from "@sa/engine/config/types.js";
 import type { ToolApprovalMode, ConnectorType } from "@sa/shared/types.js";
 
-type Substep = "menu" | "edit-telegram-token" | "edit-discord-token" | "edit-discord-guild";
+type Substep = "menu" | "edit-telegram-token" | "edit-discord-token" | "edit-discord-guild"
+  | "edit-slack-token" | "edit-slack-secret"
+  | "edit-teams-id" | "edit-teams-password"
+  | "edit-gchat-key"
+  | "edit-github-token" | "edit-github-secret"
+  | "edit-linear-key" | "edit-linear-secret";
 
 interface ConnectorSettingsProps {
   config: SAConfigFile;
@@ -25,9 +30,23 @@ const MENU_ITEMS = [
   { key: "telegram-token", label: "Telegram bot token" },
   { key: "discord-token", label: "Discord bot token" },
   { key: "discord-guild", label: "Discord guild ID" },
+  { key: "slack-token", label: "Slack bot token" },
+  { key: "slack-secret", label: "Slack signing secret" },
+  { key: "teams-id", label: "Teams bot ID" },
+  { key: "teams-password", label: "Teams bot password" },
+  { key: "gchat-key", label: "Google Chat service account key" },
+  { key: "github-token", label: "GitHub token" },
+  { key: "github-secret", label: "GitHub webhook secret" },
+  { key: "linear-key", label: "Linear API key" },
+  { key: "linear-secret", label: "Linear webhook secret" },
   { key: "tui-approval", label: "TUI tool approval" },
   { key: "telegram-approval", label: "Telegram tool approval" },
   { key: "discord-approval", label: "Discord tool approval" },
+  { key: "slack-approval", label: "Slack tool approval" },
+  { key: "teams-approval", label: "Teams tool approval" },
+  { key: "gchat-approval", label: "Google Chat tool approval" },
+  { key: "github-approval", label: "GitHub tool approval" },
+  { key: "linear-approval", label: "Linear tool approval" },
   { key: "webhook-enabled", label: "Webhook connector" },
   { key: "webhook-approval", label: "Webhook tool approval" },
 ] as const;
@@ -55,8 +74,19 @@ export function ConnectorSettings({ config, homeDir, onSave, onBack }: Connector
   const rawTelegram = secrets?.apiKeys?.TELEGRAM_BOT_TOKEN ?? secrets?.botToken;
   const rawDiscord = secrets?.apiKeys?.DISCORD_TOKEN ?? secrets?.discordToken;
   const rawGuild = secrets?.apiKeys?.DISCORD_GUILD_ID ?? secrets?.discordGuildId;
-  const telegramToken = rawTelegram ? "●●●●" + rawTelegram.slice(-4) : "(not set)";
-  const discordToken = rawDiscord ? "●●●●" + rawDiscord.slice(-4) : "(not set)";
+  const rawSlackToken = secrets?.apiKeys?.SLACK_BOT_TOKEN;
+  const rawSlackSecret = secrets?.apiKeys?.SLACK_SIGNING_SECRET;
+  const rawTeamsId = secrets?.apiKeys?.TEAMS_BOT_ID;
+  const rawTeamsPassword = secrets?.apiKeys?.TEAMS_BOT_PASSWORD;
+  const rawGchatKey = secrets?.apiKeys?.GOOGLE_CHAT_SERVICE_ACCOUNT_KEY;
+  const rawGithubToken = secrets?.apiKeys?.GITHUB_TOKEN;
+  const rawGithubSecret = secrets?.apiKeys?.GITHUB_WEBHOOK_SECRET;
+  const rawLinearKey = secrets?.apiKeys?.LINEAR_API_KEY;
+  const rawLinearSecret = secrets?.apiKeys?.LINEAR_WEBHOOK_SECRET;
+
+  const mask = (v: string | undefined) => v ? "●●●●" + v.slice(-4) : "(not set)";
+  const telegramToken = mask(rawTelegram);
+  const discordToken = mask(rawDiscord);
   const discordGuild = rawGuild || "(not set)";
 
   useInput((input, key) => {
@@ -78,7 +108,34 @@ export function ConnectorSettings({ config, homeDir, onSave, onBack }: Connector
         } else if (item.key === "discord-guild") {
           setEditValue(rawGuild ?? "");
           setSubstep("edit-discord-guild");
-        } else if (item.key === "tui-approval" || item.key === "telegram-approval" || item.key === "discord-approval" || item.key === "webhook-approval") {
+        } else if (item.key === "slack-token") {
+          setEditValue(rawSlackToken ?? "");
+          setSubstep("edit-slack-token");
+        } else if (item.key === "slack-secret") {
+          setEditValue(rawSlackSecret ?? "");
+          setSubstep("edit-slack-secret");
+        } else if (item.key === "teams-id") {
+          setEditValue(rawTeamsId ?? "");
+          setSubstep("edit-teams-id");
+        } else if (item.key === "teams-password") {
+          setEditValue(rawTeamsPassword ?? "");
+          setSubstep("edit-teams-password");
+        } else if (item.key === "gchat-key") {
+          setEditValue(rawGchatKey ?? "");
+          setSubstep("edit-gchat-key");
+        } else if (item.key === "github-token") {
+          setEditValue(rawGithubToken ?? "");
+          setSubstep("edit-github-token");
+        } else if (item.key === "github-secret") {
+          setEditValue(rawGithubSecret ?? "");
+          setSubstep("edit-github-secret");
+        } else if (item.key === "linear-key") {
+          setEditValue(rawLinearKey ?? "");
+          setSubstep("edit-linear-key");
+        } else if (item.key === "linear-secret") {
+          setEditValue(rawLinearSecret ?? "");
+          setSubstep("edit-linear-secret");
+        } else if (item.key.endsWith("-approval")) {
           const connector = item.key.replace("-approval", "") as ConnectorType;
           const current = getApprovalMode(config, connector);
           const next = cycleApprovalMode(current);
@@ -129,6 +186,33 @@ export function ConnectorSettings({ config, homeDir, onSave, onBack }: Connector
         const val = editValue.trim();
         if (val) { updated.apiKeys.DISCORD_GUILD_ID = val; } else { delete updated.apiKeys.DISCORD_GUILD_ID; }
         delete updated.discordGuildId;
+      } else if (substep === "edit-slack-token") {
+        const val = editValue.trim();
+        if (val) { updated.apiKeys.SLACK_BOT_TOKEN = val; } else { delete updated.apiKeys.SLACK_BOT_TOKEN; }
+      } else if (substep === "edit-slack-secret") {
+        const val = editValue.trim();
+        if (val) { updated.apiKeys.SLACK_SIGNING_SECRET = val; } else { delete updated.apiKeys.SLACK_SIGNING_SECRET; }
+      } else if (substep === "edit-teams-id") {
+        const val = editValue.trim();
+        if (val) { updated.apiKeys.TEAMS_BOT_ID = val; } else { delete updated.apiKeys.TEAMS_BOT_ID; }
+      } else if (substep === "edit-teams-password") {
+        const val = editValue.trim();
+        if (val) { updated.apiKeys.TEAMS_BOT_PASSWORD = val; } else { delete updated.apiKeys.TEAMS_BOT_PASSWORD; }
+      } else if (substep === "edit-gchat-key") {
+        const val = editValue.trim();
+        if (val) { updated.apiKeys.GOOGLE_CHAT_SERVICE_ACCOUNT_KEY = val; } else { delete updated.apiKeys.GOOGLE_CHAT_SERVICE_ACCOUNT_KEY; }
+      } else if (substep === "edit-github-token") {
+        const val = editValue.trim();
+        if (val) { updated.apiKeys.GITHUB_TOKEN = val; } else { delete updated.apiKeys.GITHUB_TOKEN; }
+      } else if (substep === "edit-github-secret") {
+        const val = editValue.trim();
+        if (val) { updated.apiKeys.GITHUB_WEBHOOK_SECRET = val; } else { delete updated.apiKeys.GITHUB_WEBHOOK_SECRET; }
+      } else if (substep === "edit-linear-key") {
+        const val = editValue.trim();
+        if (val) { updated.apiKeys.LINEAR_API_KEY = val; } else { delete updated.apiKeys.LINEAR_API_KEY; }
+      } else if (substep === "edit-linear-secret") {
+        const val = editValue.trim();
+        if (val) { updated.apiKeys.LINEAR_WEBHOOK_SECRET = val; } else { delete updated.apiKeys.LINEAR_WEBHOOK_SECRET; }
       }
       setSaved(true);
       saveSecrets(homeDir, updated).then(() => {
@@ -167,11 +251,20 @@ export function ConnectorSettings({ config, homeDir, onSave, onBack }: Connector
             if (item.key === "telegram-token") detail = ` ${telegramToken}`;
             else if (item.key === "discord-token") detail = ` ${discordToken}`;
             else if (item.key === "discord-guild") detail = ` ${discordGuild}`;
-            else if (item.key === "tui-approval") detail = ` ${APPROVAL_LABELS[getApprovalMode(config, "tui")]}`;
-            else if (item.key === "telegram-approval") detail = ` ${APPROVAL_LABELS[getApprovalMode(config, "telegram")]}`;
-            else if (item.key === "discord-approval") detail = ` ${APPROVAL_LABELS[getApprovalMode(config, "discord")]}`;
+            else if (item.key === "slack-token") detail = ` ${mask(rawSlackToken)}`;
+            else if (item.key === "slack-secret") detail = ` ${mask(rawSlackSecret)}`;
+            else if (item.key === "teams-id") detail = ` ${rawTeamsId || "(not set)"}`;
+            else if (item.key === "teams-password") detail = ` ${mask(rawTeamsPassword)}`;
+            else if (item.key === "gchat-key") detail = ` ${mask(rawGchatKey)}`;
+            else if (item.key === "github-token") detail = ` ${mask(rawGithubToken)}`;
+            else if (item.key === "github-secret") detail = ` ${mask(rawGithubSecret)}`;
+            else if (item.key === "linear-key") detail = ` ${mask(rawLinearKey)}`;
+            else if (item.key === "linear-secret") detail = ` ${mask(rawLinearSecret)}`;
+            else if (item.key.endsWith("-approval")) {
+              const connector = item.key.replace("-approval", "") as ConnectorType;
+              detail = ` ${APPROVAL_LABELS[getApprovalMode(config, connector)]}`;
+            }
             else if (item.key === "webhook-enabled") detail = ` ${config.runtime.webhook?.enabled ? "enabled" : "disabled"}`;
-            else if (item.key === "webhook-approval") detail = ` ${APPROVAL_LABELS[getApprovalMode(config, "webhook")]}`;
             return (
               <Text key={item.key}>
                 {i === selected ? <Text color="green">{"● "}</Text> : <Text>{"○ "}</Text>}
@@ -222,6 +315,141 @@ export function ConnectorSettings({ config, homeDir, onSave, onBack }: Connector
           <Text />
           <Box>
             <Text color="blue" bold>Guild ID: </Text>
+            <Text>{editValue}</Text>
+            <Text color="blue">▊</Text>
+          </Box>
+          <Text />
+          <Text dimColor>Enter to save | Esc cancel</Text>
+        </>
+      )}
+
+      {substep === "edit-slack-token" && (
+        <>
+          <Text bold>Slack Bot Token</Text>
+          <Text dimColor>Leave empty to clear. Obtain from Slack App settings → OAuth & Permissions.</Text>
+          <Text />
+          <Box>
+            <Text color="blue" bold>Token: </Text>
+            <Text>{editValue}</Text>
+            <Text color="blue">▊</Text>
+          </Box>
+          <Text />
+          <Text dimColor>Enter to save | Esc cancel</Text>
+        </>
+      )}
+
+      {substep === "edit-slack-secret" && (
+        <>
+          <Text bold>Slack Signing Secret</Text>
+          <Text dimColor>Leave empty to clear. Found in Slack App settings → Basic Information.</Text>
+          <Text />
+          <Box>
+            <Text color="blue" bold>Secret: </Text>
+            <Text>{editValue}</Text>
+            <Text color="blue">▊</Text>
+          </Box>
+          <Text />
+          <Text dimColor>Enter to save | Esc cancel</Text>
+        </>
+      )}
+
+      {substep === "edit-teams-id" && (
+        <>
+          <Text bold>Teams Bot ID</Text>
+          <Text dimColor>Leave empty to clear. Found in Azure Bot registration.</Text>
+          <Text />
+          <Box>
+            <Text color="blue" bold>Bot ID: </Text>
+            <Text>{editValue}</Text>
+            <Text color="blue">▊</Text>
+          </Box>
+          <Text />
+          <Text dimColor>Enter to save | Esc cancel</Text>
+        </>
+      )}
+
+      {substep === "edit-teams-password" && (
+        <>
+          <Text bold>Teams Bot Password</Text>
+          <Text dimColor>Leave empty to clear. Found in Azure Bot registration → Certificates & secrets.</Text>
+          <Text />
+          <Box>
+            <Text color="blue" bold>Password: </Text>
+            <Text>{editValue}</Text>
+            <Text color="blue">▊</Text>
+          </Box>
+          <Text />
+          <Text dimColor>Enter to save | Esc cancel</Text>
+        </>
+      )}
+
+      {substep === "edit-gchat-key" && (
+        <>
+          <Text bold>Google Chat Service Account Key</Text>
+          <Text dimColor>Leave empty to clear. Paste the JSON key from Google Cloud Console.</Text>
+          <Text />
+          <Box>
+            <Text color="blue" bold>Key: </Text>
+            <Text>{editValue}</Text>
+            <Text color="blue">▊</Text>
+          </Box>
+          <Text />
+          <Text dimColor>Enter to save | Esc cancel</Text>
+        </>
+      )}
+
+      {substep === "edit-github-token" && (
+        <>
+          <Text bold>GitHub Token</Text>
+          <Text dimColor>Leave empty to clear. Create a PAT or GitHub App token.</Text>
+          <Text />
+          <Box>
+            <Text color="blue" bold>Token: </Text>
+            <Text>{editValue}</Text>
+            <Text color="blue">▊</Text>
+          </Box>
+          <Text />
+          <Text dimColor>Enter to save | Esc cancel</Text>
+        </>
+      )}
+
+      {substep === "edit-github-secret" && (
+        <>
+          <Text bold>GitHub Webhook Secret</Text>
+          <Text dimColor>Leave empty to clear. Set in your GitHub webhook configuration.</Text>
+          <Text />
+          <Box>
+            <Text color="blue" bold>Secret: </Text>
+            <Text>{editValue}</Text>
+            <Text color="blue">▊</Text>
+          </Box>
+          <Text />
+          <Text dimColor>Enter to save | Esc cancel</Text>
+        </>
+      )}
+
+      {substep === "edit-linear-key" && (
+        <>
+          <Text bold>Linear API Key</Text>
+          <Text dimColor>Leave empty to clear. Generate at linear.app/settings/api.</Text>
+          <Text />
+          <Box>
+            <Text color="blue" bold>API Key: </Text>
+            <Text>{editValue}</Text>
+            <Text color="blue">▊</Text>
+          </Box>
+          <Text />
+          <Text dimColor>Enter to save | Esc cancel</Text>
+        </>
+      )}
+
+      {substep === "edit-linear-secret" && (
+        <>
+          <Text bold>Linear Webhook Secret</Text>
+          <Text dimColor>Leave empty to clear. Set in your Linear webhook configuration.</Text>
+          <Text />
+          <Box>
+            <Text color="blue" bold>Secret: </Text>
             <Text>{editValue}</Text>
             <Text color="blue">▊</Text>
           </Box>

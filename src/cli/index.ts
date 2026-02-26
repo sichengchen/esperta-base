@@ -112,6 +112,26 @@ const COMMANDS: Record<string, (args: string[]) => Promise<void>> = {
     const { startSlackConnector } = await import("@sa/connectors/slack/index.js");
     await startSlackConnector(port);
   },
+  teams: async (cmdArgs) => {
+    const port = cmdArgs[0] ? parseInt(cmdArgs[0], 10) : 3421;
+    const { startTeamsConnector } = await import("@sa/connectors/teams/index.js");
+    await startTeamsConnector(port);
+  },
+  gchat: async (cmdArgs) => {
+    const port = cmdArgs[0] ? parseInt(cmdArgs[0], 10) : 3422;
+    const { startGChatConnector } = await import("@sa/connectors/gchat/index.js");
+    await startGChatConnector(port);
+  },
+  github: async (cmdArgs) => {
+    const port = cmdArgs[0] ? parseInt(cmdArgs[0], 10) : 3424;
+    const { startGitHubConnector } = await import("@sa/connectors/github/index.js");
+    await startGitHubConnector(port);
+  },
+  linear: async (cmdArgs) => {
+    const port = cmdArgs[0] ? parseInt(cmdArgs[0], 10) : 3425;
+    const { startLinearConnector } = await import("@sa/connectors/linear/index.js");
+    await startLinearConnector(port);
+  },
   __engine: async () => {
     await import("@sa/engine/index.js");
   },
@@ -125,6 +145,10 @@ const COMMANDS: Record<string, (args: string[]) => Promise<void>> = {
     console.log("  onboard     Run the onboarding wizard");
     console.log("  engine      Manage the Engine daemon (start/stop/status/logs/restart)");
     console.log("  slack       Start the Slack connector (webhook server on port 3420)");
+    console.log("  teams       Start the Teams connector (webhook server on port 3421)");
+    console.log("  gchat       Start the Google Chat connector (webhook server on port 3422)");
+    console.log("  github      Start the GitHub connector (webhook server on port 3424)");
+    console.log("  linear      Start the Linear connector (webhook server on port 3425)");
     console.log("  help        Show this help message\n");
     console.log("Flags:");
     console.log("  --help, -h  Show this help message");

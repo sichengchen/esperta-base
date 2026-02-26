@@ -16,7 +16,7 @@ You can delegate complex coding tasks to external coding agents using the native
 
 **Do NOT delegate** when:
 - You can handle the task directly (simple answers, config changes, memory notes)
-- The task requires SA-specific tools (web_search, remember, notify, skills)
+- The task requires SA-specific tools (remember, notify, SA-related skills)
 - The user is asking a question, not requesting code changes
 - The change is small enough to describe in a single edit
 
@@ -85,7 +85,7 @@ claude_code({
 
 ## Project Management with esperkit
 
-**esperkit** is an npm package (`npm install -g esperkit`) that provides structured project management for coding agents. It manages development phases, plan files, and backlog items — giving coding agents a clear workflow for multi-step projects.
+**esperkit** (`npm install -g esperkit`) provides structured project management for coding agents. It manages development phases, plan files, and backlog items. When used with Claude Code or Codex, the coding agent uses `/esper:<command>` slash commands to drive the workflow.
 
 ### When to Suggest esperkit
 
@@ -106,21 +106,38 @@ ask_user({
 
 ### If the User Says Yes
 
-Include esperkit context in the coding task prompt. For example:
+Instruct the coding agent to use the `/esper:<command>` slash command series. These are Claude Code slash commands that drive the esperkit workflow:
+
+| Slash command | Purpose |
+|---------------|---------|
+| `/esper:init` | Initialize esperkit in the project (first time only) |
+| `/esper:phase` | Define a new development phase |
+| `/esper:plan` | Add a feature plan to the backlog |
+| `/esper:fix` | Add a bug fix to the backlog |
+| `/esper:apply` | Start implementing the next plan |
+| `/esper:continue` | Resume an interrupted implementation |
+| `/esper:finish` | Verify, archive, and complete the active plan |
+| `/esper:yolo` | Auto-implement all pending plans sequentially |
+| `/esper:backlog` | View pending and active plans |
+| `/esper:ship` | Push and open a PR for the phase |
+
+Example task prompt:
 
 ```
 claude_code({
-  task: "Set up the project with esperkit. Run 'esperkit init' to initialize, then create a phase and plan for: [user's task description]. Follow the esperkit workflow to implement step by step.",
+  task: "Initialize esperkit in this project with /esper:init, then use /esper:phase to define a phase for: [user's task description]. After the phase is defined with plans, use /esper:yolo to implement everything automatically.",
   workdir: "/path/to/project"
 })
 ```
 
-Key esperkit commands to reference in task prompts:
-- `esperkit init` — initialize esperkit in a project
-- `esperkit phase create` — define a development phase
-- `esperkit plan create` — add a plan to the backlog
-- `esperkit plan activate` — start working on a plan
-- `esperkit plan finish` — mark a plan as done
+For a project that already has esperkit set up:
+
+```
+claude_code({
+  task: "Use /esper:apply to start the next pending plan, implement it, then run /esper:finish to verify and archive.",
+  workdir: "/path/to/project"
+})
+```
 
 ### If the User Says No
 

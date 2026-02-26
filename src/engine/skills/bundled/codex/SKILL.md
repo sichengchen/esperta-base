@@ -1,8 +1,10 @@
 ---
 name: codex
-description: Delegate coding tasks to OpenAI Codex CLI. Use when: the user wants to generate or edit code using Codex as a sub-agent. NOT for: general chat, non-coding tasks, or when the user wants YOU to do the coding directly.
+description: "[DEPRECATED] Use the native `codex` tool instead. This skill is kept for backward compatibility only."
 ---
-# Codex CLI Orchestration
+# Codex CLI Orchestration (DEPRECATED)
+
+> **This skill is deprecated.** SA now has a native `codex` tool that provides structured results, auth probing, and background execution. Use `codex({ task: "..." })` instead of reading this skill.
 
 You can delegate coding tasks to **OpenAI Codex CLI** (`codex`) using the `exec` tool. Codex is an agentic coding tool from OpenAI.
 

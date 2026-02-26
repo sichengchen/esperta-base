@@ -1,8 +1,10 @@
 ---
 name: claude-code
-description: Delegate coding tasks to Claude Code CLI. Use when: the user wants to generate code, edit files, debug, or refactor using Claude Code as a sub-agent. NOT for: general chat, non-coding tasks, or when the user wants YOU to do the coding directly.
+description: "[DEPRECATED] Use the native `claude_code` tool instead. This skill is kept for backward compatibility only."
 ---
-# Claude Code Orchestration
+# Claude Code Orchestration (DEPRECATED)
+
+> **This skill is deprecated.** SA now has a native `claude_code` tool that provides structured results, auth probing, and background execution. Use `claude_code({ task: "..." })` instead of reading this skill.
 
 You can delegate coding tasks to **Claude Code** (`claude` CLI) using the `exec` tool. Claude Code is an agentic coding assistant with deep code understanding, file editing, and terminal access.
 

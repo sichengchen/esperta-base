@@ -8,6 +8,7 @@ phase: 009-chat-sdk-and-agent-tools
 branch: fix/skill-pre-match
 created: 2026-02-26
 shipped_at: 2026-02-26
+pr: https://github.com/sichengchen/sa/pull/32
 ---
 # fix: SA doesn't proactively read skills unless user explicitly asks
 

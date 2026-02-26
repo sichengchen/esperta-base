@@ -8,6 +8,7 @@ phase: 008-security-and-subagents
 branch: fix/stale-engine-token
 created: 2026-02-25
 shipped_at: 2026-02-26
+pr: https://github.com/sichengchen/sa/pull/30
 ---
 # fix: stale engine.token after restart causes auth failure
 

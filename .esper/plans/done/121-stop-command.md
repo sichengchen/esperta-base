@@ -1,14 +1,14 @@
 ---
 id: 121
 title: /stop command — force cancel running agent work
-status: pending
+status: done
 type: feature
 priority: 2
 phase: 009-chat-sdk-and-agent-tools
 branch: feature/009-chat-sdk-and-agent-tools
 created: 2026-02-25
+shipped_at: 2026-02-26
 ---
-
 # /stop command — force cancel running agent work
 
 ## Context
@@ -45,6 +45,14 @@ SA currently has no way to force-stop a running agent mid-task. If the agent is 
 - `src/connectors/tui/App.tsx` (modify — add `/stop` command)
 - `src/connectors/telegram/transport.ts` (modify — add `/stop` command)
 - `src/cli/index.ts` (modify — add `sa stop` command)
+
+## Progress
+- Added `activeAbortController`, `isRunning` getter, and `abort()` method to Agent class
+- Added `chat.stop(sessionId)` and `chat.stopAll()` tRPC procedures — auto-reject pending approvals/escalations on stop
+- Added `/stop` command to ChatSDKAdapter, TUI, and Telegram connectors
+- Added `sa stop` CLI command
+- Modified: agent.ts, procedures.ts, adapter.ts, App.tsx, transport.ts, cli/index.ts
+- Verification: typecheck, lint, 740 tests pass
 
 ## Verification
 

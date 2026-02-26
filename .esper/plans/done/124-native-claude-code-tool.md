@@ -1,14 +1,14 @@
 ---
 id: 124
 title: Native claude_code tool — replace skill with ToolImpl
-status: pending
+status: done
 type: feature
 priority: 2
 phase: 009-chat-sdk-and-agent-tools
 branch: feature/009-chat-sdk-and-agent-tools
 created: 2026-02-25
+shipped_at: 2026-02-26
 ---
-
 # Native claude_code tool — replace skill with ToolImpl
 
 ## Context
@@ -57,6 +57,14 @@ The current `claude-code` bundled skill instructs the agent to run `claude --pri
 - `src/engine/runtime.ts` (modify — instantiate with deps)
 - `src/engine/skills/bundled/claude-code/SKILL.md` (modify — add deprecation notice)
 - `specs/tools.md` (modify — document claude_code tool)
+
+## Progress
+- Created `src/engine/tools/claude-code.ts` — native ToolImpl with auth probing, foreground/background execution, handle polling, structured result formatting
+- Registered in tools/index.ts and runtime.ts (with secrets lookup for API key fallback)
+- Deprecated bundled claude-code skill with notice pointing to native tool
+- Skipped specs/tools.md update (deferred to phase completion docs update)
+- Modified: claude-code.ts, index.ts, runtime.ts, SKILL.md
+- Verification: typecheck, lint, 740 tests pass
 
 ## Verification
 

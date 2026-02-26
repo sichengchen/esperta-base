@@ -1,14 +1,14 @@
 ---
 id: 127
 title: Onboarding and config wizard for all Chat SDK connectors
-status: pending
+status: done
 type: feature
 priority: 2
 phase: 009-chat-sdk-and-agent-tools
 branch: feature/009-chat-sdk-and-agent-tools
 created: 2026-02-25
+shipped_at: 2026-02-26
 ---
-
 # Onboarding and config wizard for all Chat SDK connectors
 
 ## Context
@@ -80,3 +80,11 @@ In `Welcome.tsx`:
 - Expected: All wizard steps compile, WizardData includes new fields
 - Manual: Run `sa onboard`, step through all connector setup screens, verify tokens saved to `secrets.enc`
 - Edge cases: Re-run wizard with existing config (keep/change flow), skip all new connectors, set then clear a token
+
+## Progress
+- Created 5 new wizard step components: SlackSetup, TeamsSetup, GChatSetup, GitHubSetup, LinearSetup
+- Updated Wizard.tsx: new step flow discord→slack→teams→gchat→github→linear→skills, WizardData fields, persistence
+- Updated Confirm.tsx: WizardData interface extended, display sections for all 7 connectors
+- Updated ConnectorSettings.tsx: 10 new edit substeps, menu items, handlers, render blocks, approval modes
+- Modified: SlackSetup.tsx, TeamsSetup.tsx, GChatSetup.tsx, GitHubSetup.tsx, LinearSetup.tsx, Wizard.tsx, Confirm.tsx, ConnectorSettings.tsx
+- Verification: typecheck pass, lint pass, 740 tests pass

@@ -5,7 +5,7 @@ import { ModelRouter } from "./router/index.js";
 import { Agent } from "./agent/index.js";
 import type { ToolImpl, ToolApprovalCallback } from "./agent/index.js";
 import { MemoryManager } from "./memory/index.js";
-import { getBuiltinTools, formatToolsSection, createWebFetchTool, createDelegateTool, createDelegateStatusTool } from "./tools/index.js";
+import { getBuiltinTools, formatToolsSection, createWebFetchTool, createDelegateTool, createDelegateStatusTool, createClaudeCodeTool } from "./tools/index.js";
 import { Orchestrator } from "./agent/orchestrator.js";
 import { createMemoryWriteTool } from "./tools/memory-write.js";
 import { createMemorySearchTool } from "./tools/memory-search.js";
@@ -251,6 +251,11 @@ export async function createRuntime(): Promise<EngineRuntime> {
     getOrchestrator: () => orchestrator,
   });
   tools.push(delegateStatusTool);
+
+  // Add native coding agent tools
+  tools.push(createClaudeCodeTool({
+    getSecret: (envVar) => secrets?.apiKeys[envVar],
+  }));
 
   // Assemble system prompt
   const userProfile = await config.loadUserProfile();

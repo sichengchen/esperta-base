@@ -28,6 +28,13 @@ export type ToolApprovalCallback = (
   args: Record<string, unknown>,
 ) => Promise<boolean>;
 
+/** Callback for ask_user — blocks the agent until the user responds */
+export type AskUserCallback = (
+  id: string,
+  question: string,
+  options?: string[],
+) => Promise<string>;
+
 /** Configuration for tool loop detection thresholds */
 export interface ToolLoopConfig {
   /** Emit warning after this many repeated identical calls (default: 10) */
@@ -52,6 +59,8 @@ export interface AgentOptions {
   maxToolResultChars?: number;
   /** Optional callback for tool approval. If provided, called before tool execution. */
   onToolApproval?: ToolApprovalCallback;
+  /** Optional callback for ask_user tool. If provided, the agent can ask the user questions mid-turn. */
+  onAskUser?: AskUserCallback;
   /** Override the router's active model for this agent instance (e.g. for cron task model overrides) */
   modelOverride?: string;
 }
@@ -63,6 +72,7 @@ export type AgentEvent =
   | { type: "tool_start"; name: string; id: string; args: Record<string, unknown> }
   | { type: "tool_end"; name: string; id: string; result: ToolResult }
   | { type: "tool_approval_request"; name: string; id: string; args: Record<string, unknown> }
+  | { type: "user_question"; id: string; question: string; options?: string[] }
   | { type: "warning"; message: string }
   | { type: "done"; stopReason: string }
   | { type: "error"; message: string };

@@ -17,6 +17,7 @@ export type EngineEvent =
   | { type: "tool_approval_request"; name: string; id: string; args: Record<string, unknown> }
   | { type: "security_escalation_request"; id: string; sessionId: string; layer: SecurityLayer; detail: string; resource?: string; options: EscalationChoice[] }
   | { type: "mode_change"; mode: string; remainingTTL: number; description: string }
+  | { type: "user_question"; id: string; question: string; options?: string[] }
   | { type: "sub_agent_start"; subAgentId: string; task: string }
   | { type: "sub_agent_end"; subAgentId: string; status: string; summary: string }
   | { type: "reaction"; emoji: string }

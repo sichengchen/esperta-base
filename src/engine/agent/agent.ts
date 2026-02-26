@@ -115,6 +115,47 @@ export class Agent {
                     return;
                   }
 
+                  // Intercept ask_user tool — handle via onAskUser callback
+                  if (tc.name === "ask_user" && this.options.onAskUser) {
+                    const args = tc.arguments as Record<string, unknown>;
+                    const question = String(args.question ?? "");
+                    const rawOptions = args.options;
+                    const options = Array.isArray(rawOptions) && rawOptions.length > 0
+                      ? rawOptions.map(String)
+                      : undefined;
+
+                    yield { type: "user_question", id: tc.id, question, options };
+
+                    try {
+                      const answer = await this.options.onAskUser(tc.id, question, options);
+                      const result = { content: answer, isError: false };
+                      yield { type: "tool_end", name: tc.name, id: tc.id, result };
+                      const toolResultMsg: ToolResultMessage = {
+                        role: "toolResult",
+                        toolCallId: tc.id,
+                        toolName: tc.name,
+                        content: [{ type: "text", text: answer }],
+                        isError: false,
+                        timestamp: Date.now(),
+                      };
+                      this.messages.push(toolResultMsg);
+                    } catch (err) {
+                      const errMsg = err instanceof Error ? err.message : String(err);
+                      const result = { content: `Question timed out or failed: ${errMsg}`, isError: true };
+                      yield { type: "tool_end", name: tc.name, id: tc.id, result };
+                      const toolResultMsg: ToolResultMessage = {
+                        role: "toolResult",
+                        toolCallId: tc.id,
+                        toolName: tc.name,
+                        content: [{ type: "text", text: result.content }],
+                        isError: true,
+                        timestamp: Date.now(),
+                      };
+                      this.messages.push(toolResultMsg);
+                    }
+                    continue;
+                  }
+
                   // If an approval callback is set, request approval first
                   if (this.options.onToolApproval) {
                     yield {

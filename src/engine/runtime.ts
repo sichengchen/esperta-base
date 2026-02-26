@@ -3,9 +3,9 @@ import { homedir } from "node:os";
 import { ConfigManager } from "./config/index.js";
 import { ModelRouter } from "./router/index.js";
 import { Agent } from "./agent/index.js";
-import type { ToolImpl, ToolApprovalCallback } from "./agent/index.js";
+import type { ToolImpl, ToolApprovalCallback, AskUserCallback } from "./agent/index.js";
 import { MemoryManager } from "./memory/index.js";
-import { getBuiltinTools, formatToolsSection, createWebFetchTool, createDelegateTool, createDelegateStatusTool, createClaudeCodeTool, createCodexTool } from "./tools/index.js";
+import { getBuiltinTools, formatToolsSection, createWebFetchTool, createDelegateTool, createDelegateStatusTool, createClaudeCodeTool, createCodexTool, askUserTool } from "./tools/index.js";
 import { Orchestrator } from "./agent/orchestrator.js";
 import { createMemoryWriteTool } from "./tools/memory-write.js";
 import { createMemorySearchTool } from "./tools/memory-search.js";
@@ -115,7 +115,7 @@ export interface EngineRuntime {
   /** The main session ID (engine-level, not tied to any connector) */
   mainSessionId: string;
   /** Create a new Agent instance for a session (each session gets its own Agent) */
-  createAgent(onToolApproval?: ToolApprovalCallback, modelOverride?: string, allowedTools?: string[]): Agent;
+  createAgent(onToolApproval?: ToolApprovalCallback, modelOverride?: string, allowedTools?: string[], onAskUser?: AskUserCallback): Agent;
 }
 
 /** Bootstrap all Engine subsystems */
@@ -227,6 +227,7 @@ export async function createRuntime(): Promise<EngineRuntime> {
     createSetEnvSecretTool(config),
     createSetEnvVariableTool(config),
     createNotifyTool(secrets),
+    askUserTool,
   ];
 
   // Create shared orchestrator for background sub-agent execution
@@ -383,7 +384,7 @@ export async function createRuntime(): Promise<EngineRuntime> {
     securityMode,
     agentName: saConfig.identity.name,
     mainSessionId: mainSession.id,
-    createAgent(onToolApproval?: ToolApprovalCallback, modelOverride?: string, allowedTools?: string[]): Agent {
+    createAgent(onToolApproval?: ToolApprovalCallback, modelOverride?: string, allowedTools?: string[], onAskUser?: AskUserCallback): Agent {
       const agentTools = allowedTools
         ? tools.filter((t) => allowedTools.includes(t.name))
         : tools;
@@ -392,6 +393,7 @@ export async function createRuntime(): Promise<EngineRuntime> {
         tools: agentTools,
         systemPrompt,
         onToolApproval,
+        onAskUser,
         modelOverride,
       });
     },

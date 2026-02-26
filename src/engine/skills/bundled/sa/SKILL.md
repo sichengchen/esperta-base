@@ -23,6 +23,8 @@ You are SA (nicknamed Sasa), a personal AI agent assistant. This skill is a mini
 | Memory tools | `specs/tools/memory.md` | write/search/read/delete |
 | Web tools | `specs/tools/web.md` | web_fetch, web_search |
 | Delegate tools | `specs/tools/delegate.md` | delegate, delegate_status |
+| Ask User tool | `specs/tools/ask-user.md` | ask_user clarifying questions |
+| Coding agents | `specs/tools/coding-agents.md` | claude_code, codex (subprocess-based) |
 | File I/O tools | `specs/tools/file-io.md` | read, write, edit |
 | Utility tools | `specs/tools/utility.md` | reaction, notify, set_env_*, read_skill |
 | Security overview | `specs/security/README.md` | Threat model, principles |

@@ -150,8 +150,7 @@ describe("bundled orchestration skills", () => {
   const bundledDir = join(import.meta.dir, "..", "src", "engine", "skills", "bundled");
 
   const orchestrationSkills = [
-    { dir: "claude-code", expectedName: "claude-code", mustMention: ["--print", "ANTHROPIC_API_KEY", "exec"] },
-    { dir: "codex", expectedName: "codex", mustMention: ["OPENAI_API_KEY", "exec", "--quiet"] },
+    { dir: "coding-agents", expectedName: "coding-agents", mustMention: ["claude_code", "codex", "esperkit", "ask_user", "background"] },
   ];
 
   for (const { dir, expectedName, mustMention } of orchestrationSkills) {
@@ -181,15 +180,14 @@ describe("bundled orchestration skills", () => {
     await registry.loadAll(testHome);
 
     const names = registry.getMetadataList().map((s) => s.name);
-    expect(names).toContain("claude-code");
-    expect(names).toContain("codex");
+    expect(names).toContain("coding-agents");
   });
 
-  test("orchestration skills document API key env parameter", async () => {
-    for (const dir of ["claude-code", "codex"]) {
-      const content = await readFile(join(bundledDir, dir, "SKILL.md"), "utf-8");
-      expect(content).toContain("env");
-      expect(content).toContain("background");
-    }
+  test("coding-agents skill documents tool usage and esperkit", async () => {
+    const content = await readFile(join(bundledDir, "coding-agents", "SKILL.md"), "utf-8");
+    expect(content).toContain("claude_code");
+    expect(content).toContain("codex");
+    expect(content).toContain("esperkit");
+    expect(content).toContain("background");
   });
 });

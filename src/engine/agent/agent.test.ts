@@ -23,6 +23,61 @@ function mockRouter() {
   };
 }
 
+describe("Agent — retry context rebuild", () => {
+  it("passes sanitized history to stream on retry after retryable error", async () => {
+    let callCount = 0;
+    // Store raw array references — NOT spreads — so we can assert identity
+    const capturedMessageRefs: any[] = [];
+
+    mock.module("@mariozechner/pi-ai", () => ({
+      stream: async function* (_model: any, context: any) {
+        callCount++;
+        capturedMessageRefs.push(context.messages);
+
+        if (callCount === 1) {
+          // First call: yield a retryable error (thought_signature)
+          yield {
+            type: "error",
+            error: {
+              role: "assistant",
+              errorMessage: "thought_signature validation failed",
+              timestamp: Date.now(),
+            },
+          };
+        } else {
+          // Second call (retry): succeed
+          yield {
+            type: "done",
+            reason: "endTurn",
+            message: { role: "assistant", content: "ok", timestamp: Date.now() },
+          };
+        }
+      },
+    }));
+
+    const { Agent } = await import("./agent.js");
+
+    const agent = new Agent({
+      router: mockRouter() as any,
+      timeoutMs: 5000,
+      toolLoopDetection: false,
+    });
+
+    const events = await collectEvents(agent.chat("hello"));
+    const doneEvent = events.find((e) => e.type === "done");
+    expect(doneEvent).toBeDefined();
+
+    // stream was called twice: original + retry
+    expect(callCount).toBe(2);
+    expect(capturedMessageRefs.length).toBe(2);
+
+    // The retry must receive a DIFFERENT array reference than the original.
+    // sanitizeHistoryForRetry returns a new array; the fix assigns it back
+    // to context.messages. Without the fix both calls share the same ref.
+    expect(capturedMessageRefs[0]).not.toBe(capturedMessageRefs[1]);
+  });
+});
+
 describe("Agent — timeout AbortController", () => {
   it("yields error when timeout fires between loop iterations (multi-tool rounds)", async () => {
     // The timeout check happens at the top of the while loop (between rounds)

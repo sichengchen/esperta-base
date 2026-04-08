@@ -1,5 +1,5 @@
-import type { SAConfigFile, HeartbeatConfig } from "./types.js";
-import { PRODUCT_NAME } from "@sa/shared/brand.js";
+import type { AriaConfigFile, HeartbeatConfig } from "./types.js";
+import { PRODUCT_NAME } from "@aria/shared/brand.js";
 
 /** Default tool allowlist for cron tasks — read + search, memory, notify */
 export const CRON_DEFAULT_TOOLS = [
@@ -39,7 +39,7 @@ export const DEFAULT_HEARTBEAT_MD = `# Heartbeat checklist
 `;
 
 /** Default config.json (v3 — merged runtime + providers + models) */
-export const DEFAULT_CONFIG: SAConfigFile = {
+export const DEFAULT_CONFIG: AriaConfigFile = {
   version: 3,
   runtime: {
     activeModel: "sonnet",

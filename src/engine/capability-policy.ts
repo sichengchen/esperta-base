@@ -1,5 +1,5 @@
 import type { ToolImpl, DangerLevel } from "./agent/types.js";
-import type { ToolApprovalMode } from "@sa/shared/types.js";
+import type { ToolApprovalMode } from "@aria/shared/types.js";
 import type { MCPManager, MCPServerStatus } from "./mcp.js";
 import { getPrimaryToolset } from "./toolsets.js";
 

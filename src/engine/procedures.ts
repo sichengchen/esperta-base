@@ -9,8 +9,8 @@ import type { AgentEvent } from "./agent/index.js";
 import type { DangerLevel } from "./agent/types.js";
 import { classifyExecCommand } from "./tools/exec-classifier.js";
 import { ToolPolicyManager, type ToolEventContext } from "./tools/policy.js";
-import { ConnectorTypeSchema } from "@sa/shared/types.js";
-import type { EngineEvent, SkillInfo, ConnectorType, ToolApprovalMode, EscalationChoice } from "@sa/shared/types.js";
+import { ConnectorTypeSchema } from "@aria/shared/types.js";
+import type { EngineEvent, SkillInfo, ConnectorType, ToolApprovalMode, EscalationChoice } from "@aria/shared/types.js";
 import { type SessionSecurityOverrides, createEmptyOverrides } from "./agent/security-types.js";
 import type { ModelConfig, ProviderConfig } from "./router/types.js";
 import { heartbeatState, createHeartbeatTask } from "./scheduler.js";
@@ -1848,7 +1848,6 @@ export function createAppRouter(runtime: EngineRuntime) {
           prompt: z.string(),
           enabled: z.boolean().default(true),
           model: z.string().optional(),
-          connector: z.string().optional(),
           allowedTools: z.array(z.string()).optional(),
           allowedToolsets: z.array(z.string()).optional(),
           skills: z.array(z.string()).optional(),
@@ -1872,7 +1871,6 @@ export function createAppRouter(runtime: EngineRuntime) {
             prompt: input.prompt,
             enabled: input.enabled,
             model: input.model,
-            connector: input.connector,
             allowedTools: input.allowedTools,
             allowedToolsets: input.allowedToolsets,
             skills: input.skills,
@@ -1903,7 +1901,6 @@ export function createAppRouter(runtime: EngineRuntime) {
           prompt: z.string().optional(),
           enabled: z.boolean().optional(),
           model: z.string().optional(),
-          connector: z.string().optional(),
           allowedTools: z.array(z.string()).optional(),
           allowedToolsets: z.array(z.string()).optional(),
           skills: z.array(z.string()).optional(),
@@ -1923,7 +1920,6 @@ export function createAppRouter(runtime: EngineRuntime) {
           if (input.prompt !== undefined) task.prompt = input.prompt;
           if (input.enabled !== undefined) task.enabled = input.enabled;
           if (input.model !== undefined) task.model = input.model;
-          if (input.connector !== undefined) task.connector = input.connector;
           if (input.allowedTools !== undefined) task.allowedTools = input.allowedTools;
           if (input.allowedToolsets !== undefined) task.allowedToolsets = input.allowedToolsets;
           if (input.skills !== undefined) task.skills = input.skills;

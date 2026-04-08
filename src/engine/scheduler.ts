@@ -39,7 +39,7 @@ interface RegisteredTask extends ScheduledTask {
 }
 
 interface HeartbeatTaskOptions {
-  saHome: string;
+  runtimeHome: string;
   mainAgent?: Agent | null;
   notify?: (message: string) => Promise<void> | void;
 }
@@ -283,9 +283,9 @@ function formatIntervalSchedule(intervalMinutes: number): string {
   return intervalMinutes <= 59 ? `*/${intervalMinutes} * * * *` : `@every ${intervalMinutes}m`;
 }
 
-async function writeHeartbeatLog(saHome: string, healthData: HeartbeatResult): Promise<void> {
+async function writeHeartbeatLog(runtimeHome: string, healthData: HeartbeatResult): Promise<void> {
   try {
-    const autoDir = join(saHome, "automation");
+    const autoDir = join(runtimeHome, "automation");
     await mkdir(autoDir, { recursive: true });
     const ts = new Date().toISOString().replace(/[:.]/g, "-");
     const logContent = [
@@ -311,7 +311,7 @@ export function createHeartbeatTask(
   config?: Partial<HeartbeatConfig>,
 ): ScheduledTask {
   const options = typeof optionsOrSaHome === "string"
-    ? { saHome: optionsOrSaHome, mainAgent }
+    ? { runtimeHome: optionsOrSaHome, mainAgent }
     : optionsOrSaHome;
   const hbConfig: HeartbeatConfig = { ...DEFAULT_HEARTBEAT, ...config };
   heartbeatState.config = hbConfig;
@@ -325,7 +325,7 @@ export function createHeartbeatTask(
     builtin: true,
     async handler() {
       // Always write the health file for daemon monitoring
-      const heartbeatFile = join(options.saHome, "engine.heartbeat");
+      const heartbeatFile = join(options.runtimeHome, "engine.heartbeat");
       const healthData: HeartbeatResult = {
         timestamp: new Date().toISOString(),
         pid: process.pid,
@@ -338,12 +338,12 @@ export function createHeartbeatTask(
         healthData.agentRan = false;
         await writeFile(heartbeatFile, JSON.stringify(healthData) + "\n");
         heartbeatState.lastResult = healthData;
-        await writeHeartbeatLog(options.saHome, healthData);
+        await writeHeartbeatLog(options.runtimeHome, healthData);
         return;
       }
 
       // Read the checklist
-      const checklistPath = join(options.saHome, hbConfig.checklistPath ?? "HEARTBEAT.md");
+      const checklistPath = join(options.runtimeHome, hbConfig.checklistPath ?? "HEARTBEAT.md");
       let checklist = "";
       try {
         checklist = await readFile(checklistPath, "utf-8");
@@ -378,7 +378,7 @@ export function createHeartbeatTask(
 
       await writeFile(heartbeatFile, JSON.stringify(healthData) + "\n");
       heartbeatState.lastResult = healthData;
-      await writeHeartbeatLog(options.saHome, healthData);
+      await writeHeartbeatLog(options.runtimeHome, healthData);
 
       if (!healthData.suppressed && responseText.trim()) {
         if (options.notify) {

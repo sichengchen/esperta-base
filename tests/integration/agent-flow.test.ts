@@ -1,6 +1,6 @@
 import { describe, test, expect, afterEach } from "bun:test";
-import { ToolRegistry } from "@sa/engine/agent/index.js";
-import { getBuiltinTools, createWebFetchTool } from "@sa/engine/tools/index.js";
+import { ToolRegistry } from "@aria/engine/agent/index.js";
+import { getBuiltinTools, createWebFetchTool } from "@aria/engine/tools/index.js";
 import { rm, mkdir } from "node:fs/promises";
 import { join } from "node:path";
 import { tmpdir } from "node:os";

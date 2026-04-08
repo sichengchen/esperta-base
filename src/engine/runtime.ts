@@ -31,7 +31,7 @@ import { MCPManager } from "./mcp.js";
 import { registerCronTask, upsertCronTaskRecord, upsertHeartbeatTaskRecord, upsertWebhookTaskRecord } from "./automation.js";
 import { OperationalStore } from "./operational-store.js";
 import { PromptEngine } from "./prompt-engine.js";
-import { CLI_NAME, getRuntimeHome } from "@sa/shared/brand.js";
+import { CLI_NAME, getRuntimeHome } from "@aria/shared/brand.js";
 
 /** Engine runtime — holds all bootstrapped subsystems */
 export interface EngineRuntime {
@@ -65,13 +65,13 @@ export interface EngineRuntime {
 
 /** Bootstrap all Engine subsystems */
 export async function createRuntime(): Promise<EngineRuntime> {
-  const saHome = getRuntimeHome();
+  const runtimeHome = getRuntimeHome();
 
-  const config = new ConfigManager(saHome);
-  const saConfig = await config.load();
+  const config = new ConfigManager(runtimeHome);
+  const ariaConfig = await config.load();
 
   // Initialize memory
-  const memoryDir = join(config.homeDir, saConfig.runtime.memory.directory);
+  const memoryDir = join(config.homeDir, ariaConfig.runtime.memory.directory);
   const memory = new MemoryManager(memoryDir);
   await memory.init();
 
@@ -80,12 +80,12 @@ export async function createRuntime(): Promise<EngineRuntime> {
   const store = new OperationalStore(config.homeDir);
   await store.init();
 
-  const checkpoints = new CheckpointManager(config.homeDir, saConfig.runtime.checkpoints);
-  const mcp = new MCPManager(saConfig.runtime.mcp?.servers, process.env.TERMINAL_CWD ?? process.cwd(), store);
+  const checkpoints = new CheckpointManager(config.homeDir, ariaConfig.runtime.checkpoints);
+  const mcp = new MCPManager(ariaConfig.runtime.mcp?.servers, process.env.TERMINAL_CWD ?? process.cwd(), store);
   await mcp.init();
 
   // Apply search weights from config
-  const searchConfig = saConfig.runtime.memory.search;
+  const searchConfig = ariaConfig.runtime.memory.search;
   if (searchConfig) {
     memory.setSearchWeights({
       vectorWeight: searchConfig.vectorWeight,
@@ -95,8 +95,8 @@ export async function createRuntime(): Promise<EngineRuntime> {
   }
 
   // Inject plain env vars from config.json (env vars take precedence)
-  if (saConfig.runtime.env) {
-    for (const [envVar, value] of Object.entries(saConfig.runtime.env)) {
+  if (ariaConfig.runtime.env) {
+    for (const [envVar, value] of Object.entries(ariaConfig.runtime.env)) {
       if (!process.env[envVar] && value) {
         process.env[envVar] = value;
       }
@@ -113,7 +113,7 @@ export async function createRuntime(): Promise<EngineRuntime> {
     }
   }
   // Validate provider API keys — warn early if missing
-  for (const provider of saConfig.providers) {
+  for (const provider of ariaConfig.providers) {
     const envVar = provider.apiKeyEnvVar;
     if (!process.env[envVar] && !secrets?.apiKeys[envVar]) {
       console.warn(
@@ -132,7 +132,7 @@ export async function createRuntime(): Promise<EngineRuntime> {
 
   const baseConfigFile = config.getConfigFile();
   const router = ModelRouter.fromConfig(
-    { providers: saConfig.providers, models: saConfig.models, defaultModel: saConfig.defaultModel },
+    { providers: ariaConfig.providers, models: ariaConfig.models, defaultModel: ariaConfig.defaultModel },
     secrets,
     async (state) => {
       await config.saveConfig({
@@ -144,9 +144,9 @@ export async function createRuntime(): Promise<EngineRuntime> {
       });
     },
     {
-      modelTiers: saConfig.runtime.modelTiers,
-      taskTierOverrides: saConfig.runtime.taskTierOverrides,
-      modelAliases: saConfig.runtime.modelAliases,
+      modelTiers: ariaConfig.runtime.modelTiers,
+      taskTierOverrides: ariaConfig.runtime.taskTierOverrides,
+      modelAliases: ariaConfig.runtime.modelAliases,
     },
   );
 
@@ -167,13 +167,13 @@ export async function createRuntime(): Promise<EngineRuntime> {
 
   // Load skills
   const skills = new SkillRegistry();
-  await skills.loadAll(saHome);
+  await skills.loadAll(runtimeHome);
   let runtime: EngineRuntime;
 
   // Build tools
   const tools: ToolImpl[] = [
     ...getBuiltinTools(),
-    createWebFetchTool(saConfig.runtime.urlPolicy),
+    createWebFetchTool(ariaConfig.runtime.urlPolicy),
     createMemoryWriteTool(memory),
     createMemorySearchTool(memory),
     createMemoryReadTool(memory),
@@ -197,18 +197,18 @@ export async function createRuntime(): Promise<EngineRuntime> {
 
   // Create shared orchestrator for background sub-agent execution
   const orchestrator = new Orchestrator(router, tools, {
-    maxConcurrent: saConfig.runtime.orchestration?.maxConcurrent,
-    maxSubAgentsPerTurn: saConfig.runtime.orchestration?.maxSubAgentsPerTurn,
-    resultRetentionMs: saConfig.runtime.orchestration?.resultRetentionMs,
-    defaultTimeoutMs: saConfig.runtime.orchestration?.defaultTimeoutMs,
+    maxConcurrent: ariaConfig.runtime.orchestration?.maxConcurrent,
+    maxSubAgentsPerTurn: ariaConfig.runtime.orchestration?.maxSubAgentsPerTurn,
+    resultRetentionMs: ariaConfig.runtime.orchestration?.resultRetentionMs,
+    defaultTimeoutMs: ariaConfig.runtime.orchestration?.defaultTimeoutMs,
   });
 
   // Add delegate tools (need full tools list — the tool factory captures the reference)
   const delegateTool = createDelegateTool({
     router,
     tools,
-    defaultTimeoutMs: saConfig.runtime.orchestration?.defaultTimeoutMs,
-    memoryWriteDefault: saConfig.runtime.orchestration?.memoryWriteDefault,
+    defaultTimeoutMs: ariaConfig.runtime.orchestration?.defaultTimeoutMs,
+    memoryWriteDefault: ariaConfig.runtime.orchestration?.memoryWriteDefault,
     getOrchestrator: () => orchestrator,
   });
   tools.push(delegateTool);
@@ -237,20 +237,20 @@ export async function createRuntime(): Promise<EngineRuntime> {
   let systemPrompt = await promptEngine.buildBasePrompt();
 
   // Initialize audio transcriber
-  const audioConfig = saConfig.runtime.audio ?? { enabled: true, preferLocal: true };
+  const audioConfig = ariaConfig.runtime.audio ?? { enabled: true, preferLocal: true };
   const transcriber = await createTranscriber({ preferLocal: audioConfig.preferLocal });
   if (transcriber.backend) {
     console.log(`Audio transcription: ${transcriber.backend}`);
   }
 
   const sessions = new SessionManager(store);
-  const auth = new AuthManager(saHome, saConfig.runtime.security);
+  const auth = new AuthManager(runtimeHome, ariaConfig.runtime.security);
   await auth.init();
-  const audit = new AuditLogger(saHome);
-  const securityMode = new SecurityModeManager(saConfig.runtime.security);
+  const audit = new AuditLogger(runtimeHome);
+  const securityMode = new SecurityModeManager(ariaConfig.runtime.security);
 
   // Configure OS sandbox with exec fence paths
-  const execSecurity = saConfig.runtime.security?.exec;
+  const execSecurity = ariaConfig.runtime.security?.exec;
   if (execSecurity) {
     configureSandbox({
       fence: execSecurity.fence ?? [],
@@ -269,7 +269,7 @@ export async function createRuntime(): Promise<EngineRuntime> {
   const notifyTool = tools.find((t) => t.name === "notify");
 
   // Ensure HEARTBEAT.md exists
-  const heartbeatMdPath = join(saHome, saConfig.runtime.heartbeat?.checklistPath ?? "HEARTBEAT.md");
+  const heartbeatMdPath = join(runtimeHome, ariaConfig.runtime.heartbeat?.checklistPath ?? "HEARTBEAT.md");
   if (!existsSync(heartbeatMdPath)) {
     await writeFile(heartbeatMdPath, DEFAULT_HEARTBEAT_MD);
   }
@@ -277,7 +277,7 @@ export async function createRuntime(): Promise<EngineRuntime> {
   // Initialize scheduler with agent-based heartbeat
   const scheduler = new Scheduler();
   scheduler.register(createHeartbeatTask({
-    saHome,
+    runtimeHome,
     mainAgent,
     notify: notifyTool
       ? async (message: string) => {
@@ -287,11 +287,11 @@ export async function createRuntime(): Promise<EngineRuntime> {
         }
       }
       : undefined,
-  }, null, saConfig.runtime.heartbeat));
+  }, null, ariaConfig.runtime.heartbeat));
 
   // Restore persisted cron tasks from config
-  const cronTasks = saConfig.runtime.automation?.cronTasks ?? [];
-  const webhookTasks = saConfig.runtime.automation?.webhookTasks ?? [];
+  const cronTasks = ariaConfig.runtime.automation?.cronTasks ?? [];
+  const webhookTasks = ariaConfig.runtime.automation?.webhookTasks ?? [];
   runtime = {
     config,
     router,
@@ -310,7 +310,7 @@ export async function createRuntime(): Promise<EngineRuntime> {
     transcriber,
     audit,
     securityMode,
-    agentName: saConfig.identity.name,
+    agentName: ariaConfig.identity.name,
     mainSessionId: mainSession.id,
     async refreshSystemPrompt(): Promise<string> {
       systemPrompt = await promptEngine.buildBasePrompt(true);
@@ -341,8 +341,8 @@ export async function createRuntime(): Promise<EngineRuntime> {
   };
   const heartbeatTask = scheduler.list().find((task) => task.name === "heartbeat");
   upsertHeartbeatTaskRecord(runtime, {
-    enabled: saConfig.runtime.heartbeat?.enabled ?? true,
-    intervalMinutes: saConfig.runtime.heartbeat?.intervalMinutes ?? 30,
+    enabled: ariaConfig.runtime.heartbeat?.enabled ?? true,
+    intervalMinutes: ariaConfig.runtime.heartbeat?.intervalMinutes ?? 30,
     nextRunAt: heartbeatTask?.nextRunAt ?? null,
   });
   for (const task of cronTasks) {

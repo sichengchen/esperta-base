@@ -9,7 +9,7 @@ import type { EngineRuntime } from "./runtime.js";
 import { heartbeatState } from "./scheduler.js";
 import { frameAsData } from "./agent/content-frame.js";
 import { deliverAutomationResult, logAutomationResult, runAutomationAgent, upsertWebhookTaskRecord } from "./automation.js";
-import { RUNTIME_NAME, getRuntimeHome } from "@sa/shared/brand.js";
+import { RUNTIME_NAME, getRuntimeHome } from "@aria/shared/brand.js";
 
 const DEFAULT_PORT = 7420;
 
@@ -225,7 +225,7 @@ async function handleWebhookTask(req: Request, slug: string, runtime: EngineRunt
   });
 
   await logAutomationResult(runtime, `webhook-${slug}`, prompt, result.responseText, result.toolCalls);
-  await deliverAutomationResult(runtime, task.delivery, result.responseText, task.connector);
+  await deliverAutomationResult(runtime, task.delivery, result.responseText);
 
   console.log(`[webhook] Task "${task.name}" (${slug}) completed: ${result.summary}`);
 
@@ -314,7 +314,7 @@ export interface EngineServer {
 export async function startServer(runtime: EngineRuntime, options: EngineServerOptions = {}): Promise<EngineServer> {
   const port = options.port ?? DEFAULT_PORT;
   const hostname = options.hostname ?? "127.0.0.1";
-  const saHome = getRuntimeHome();
+  const runtimeHome = getRuntimeHome();
 
   const appRouter = createAppRouter(runtime);
 
@@ -334,10 +334,6 @@ export async function startServer(runtime: EngineRuntime, options: EngineServerO
 
       // Webhook endpoints (all under /webhook/*)
       if (url.pathname === "/webhook/agent" && req.method === "POST") {
-        return handleWebhookAgent(req, runtime, appRouter);
-      }
-      // Legacy /webhook route (backwards compat → redirects to /webhook/agent)
-      if (url.pathname === "/webhook" && req.method === "POST") {
         return handleWebhookAgent(req, runtime, appRouter);
       }
       if (url.pathname === "/webhook/heartbeat" && req.method === "POST") {
@@ -379,7 +375,7 @@ export async function startServer(runtime: EngineRuntime, options: EngineServerO
   const httpUrl = `http://${hostname}:${port}`;
 
   // Write discovery files for CLI and Connectors
-  await writeFile(join(saHome, "engine.url"), httpUrl);
+  await writeFile(join(runtimeHome, "engine.url"), httpUrl);
 
   console.log(`${RUNTIME_NAME} listening on ${httpUrl}`);
   console.log(`${RUNTIME_NAME} WS on ws://${hostname}:${port + 1}`);
@@ -392,7 +388,7 @@ export async function startServer(runtime: EngineRuntime, options: EngineServerO
       wssHandler.broadcastReconnectNotification();
       wss.close();
       // Clean up discovery files
-      try { await unlink(join(saHome, "engine.url")); } catch {}
+      try { await unlink(join(runtimeHome, "engine.url")); } catch {}
       await runtime.close();
     },
   };

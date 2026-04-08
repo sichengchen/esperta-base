@@ -9,8 +9,8 @@ import { SessionPicker } from "./SessionPicker.js";
 import { ToolApproval } from "./ToolApproval.js";
 import { UserQuestion } from "./UserQuestion.js";
 import { createTuiClient } from "./client.js";
-import type { ModelConfig, ProviderConfig } from "@sa/engine/router/types.js";
-import type { Session } from "@sa/shared/types.js";
+import type { ModelConfig, ProviderConfig } from "@aria/engine/router/types.js";
+import type { Session } from "@aria/shared/types.js";
 
 type EngineClient = ReturnType<typeof createTuiClient>;
 

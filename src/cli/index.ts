@@ -7,9 +7,9 @@ import { join } from "node:path";
 import { engineCommand, ensureEngine } from "./engine.js";
 import { automationCommand } from "./automation.js";
 import { memoryCommand } from "./memory.js";
-import { createTuiClient } from "@sa/connectors/tui/client.js";
-import { App } from "@sa/connectors/tui/App.js";
-import { CLI_NAME, PRODUCT_NAME, RUNTIME_NAME, getRuntimeHome } from "@sa/shared/brand.js";
+import { createTuiClient } from "@aria/connectors/tui/client.js";
+import { App } from "@aria/connectors/tui/App.js";
+import { CLI_NAME, PRODUCT_NAME, RUNTIME_NAME, getRuntimeHome } from "@aria/shared/brand.js";
 
 const runtimeHome = getRuntimeHome();
 const [subcommand, ...args] = process.argv.slice(2);
@@ -113,31 +113,31 @@ const COMMANDS: Record<string, (args: string[]) => Promise<void>> = {
   },
   slack: async (cmdArgs) => {
     const port = cmdArgs[0] ? parseInt(cmdArgs[0], 10) : 3420;
-    const { startSlackConnector } = await import("@sa/connectors/slack/index.js");
+    const { startSlackConnector } = await import("@aria/connectors/slack/index.js");
     await startSlackConnector(port);
   },
   teams: async (cmdArgs) => {
     const port = cmdArgs[0] ? parseInt(cmdArgs[0], 10) : 3421;
-    const { startTeamsConnector } = await import("@sa/connectors/teams/index.js");
+    const { startTeamsConnector } = await import("@aria/connectors/teams/index.js");
     await startTeamsConnector(port);
   },
   gchat: async (cmdArgs) => {
     const port = cmdArgs[0] ? parseInt(cmdArgs[0], 10) : 3422;
-    const { startGChatConnector } = await import("@sa/connectors/gchat/index.js");
+    const { startGChatConnector } = await import("@aria/connectors/gchat/index.js");
     await startGChatConnector(port);
   },
   github: async (cmdArgs) => {
     const port = cmdArgs[0] ? parseInt(cmdArgs[0], 10) : 3424;
-    const { startGitHubConnector } = await import("@sa/connectors/github/index.js");
+    const { startGitHubConnector } = await import("@aria/connectors/github/index.js");
     await startGitHubConnector(port);
   },
   linear: async (cmdArgs) => {
     const port = cmdArgs[0] ? parseInt(cmdArgs[0], 10) : 3425;
-    const { startLinearConnector } = await import("@sa/connectors/linear/index.js");
+    const { startLinearConnector } = await import("@aria/connectors/linear/index.js");
     await startLinearConnector(port);
   },
   shutdown: async () => {
-      const { createTuiClient } = await import("@sa/connectors/tui/client.js");
+      const { createTuiClient } = await import("@aria/connectors/tui/client.js");
       try {
         const client = createTuiClient();
         console.log(`Shutting down ${RUNTIME_NAME}...`);
@@ -151,7 +151,7 @@ const COMMANDS: Record<string, (args: string[]) => Promise<void>> = {
       }
   },
   restart: async () => {
-      const { createTuiClient } = await import("@sa/connectors/tui/client.js");
+      const { createTuiClient } = await import("@aria/connectors/tui/client.js");
       try {
         const client = createTuiClient();
         console.log(`Restarting ${RUNTIME_NAME}...`);
@@ -178,7 +178,7 @@ const COMMANDS: Record<string, (args: string[]) => Promise<void>> = {
       }
   },
   stop: async () => {
-    const { createTuiClient } = await import("@sa/connectors/tui/client.js");
+    const { createTuiClient } = await import("@aria/connectors/tui/client.js");
     try {
       const client = createTuiClient();
       const result = await client.chat.stopAll.mutate();
@@ -196,16 +196,16 @@ const COMMANDS: Record<string, (args: string[]) => Promise<void>> = {
   },
   telegram: async (cmdArgs) => {
     const port = cmdArgs[0] ? parseInt(cmdArgs[0], 10) : 3426;
-    const { startTelegramConnector } = await import("@sa/connectors/telegram/index.js");
+    const { startTelegramConnector } = await import("@aria/connectors/telegram/index.js");
     await startTelegramConnector(port);
   },
   discord: async (cmdArgs) => {
     const port = cmdArgs[0] ? parseInt(cmdArgs[0], 10) : 3423;
-    const { startDiscordConnector } = await import("@sa/connectors/discord/index.js");
+    const { startDiscordConnector } = await import("@aria/connectors/discord/index.js");
     await startDiscordConnector(port);
   },
   __engine: async () => {
-    await import("@sa/engine/index.js");
+    await import("@aria/engine/index.js");
   },
   help: async () => {
     console.log(`${PRODUCT_NAME} — Local-First Agent Platform\n`);

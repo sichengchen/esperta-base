@@ -1,21 +1,21 @@
 import { readFile, writeFile, mkdir, rm } from "node:fs/promises";
 import { join } from "node:path";
 import { existsSync } from "node:fs";
-import type { Identity, RuntimeConfig, SAConfig, SAConfigFile, SecretsFile } from "./types.js";
+import type { Identity, RuntimeConfig, AriaConfig, AriaConfigFile, SecretsFile } from "./types.js";
 import { DEFAULT_IDENTITY_MD, DEFAULT_CONFIG } from "./defaults.js";
 import { loadSecrets as _loadSecrets, saveSecrets as _saveSecrets } from "./secrets.js";
-import { PRODUCT_NAME, getRuntimeHome } from "@sa/shared/brand.js";
+import { PRODUCT_NAME, getRuntimeHome } from "@aria/shared/brand.js";
 
 export class ConfigManager {
   readonly homeDir: string;
   private identity: Identity | null = null;
-  private configFile: SAConfigFile | null = null;
+  private configFile: AriaConfigFile | null = null;
 
   constructor(homeDir?: string) {
     this.homeDir = homeDir ?? getRuntimeHome();
   }
 
-  async load(): Promise<SAConfig> {
+  async load(): Promise<AriaConfig> {
     await mkdir(this.homeDir, { recursive: true });
 
     this.identity = await this.loadIdentity();
@@ -42,7 +42,7 @@ export class ConfigManager {
     return parseIdentityMd(md);
   }
 
-  private async loadConfigFile(): Promise<SAConfigFile> {
+  private async loadConfigFile(): Promise<AriaConfigFile> {
     const configPath = join(this.homeDir, "config.json");
     const modelsPath = join(this.homeDir, "models.json");
 
@@ -52,7 +52,7 @@ export class ConfigManager {
 
       // v3 merged config — use directly
       if (parsed.version === 3) {
-        return parsed as SAConfigFile;
+        return parsed as AriaConfigFile;
       }
 
       // Legacy config.json (no version field = pre-v3 RuntimeConfig)
@@ -91,7 +91,7 @@ export class ConfigManager {
   private migrateToV3(
     runtime: RuntimeConfig,
     models: { version?: number; default?: string; providers?: any[]; models?: any[] } | null,
-  ): SAConfigFile {
+  ): AriaConfigFile {
     return {
       version: 3,
       runtime,
@@ -101,7 +101,7 @@ export class ConfigManager {
     };
   }
 
-  private async writeConfigFile(config: SAConfigFile): Promise<void> {
+  private async writeConfigFile(config: AriaConfigFile): Promise<void> {
     const configPath = join(this.homeDir, "config.json");
     await writeFile(configPath, JSON.stringify(config, null, 2) + "\n");
   }
@@ -116,7 +116,7 @@ export class ConfigManager {
     return this.configFile.runtime;
   }
 
-  getConfigFile(): SAConfigFile {
+  getConfigFile(): AriaConfigFile {
     if (!this.configFile) throw new Error("Config not loaded — call load() first");
     return this.configFile;
   }
@@ -131,7 +131,7 @@ export class ConfigManager {
   }
 
   /** Save the full config file to disk */
-  async saveConfig(config?: SAConfigFile): Promise<void> {
+  async saveConfig(config?: AriaConfigFile): Promise<void> {
     if (config) this.configFile = config;
     if (!this.configFile) throw new Error("Config not loaded — call load() first");
     await this.writeConfigFile(this.configFile);

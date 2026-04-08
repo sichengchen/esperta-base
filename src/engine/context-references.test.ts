@@ -72,4 +72,23 @@ describe("preprocessContextReferences", () => {
       await rm(outsideDir, { recursive: true, force: true });
     }
   });
+
+  test("blocks sibling paths that only share the workspace prefix text", async () => {
+    const outsideDir = `${workspaceDir}-secrets`;
+    await mkdir(outsideDir, { recursive: true });
+    try {
+      const outsideFile = join(outsideDir, "secret.txt");
+      await writeFile(outsideFile, "prefix-confusable secret\n");
+
+      const result = await preprocessContextReferences(
+        `Read @file:${outsideFile}`,
+        { cwd: workspaceDir, allowedRoot: workspaceDir },
+      );
+
+      expect(result.warnings.join("\n")).toContain("path escapes the active workspace");
+      expect(result.message).not.toContain("prefix-confusable secret");
+    } finally {
+      await rm(outsideDir, { recursive: true, force: true });
+    }
+  });
 });

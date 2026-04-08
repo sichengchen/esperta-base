@@ -6,20 +6,20 @@ Use this file to bootstrap any coding agent into the current Esperta Aria workfl
 
 1. Read `README.md` for the public product surface and operator entrypoints.
 2. Read this file before making changes.
-3. Read the canonical Aria specs in `specs/` that match the area you are changing.
-4. Start with these platform specs unless the task is narrowly scoped elsewhere:
-   - `specs/product/aria-platform.md`
-   - `specs/system/runtime-model.md`
-   - `specs/system/prompt-engine.md`
-   - `specs/system/tool-runtime.md`
-   - `specs/system/automation.md`
-   - `specs/interfaces/interaction-protocol.md`
+3. Read the canonical Aria docs in `docs/` that match the area you are changing.
+4. Start with these platform docs unless the task is narrowly scoped elsewhere:
+   - `docs/product/aria-platform.md`
+   - `docs/system/runtime-model.md`
+   - `docs/system/prompt-engine.md`
+   - `docs/system/tool-runtime.md`
+   - `docs/system/automation.md`
+   - `docs/interfaces/interaction-protocol.md`
 
 ## Source Of Truth
 
-- `specs/` is the authoritative architecture tree.
+- `docs/` is the authoritative architecture and behavior tree.
 - `src/` is the live implementation.
-- When specs and implementation diverge, move the code toward the Aria architecture and update docs/specs as part of the shipped change.
+- When docs and implementation diverge, move the code toward the Aria architecture and update the docs as part of the shipped change.
 
 ## Working Rules
 

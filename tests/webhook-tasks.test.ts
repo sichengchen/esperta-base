@@ -1,5 +1,5 @@
 import { describe, test, expect } from "bun:test";
-import type { WebhookTask, AutomationConfig } from "@sa/engine/config/types.js";
+import type { WebhookTask, AutomationConfig } from "@aria/engine/config/types.js";
 
 describe("Webhook task types", () => {
   test("WebhookTask has required fields", () => {
@@ -22,10 +22,10 @@ describe("Webhook task types", () => {
       prompt: "Handle alert: {{payload}}",
       enabled: true,
       model: "fast",
-      connector: "telegram",
+      delivery: { connector: "telegram" },
     };
     expect(task.model).toBe("fast");
-    expect(task.connector).toBe("telegram");
+    expect(task.delivery?.connector).toBe("telegram");
   });
 
   test("AutomationConfig includes webhookTasks", () => {
@@ -206,7 +206,13 @@ describe("Webhook bearer-token-only authentication", () => {
 describe("Webhook slug routing", () => {
   const tasks: WebhookTask[] = [
     { name: "Deploy Notify", slug: "deploy-notify", prompt: "{{payload}}", enabled: true },
-    { name: "Alert Handler", slug: "alert", prompt: "Alert: {{payload}}", enabled: true, connector: "telegram" },
+    {
+      name: "Alert Handler",
+      slug: "alert",
+      prompt: "Alert: {{payload}}",
+      enabled: true,
+      delivery: { connector: "telegram" },
+    },
     { name: "Disabled Task", slug: "disabled", prompt: "test", enabled: false },
   ];
 
@@ -227,14 +233,14 @@ describe("Webhook slug routing", () => {
     expect(task!.enabled).toBe(false);
   });
 
-  test("task with connector field", () => {
+  test("task with delivery connector", () => {
     const task = tasks.find((t) => t.slug === "alert");
-    expect(task!.connector).toBe("telegram");
+    expect(task!.delivery?.connector).toBe("telegram");
   });
 
-  test("task without connector field", () => {
+  test("task without delivery connector", () => {
     const task = tasks.find((t) => t.slug === "deploy-notify");
-    expect(task!.connector).toBeUndefined();
+    expect(task!.delivery?.connector).toBeUndefined();
   });
 });
 

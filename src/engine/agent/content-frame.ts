@@ -107,4 +107,4 @@ export function sanitizeContent(text: string): string {
   result = truncateStackTraces(result);
   return result;
 }
-import { HOME_PLACEHOLDER } from "@sa/shared/brand.js";
+import { HOME_PLACEHOLDER } from "@aria/shared/brand.js";

@@ -1,6 +1,6 @@
 import type { ProviderConfig, ModelConfig } from "../router/types.js";
 import type { ModelTier, TaskType } from "../router/task-types.js";
-import type { ToolApprovalMode, ConnectorType } from "@sa/shared/types.js";
+import type { ToolApprovalMode, ConnectorType } from "@aria/shared/types.js";
 
 export interface Identity {
   name: string;
@@ -122,8 +122,6 @@ export interface WebhookTask {
   enabled: boolean;
   /** Optional model override for this task */
   model?: string;
-  /** Which connector to deliver the response through (e.g. "telegram", "discord") */
-  connector?: string;
   /** Tool allowlist — only these tools are available (default: WEBHOOK_DEFAULT_TOOLS) */
   allowedTools?: string[];
   /** Named toolsets to expand into the allowed tool list */
@@ -260,7 +258,7 @@ export interface RuntimeConfig {
 }
 
 /** On-disk config.json schema (v3 — merged models + runtime) */
-export interface SAConfigFile {
+export interface AriaConfigFile {
   version: 3;
   runtime: RuntimeConfig;
   providers: ProviderConfig[];
@@ -269,7 +267,7 @@ export interface SAConfigFile {
 }
 
 /** Full in-memory config (identity from IDENTITY.md + everything else from config.json) */
-export interface SAConfig {
+export interface AriaConfig {
   identity: Identity;
   runtime: RuntimeConfig;
   providers: ProviderConfig[];

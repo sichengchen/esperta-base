@@ -260,9 +260,8 @@ export async function deliverAutomationResult(
   runtime: EngineRuntime,
   delivery: DeliveryTarget | undefined,
   responseText: string,
-  fallbackConnector?: string,
 ): Promise<void> {
-  const connector = delivery?.connector ?? fallbackConnector;
+  const connector = delivery?.connector;
   if (!connector || !responseText.trim()) {
     return;
   }

@@ -2,8 +2,8 @@ import { describe, test, expect, beforeEach, afterEach } from "bun:test";
 import { mkdtemp, rm, writeFile, readFile, readdir, mkdir } from "node:fs/promises";
 import { tmpdir } from "node:os";
 import { join } from "node:path";
-import { Scheduler, matchesCron } from "@sa/engine/scheduler.js";
-import { SessionManager } from "@sa/engine/sessions.js";
+import { Scheduler, matchesCron } from "@aria/engine/scheduler.js";
+import { SessionManager } from "@aria/engine/sessions.js";
 
 let testDir: string;
 

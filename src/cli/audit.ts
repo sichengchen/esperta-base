@@ -1,7 +1,7 @@
 import { existsSync } from "node:fs";
 import { join } from "node:path";
 import { queryAuditEntries, type AuditEntry } from "../engine/audit.js";
-import { CLI_NAME, PRODUCT_NAME, getRuntimeHome } from "@sa/shared/brand.js";
+import { CLI_NAME, PRODUCT_NAME, getRuntimeHome } from "@aria/shared/brand.js";
 
 /** ANSI color helpers */
 const COLORS: Record<string, string> = {
@@ -89,8 +89,8 @@ function formatEntry(entry: AuditEntry): string {
 }
 
 export async function auditCommand(args: string[]): Promise<void> {
-  const saHome = getRuntimeHome();
-  const logPath = join(saHome, "audit.log");
+  const runtimeHome = getRuntimeHome();
+  const logPath = join(runtimeHome, "audit.log");
 
   if (!existsSync(logPath)) {
     console.log("No audit log found. The engine has not been started yet.");

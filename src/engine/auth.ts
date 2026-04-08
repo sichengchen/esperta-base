@@ -2,7 +2,7 @@ import { randomBytes, timingSafeEqual } from "node:crypto";
 import { writeFile, unlink } from "node:fs/promises";
 import { readFileSync, existsSync } from "node:fs";
 import { join } from "node:path";
-import { getRuntimeHome } from "@sa/shared/brand.js";
+import { getRuntimeHome } from "@aria/shared/brand.js";
 
 const TOKEN_BYTES = 32;
 const DEFAULT_PAIRING_CODE_LENGTH = 8;
@@ -52,7 +52,7 @@ export class AuthManager {
   private pairingCodeCreatedAt = 0;
   private tokenFilePath: string;
   private webhookTokenFilePath: string;
-  private saHome: string;
+  private runtimeHome: string;
 
   /** Pairing rate limit state: per-connector exponential backoff */
   private pairingFailureCounts = new Map<string, number>();
@@ -63,10 +63,10 @@ export class AuthManager {
   private pairingTTLMs: number;
   private pairingCodeLength: number;
 
-  constructor(saHome?: string, securityConfig?: AuthSecurityConfig) {
-    this.saHome = saHome ?? getRuntimeHome();
-    this.tokenFilePath = join(this.saHome, "engine.token");
-    this.webhookTokenFilePath = join(this.saHome, "engine.webhook-token");
+  constructor(runtimeHome?: string, securityConfig?: AuthSecurityConfig) {
+    this.runtimeHome = runtimeHome ?? getRuntimeHome();
+    this.tokenFilePath = join(this.runtimeHome, "engine.token");
+    this.webhookTokenFilePath = join(this.runtimeHome, "engine.webhook-token");
     this.sessionTTLMs = (securityConfig?.sessionTTL ?? 86400) * 1000;
     this.pairingTTLMs = (securityConfig?.pairingTTL ?? 600) * 1000;
     this.pairingCodeLength = securityConfig?.pairingCodeLength ?? DEFAULT_PAIRING_CODE_LENGTH;
@@ -229,8 +229,8 @@ export class AuthManager {
   }
 
   /** Read master token from file (used by Connectors) */
-  static readTokenFromFile(saHome?: string): string | null {
-    const home = saHome ?? getRuntimeHome();
+  static readTokenFromFile(runtimeHome?: string): string | null {
+    const home = runtimeHome ?? getRuntimeHome();
     const path = join(home, "engine.token");
     if (!existsSync(path)) return null;
     return readFileSync(path, "utf-8").trim();

@@ -1,6 +1,6 @@
 import { ensureEngine } from "./engine.js";
-import { createTuiClient } from "@sa/connectors/tui/client.js";
-import { CLI_NAME } from "@sa/shared/brand.js";
+import { createTuiClient } from "@aria/connectors/tui/client.js";
+import { CLI_NAME } from "@aria/shared/brand.js";
 
 function formatDateTime(value?: string | null): string {
   if (!value) return "n/a";

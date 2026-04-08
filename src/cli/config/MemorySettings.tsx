@@ -1,12 +1,12 @@
 import React, { useState } from "react";
 import { Box, Text, useInput } from "ink";
-import type { SAConfigFile } from "@sa/engine/config/index.js";
+import type { AriaConfigFile } from "@aria/engine/config/index.js";
 
 type Substep = "menu" | "edit-directory" | "edit-search-results" | "edit-vector-weight" | "edit-decay-halflife";
 
 interface MemorySettingsProps {
-  config: SAConfigFile;
-  onSave: (config: SAConfigFile) => Promise<void>;
+  config: AriaConfigFile;
+  onSave: (config: AriaConfigFile) => Promise<void>;
   onBack: () => void;
 }
 
@@ -31,7 +31,7 @@ export function MemorySettings({ config, onSave, onBack }: MemorySettingsProps) 
   ];
 
   function updateMemory(patch: Partial<typeof memory>) {
-    const updated: SAConfigFile = {
+    const updated: AriaConfigFile = {
       ...config,
       runtime: {
         ...config.runtime,

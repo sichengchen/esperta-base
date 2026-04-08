@@ -1,6 +1,6 @@
 import { ensureEngine } from "./engine.js";
-import { createTuiClient } from "@sa/connectors/tui/client.js";
-import { CLI_NAME } from "@sa/shared/brand.js";
+import { createTuiClient } from "@aria/connectors/tui/client.js";
+import { CLI_NAME } from "@aria/shared/brand.js";
 
 type InspectLayer = "curated" | "profile" | "project" | "operational" | "journal";
 

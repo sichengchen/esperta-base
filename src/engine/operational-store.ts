@@ -2,7 +2,7 @@ import { mkdir } from "node:fs/promises";
 import { dirname, join } from "node:path";
 import { Database } from "bun:sqlite";
 import type { Message } from "@mariozechner/pi-ai";
-import type { Session } from "@sa/shared/types.js";
+import type { Session } from "@aria/shared/types.js";
 
 export type RunStatus = "running" | "completed" | "failed" | "cancelled" | "interrupted";
 export type ToolCallStatus = "running" | "completed" | "failed" | "cancelled" | "interrupted";

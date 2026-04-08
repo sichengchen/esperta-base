@@ -124,8 +124,8 @@ export function validateExecPaths(
 
     // Always-deny paths are unconditional (even with overrides)
     // Exception: ~/.aria is ALWAYS denied, no override
-    const saHome = expandPath("~/.aria");
-    if (expanded === saHome || expanded.startsWith(saHome + "/")) {
+    const runtimeHome = expandPath("~/.aria");
+    if (expanded === runtimeHome || expanded.startsWith(runtimeHome + "/")) {
       return {
         layer: "exec_fence",
         detail: `Access to Aria runtime home is always denied: ${p}`,

@@ -2,12 +2,12 @@ import { readFile, writeFile, unlink } from "node:fs/promises";
 import { existsSync, openSync } from "node:fs";
 import { join } from "node:path";
 import { spawn } from "node:child_process";
-import { CLI_NAME, HOME_ENV_VAR, RUNTIME_NAME, getRuntimeHome } from "@sa/shared/brand.js";
+import { CLI_NAME, HOME_ENV_VAR, RUNTIME_NAME, getRuntimeHome } from "@aria/shared/brand.js";
 
-const saHome = getRuntimeHome();
-const PID_FILE = join(saHome, "engine.pid");
-const URL_FILE = join(saHome, "engine.url");
-const LOG_FILE = join(saHome, "engine.log");
+const runtimeHome = getRuntimeHome();
+const PID_FILE = join(runtimeHome, "engine.pid");
+const URL_FILE = join(runtimeHome, "engine.url");
+const LOG_FILE = join(runtimeHome, "engine.log");
 
 function isProcessAlive(pid: number): boolean {
   try {
@@ -46,7 +46,7 @@ async function start(): Promise<void> {
   const child = spawn(process.execPath, [process.argv[1], "__engine"], {
     detached: true,
     stdio: ["ignore", logFd, logFd],
-    env: { ...process.env, [HOME_ENV_VAR]: saHome },
+    env: { ...process.env, [HOME_ENV_VAR]: runtimeHome },
   });
 
   child.unref();

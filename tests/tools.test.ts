@@ -1,9 +1,9 @@
 import { describe, test, expect, beforeEach, afterEach } from "bun:test";
-import { readTool } from "@sa/engine/tools/read.js";
-import { writeTool } from "@sa/engine/tools/write.js";
-import { editTool } from "@sa/engine/tools/edit.js";
-import { bashTool } from "@sa/engine/tools/bash.js";
-import { getBuiltinTools } from "@sa/engine/tools/index.js";
+import { readTool } from "@aria/engine/tools/read.js";
+import { writeTool } from "@aria/engine/tools/write.js";
+import { editTool } from "@aria/engine/tools/edit.js";
+import { bashTool } from "@aria/engine/tools/bash.js";
+import { getBuiltinTools } from "@aria/engine/tools/index.js";
 import { writeFile, rm, mkdir } from "node:fs/promises";
 import { join } from "node:path";
 import { tmpdir } from "node:os";

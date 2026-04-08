@@ -141,6 +141,23 @@ Event filtering by `ToolPolicyManager`: verbosity levels (`verbose`/`minimal`/`s
 
 ---
 
+## Authorization Model
+
+SA separates authentication from authorization:
+
+- **Master token** calls are trusted for engine-wide administration.
+- **Session token** calls are limited to the paired connector's own
+  `connectorId` + `connectorType` scope.
+- **Webhook token** calls are accepted only on `/webhook/*` HTTP routes and are
+  rejected by the tRPC middleware.
+
+In practice, session-scoped callers can chat, list/resume their own sessions,
+and answer pending approvals/questions for those sessions, but they cannot
+enumerate other connectors' sessions, manage automation, inspect MCP surfaces,
+or restart the engine.
+
+---
+
 ## Model router
 
 **Provider resolution**: look up model config by name, resolve provider, resolve API key (`env > secrets > error`). Custom `baseUrl` providers use openai-completions API; others use pi-ai `getModel()`.
@@ -220,7 +237,7 @@ Event filtering by `ToolPolicyManager`: verbosity levels (`verbose`/`minimal`/`s
 | `provider` | `remove` | mutation | Remove a provider |
 | `skill` | `list` | query | List loaded skills with activation status |
 | `skill` | `activate` | mutation | Activate a skill by name |
-| `skill` | `reload` | mutation | Reload bundled and user skills from disk |
+| `skill` | `reload` | mutation | Reload bundled and user skills from disk and refresh the runtime skill catalog |
 | `auth` | `pair` | mutation | Device-flow pairing. **Unauthenticated.** |
 | `auth` | `code` | query | Generate one-time pairing code. **Unauthenticated.** |
 | `cron` | `list` | query | List scheduled tasks |
@@ -276,12 +293,14 @@ Event filtering by `ToolPolicyManager`: verbosity levels (`verbose`/`minimal`/`s
 - **File-based config**: no database. `config.json` v3 is the single source of truth.
 - **One Agent per session**: conversation isolation. Main session persists across heartbeats; connector and cron sessions get fresh agents.
 - **Session archive**: completed turns are synced to a local SQLite archive so `chat.history` survives agent teardown and archived sessions can be searched by content.
+- **Graceful shutdown**: engine stop/restart flushes live session archives, aborts pending work, and closes long-lived subsystems (MCP, memory, auth cleanup) before exit.
 - **Streaming-first**: agent yields events as they arrive from the LLM. tRPC subscriptions and SSE webhooks forward with minimal buffering.
 - **pi-ai abstraction**: unified streaming interface across Anthropic, OpenAI, Google, OpenRouter. Use type assertion `(getModel as (p: string, m: string) => Model<Api>)` for dynamic strings.
 - **Chat SDK adapter pattern**: six connectors (Slack, Teams, Google Chat, Discord, GitHub, Linear) share a single `ChatSDKAdapter` class that bridges Chat SDK events to SA's tRPC client. Platform-specific code is limited to adapter instantiation and webhook server setup.
 - **Skills are Markdown**: lightweight, version-controllable, shareable via ClawHub. No code execution in skill loading.
 - **Audio transcription**: prefers local Whisper, falls back to cloud API.
 - **Tool approval is per-connector**: TUI defaults to auto-approve; IM connectors default to `"ask"`.
+- **Authorization is token-scoped**: session tokens are bound to the paired connector identity; master token is required for admin procedures.
 - **ask_user flow**: agent yields `user_question` event, blocks via `onAskUser` callback, resumes when connector forwards the answer via `question.answer` tRPC mutation. 10-minute timeout.
 - **Coding agent delegation**: `claude_code` and `codex` tools use the `AgentSubprocess` infrastructure for lifecycle management, auth probing, structured output, and background execution.
 - **Webhook tasks**: `{{payload}}` interpolation in prompt templates for external service integration.

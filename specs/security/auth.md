@@ -62,8 +62,31 @@ const authMiddleware = middleware(async ({ ctx, next }) => {
 
 - **Master token**: always valid (engine lifetime).
 - **Session tokens**: stored in-memory, checked for TTL expiry on every call.
+- **Webhook tokens**: valid only for `/webhook/*` HTTP endpoints, never for tRPC.
 - **Comparison**: timing-safe (`crypto.timingSafeEqual`) to prevent timing
   side-channel attacks.
+
+## Authorization Model
+
+Authentication only proves that a token is valid. SA also enforces a second
+authorization step based on token type:
+
+| Token type | Scope |
+|------------|-------|
+| `master` | Full engine access. Required for admin surfaces such as model/provider management, cron/webhook task management, MCP metadata, engine lifecycle, and global session control. |
+| `session` | Restricted to sessions owned by the paired connector ID and connector type. Can create/resume/list only its own connector sessions and answer approvals/questions for those sessions. |
+| `webhook` | HTTP webhook endpoints only. Rejected by tRPC middleware. |
+
+### Session Ownership
+
+Session tokens are bound to the connector identity used during pairing:
+
+- `connectorId` must match the session prefix used for `session.create` / `session.getLatest`
+- `connectorType` must match the session's connector type
+- archived history/search results are filtered by the same ownership rules
+
+This prevents a paired remote connector from impersonating `tui`, enumerating
+other connectors' sessions, or calling admin procedures.
 
 ### Session Token TTL
 
@@ -130,7 +153,7 @@ connectors re-read `engine.token`, remote connectors re-pair).
 ```json
 {
   "runtime": {
-    "auth": {
+    "security": {
       "sessionTTL": 86400,
       "pairingTTL": 600,
       "pairingCodeLength": 8

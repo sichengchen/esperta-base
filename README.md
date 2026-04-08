@@ -24,7 +24,7 @@ Or manage manually with `sa engine start/stop/restart/status/logs`.
 
 ## Architecture
 
-The **Engine** runs as a background daemon and owns the agent loop, tools, memory, session archive, checkpoints, skills, MCP integrations, scheduler, audio transcription, and model routing. **Connectors** (Telegram, Slack, Teams, Google Chat, Discord, GitHub, Linear) auto-start with the Engine when configured. The **TUI** is launched on-demand. **Webhook** endpoints (`/webhook/agent`, `/webhook/tasks/:slug`, `/webhook/heartbeat`) allow external systems to send messages, trigger automation tasks, and invoke heartbeat checks programmatically. Six connectors share a unified **Chat SDK adapter** — Telegram stays on Grammy.
+The **Engine** runs as a background daemon and owns the agent loop, tools, memory, session archive, checkpoints, skills, MCP integrations, scheduler, audio transcription, and model routing. **Connectors** (Telegram, Slack, Teams, Google Chat, Discord, GitHub, Linear) auto-start with the Engine when configured. The **TUI** is launched on-demand. **Webhook** endpoints (`/webhook/agent`, `/webhook/tasks/:slug`, `/webhook/heartbeat`) allow external systems to send messages, trigger automation tasks, and invoke heartbeat checks programmatically. Six connectors share a unified **Chat SDK adapter** — Telegram stays on Grammy. Session tokens are scoped to their paired connector identity; admin surfaces remain master-token only.
 
 ## Development
 
@@ -68,6 +68,7 @@ sa help                 Show help
 - Bundled skills ship in `src/engine/skills/bundled/`
 - User-installed/local skills live in `~/.sa/skills/<skill-name>/SKILL.md`
 - The agent can create and patch reusable user skills through the `skill_manage` tool
+- `skill.reload` and successful `skill_manage` mutations refresh the runtime skill catalog for subsequent turns without restarting the Engine
 
 ## Documentation
 

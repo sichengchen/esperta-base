@@ -91,6 +91,11 @@ Live at `~/.sa/skills/<name>/SKILL.md` (or `$SA_HOME/skills/`). Users can create
 
 Skills are sorted alphabetically. The block is capped at **150 entries** and **30,000 characters**. If the catalog exceeds these limits, a binary search determines the largest prefix that fits, and a comment notes how many were omitted.
 
+The runtime reads the current skill catalog dynamically on each new turn. After
+`skill.reload` or a successful `skill_manage` mutation, the system prompt is
+rebuilt so existing session agents see the updated catalog on their next turn
+without requiring an engine restart.
+
 ---
 
 ## Activation
@@ -160,7 +165,9 @@ The ClawHub integration is a bundled skill that delegates to the `clawhub` CLI:
 | `clawhub update --all --workdir ~/.sa`    | moderate | Check installed skills for updates   |
 | `clawhub list --workdir ~/.sa`            | safe     | List locally installed ClawHub skills|
 
-After installation, the skill is discovered on the next registry reload.
+After installation, the skill is discovered on the next registry reload and is
+available to subsequent turns immediately after the runtime refreshes the skill
+catalog.
 
 ---
 

@@ -71,7 +71,7 @@ Scheduled tasks dispatch a prompt to a fresh, isolated agent session. SA accepts
 | `allowedTools`   | string[]  | no       | Explicit tool allowlist |
 | `allowedToolsets`| string[]  | no       | Toolset names expanded at runtime |
 | `skills`         | string[]  | no       | Skills injected into the task system prompt |
-| `delivery`       | object    | no       | Optional connector/session delivery target |
+| `delivery`       | object    | no       | Optional connector delivery target |
 | `scheduleKind`   | enum      | no       | Derived scheduler mode: `cron`, `interval`, or `once` |
 | `intervalMinutes`| number    | no       | Derived fixed interval for cadence schedules |
 | `runAt`          | string    | no       | Absolute timestamp for one-shot tasks |
@@ -102,7 +102,7 @@ Cron expressions use `minute hour day month weekday` and support `*`, `*/N`, and
 
 ### Session Isolation
 
-Session ID: `cron:<taskName>`. Fresh agent per run -- no shared history.
+Session ID: `cron:<taskName>:<id>`. Fresh agent per run -- no shared history.
 
 ### One-Shot Tasks
 
@@ -110,7 +110,7 @@ Session ID: `cron:<taskName>`. Fresh agent per run -- no shared history.
 
 ### Persistence
 
-Persisted in `config.json` at `runtime.automation.cronTasks`. Re-registered on engine startup.
+Persisted in `config.json` at `runtime.automation.cronTasks`. Re-registered on engine startup through the same execution path used by `cron.add`, so restored tasks keep the same logging, delivery, and metadata updates as newly added tasks.
 
 ### Result Logging
 
@@ -168,7 +168,7 @@ When `connector` is set, the `notify` tool pushes the response to the specified 
 
 ### Session, Logging, and Delivery
 
-Session ID: `webhook:<slug>`. Fresh agent per run. Logs written to `~/.sa/automation/`. Delivery prefers `task.delivery.connector` and falls back to the legacy `connector` field.
+Session ID: `webhook:<slug>:<id>`. Fresh agent per run. Logs written to `~/.sa/automation/`. Delivery prefers `task.delivery.connector` and falls back to the legacy `connector` field.
 
 ### Persistence
 

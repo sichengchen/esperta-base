@@ -13,6 +13,6 @@ These files define the canonical Aria platform architecture and supersede the ea
 | [`system/automation.md`](system/automation.md) | Scheduled and event-driven automation runtime, task history, delivery, controls |
 | [`interfaces/interaction-protocol.md`](interfaces/interaction-protocol.md) | Shared event contract for TUI, chat connectors, webhooks, and future web UI |
 
-## Migration Reference
+## Supporting Docs
 
-The older root-level docs in `specs/*.md`, `specs/tools/`, and `specs/security/` remain in the repository as migration reference until their subsystem rewrites are complete. They are no longer the preferred entry point.
+Additional docs remain under `specs/*.md`, `specs/tools/`, and `specs/security/` for subsystem detail and historical context. The canonical entry points are the Aria product, system, and interface specs listed above.

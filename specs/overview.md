@@ -272,7 +272,7 @@ or restart the engine.
   .salt                 Salt for secrets encryption
   memory/               Persistent memory notes
     MEMORY.md
-    topics/
+    project/
     journal/
   skills/               User-installed skills
     .registry.json      ClawHub install metadata

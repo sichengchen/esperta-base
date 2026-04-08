@@ -43,7 +43,7 @@ Resolution order: environment variable > `secrets.enc` > `runtime.env`.
   .salt              # encryption salt
   memory/            # memory files
     MEMORY.md
-    topics/
+    project/
     journal/
   skills/            # user-installed skills
     .registry.json   # ClawHub install metadata
@@ -131,7 +131,8 @@ Resolution order: environment variable > `secrets.enc` > `runtime.env`.
       "webhookTasks": [
         { "name": "deploy-notify", "slug": "deploy",
           "prompt": "Deploy event: {{payload}}. Summarize.",
-          "enabled": true, "model": "haiku", "connector": "telegram" }
+          "enabled": true, "model": "haiku",
+          "delivery": { "connector": "telegram" } }
       ]
     }
   },

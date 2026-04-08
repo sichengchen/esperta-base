@@ -145,7 +145,6 @@ Event-driven tasks triggered by HTTP POST from external systems. Each has a URL 
 | `prompt`         | string    | yes      | Prompt template; `{{payload}}` replaced with request body |
 | `enabled`        | boolean   | yes      | Whether active |
 | `model`          | string    | no       | Model override |
-| `connector`      | string    | no       | Legacy delivery connector |
 | `allowedTools`   | string[]  | no       | Explicit tool allowlist |
 | `allowedToolsets`| string[]  | no       | Toolset names expanded at runtime |
 | `skills`         | string[]  | no       | Skills injected into the task system prompt |
@@ -164,11 +163,11 @@ Event-driven tasks triggered by HTTP POST from external systems. Each has a URL 
 
 ### Connector Delivery
 
-When `connector` is set, the `notify` tool pushes the response to the specified connector. Notification failure is non-fatal.
+When `delivery.connector` is set, the `notify` tool pushes the response to the specified connector. Notification failure is non-fatal.
 
 ### Session, Logging, and Delivery
 
-Session ID: `webhook:<slug>:<id>`. Fresh agent per run. Logs written to `~/.aria/automation/`. Delivery prefers `task.delivery.connector` and falls back to the legacy `connector` field.
+Session ID: `webhook:<slug>:<id>`. Fresh agent per run. Logs written to `~/.aria/automation/`. Delivery uses `task.delivery.connector`.
 
 ### Persistence
 

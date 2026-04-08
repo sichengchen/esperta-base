@@ -44,4 +44,4 @@ The canonical Aria architecture now lives in [`specs/`](specs/README.md):
 - [`specs/system/automation.md`](specs/system/automation.md)
 - [`specs/interfaces/interaction-protocol.md`](specs/interfaces/interaction-protocol.md)
 
-Legacy root-level specs are retained temporarily as migration reference while subsystem rewrites land.
+Additional docs remain under `specs/` for subsystem detail, but the canonical entry points are the Aria product, system, and interface specs listed above.

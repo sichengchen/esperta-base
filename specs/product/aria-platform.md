@@ -1,6 +1,6 @@
 # Esperta Aria Platform
 
-Esperta Aria is a local-first agent platform. The product is not a renamed copy of the previous SA runtime; it is a durable, policy-governed platform with one runtime, one prompt engine, one tool runtime, one interaction protocol, and one automation subsystem.
+Esperta Aria is a local-first agent platform. It is a durable, policy-governed system with one runtime, one prompt engine, one tool runtime, one interaction protocol, and one automation subsystem.
 
 ## Canonical Names
 
@@ -12,7 +12,7 @@ Esperta Aria is a local-first agent platform. The product is not a renamed copy 
 | Runtime home | `~/.aria/` |
 | Native project context file | `.aria.md` |
 
-Legacy public identities such as `SA`, `Esperta Base`, `esperta-base`, `sa`, and `~/.sa/` are retired.
+Earlier identities, paths, and package names are retired. The canonical public surface is `Esperta Aria`, `Aria Runtime`, `aria`, and `~/.aria/`.
 
 ## Product Commitments
 
@@ -51,6 +51,6 @@ Aria breaks compatibility freely when compatibility preserves the wrong architec
 - Every frontend is a surface on one runtime protocol.
 - The system presents as one product with one vocabulary.
 
-## Migration Note
+## Implementation Note
 
-The current repository still contains legacy implementation and documentation. Those artifacts are migration inputs, not the target model. New subsystem work should align to the Aria architecture defined here and in the referenced system and interface specs.
+When supporting docs or older implementation details diverge, prefer this platform spec and the canonical Aria subsystem specs. New work should make the runtime more coherent, more durable, and more policy-driven, not preserve outdated shapes.

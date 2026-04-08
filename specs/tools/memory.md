@@ -7,19 +7,19 @@ Esperta Aria home directory (`~/.aria/memory/`).
 
 ## memory_write
 
-Write to topic files or the daily journal.
+Write to project memory files or the daily journal.
 
 ### Parameters
 
 | Parameter | Type   | Required | Default   | Description                        |
 |-----------|--------|----------|-----------|------------------------------------|
 | content   | string | yes      | —         | Markdown content to write          |
-| key       | string | no       | —         | Topic key (slug)                   |
-| type      | string | no       | "topic"   | `"topic"` or `"journal"`           |
+| key       | string | no       | —         | Project memory key (slug)          |
+| type      | string | no       | "project" | `"project"` or `"journal"`         |
 
 ### Behavior
 
-- **With key**: saves to `topics/<key>.md` (upsert — creates or overwrites).
+- **With key**: saves to `project/<key>.md` (upsert — creates or overwrites).
 - **Without key**: appends to `journal/YYYY-MM-DD.md` (today's date).
 
 ---
@@ -33,7 +33,7 @@ Hybrid BM25 + semantic search across memory.
 | Parameter | Type   | Required | Default | Description                              |
 |-----------|--------|----------|---------|------------------------------------------|
 | query     | string | yes      | —       | Search query                             |
-| source    | string | no       | "all"   | `"all"`, `"topics"`, `"journal"`, `"memory"` |
+| source    | string | no       | "all"   | `"all"`, `"project"`, `"profile"`, `"operational"`, `"journal"`, `"memory"` |
 | limit     | number | no       | 5       | Max results                              |
 
 ### Returns
@@ -53,23 +53,23 @@ Read a full memory entry.
 
 | Parameter | Type   | Required | Description                              |
 |-----------|--------|----------|------------------------------------------|
-| key       | string | yes      | Topic key or journal date (YYYY-MM-DD)   |
+| key       | string | yes      | Project memory key or journal date (YYYY-MM-DD) |
 
-Returns the full file content of `topics/<key>.md` or `journal/<date>.md`.
+Returns the full file content of `project/<key>.md` or `journal/<date>.md`.
 
 ---
 
 ## memory_delete
 
-Delete a topic memory entry.
+Delete a project memory entry.
 
 ### Parameters
 
 | Parameter | Type   | Required | Description        |
 |-----------|--------|----------|--------------------|
-| key       | string | yes      | Topic key to delete|
+| key       | string | yes      | Project memory key to delete |
 
-Deletes `topics/<key>.md` only. Does not delete journal entries or `MEMORY.md`.
+Deletes `project/<key>.md` only. Does not delete journal entries or `MEMORY.md`.
 
 ---
 
@@ -78,7 +78,7 @@ Deletes `topics/<key>.md` only. Does not delete journal entries or `MEMORY.md`.
 ```
 ~/.aria/memory/
   MEMORY.md              # Curated by user, injected into system prompt
-  topics/                # Topic files managed by memory_write
+  project/               # Project memory files managed by memory_write
     <key>.md
   journal/               # Daily append-only journal
     YYYY-MM-DD.md
@@ -88,7 +88,7 @@ Deletes `topics/<key>.md` only. Does not delete journal entries or `MEMORY.md`.
 ### MEMORY.md
 
 User-curated file injected into every system prompt. The agent can read it
-but should not write to it — topic and journal writes go to their respective
+but should not write to it — project memory and journal writes go to their respective
 subdirectories.
 
 ### Search Index

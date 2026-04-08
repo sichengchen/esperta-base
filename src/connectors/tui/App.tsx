@@ -436,7 +436,11 @@ export function App({ client }: AppProps) {
           const lines = runs.map((run: any) => {
             const startedAt = new Date(run.startedAt).toLocaleString();
             const summary = run.summary || run.errorMessage || "no summary";
-            return `[${run.taskType}] ${run.taskName} ${run.status} @ ${startedAt}\n  ${summary}`;
+            const attempts = run.maxAttempts > 1 ? ` attempt ${run.attemptNumber}/${run.maxAttempts}` : "";
+            const delivery = run.deliveryStatus !== "not_requested"
+              ? ` | delivery ${run.deliveryStatus}${run.deliveryError ? ` (${run.deliveryError})` : ""}`
+              : "";
+            return `[${run.taskType}] ${run.taskName} ${run.status}${attempts} @ ${startedAt}${delivery}\n  ${summary}`;
           });
           addMessage({
             role: "tool",

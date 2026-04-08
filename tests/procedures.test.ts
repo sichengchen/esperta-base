@@ -363,11 +363,14 @@ describe("tRPC procedures (non-live)", () => {
         name: "test-task",
         schedule: "0 9 * * *",
         prompt: "Good morning",
+        retryPolicy: { maxAttempts: 3, delaySeconds: 5 },
       });
       expect(result.added).toBe(true);
 
       const tasks = await caller.cron.list();
-      expect(tasks.find((t) => t.name === "test-task")).toBeDefined();
+      const task = tasks.find((t) => t.name === "test-task");
+      expect(task).toBeDefined();
+      expect((task as any).retryPolicy).toEqual({ maxAttempts: 3, delaySeconds: 5 });
 
       const removed = await caller.cron.remove({ name: "test-task" });
       expect(removed.removed).toBe(true);
@@ -412,6 +415,12 @@ describe("tRPC procedures (non-live)", () => {
         summary: "Digest sent.",
         completedAt: 101,
       });
+      runtime.store.recordAutomationDelivery({
+        taskRunId: "task-run-procedures-1",
+        deliveryStatus: "failed",
+        deliveryAttemptedAt: 102,
+        deliveryError: "telegram offline",
+      });
 
       const tasks = await caller.automation.list({ type: "cron" });
       expect(tasks.some((item) => item.name === "digest")).toBe(true);
@@ -420,6 +429,8 @@ describe("tRPC procedures (non-live)", () => {
       expect(runs).toHaveLength(1);
       expect(runs[0]!.taskName).toBe("digest");
       expect(runs[0]!.status).toBe("success");
+      expect(runs[0]!.deliveryStatus).toBe("failed");
+      expect(runs[0]!.deliveryError).toContain("telegram offline");
     });
   });
 

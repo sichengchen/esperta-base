@@ -379,6 +379,11 @@ describe("OperationalStore", () => {
       summary: "Yesterday was productive.",
       completedAt: 201,
     });
+    store.recordAutomationDelivery({
+      taskRunId: "task-run-1",
+      deliveryStatus: "delivered",
+      deliveryAttemptedAt: 202,
+    });
     store.close();
 
     const reopened = new OperationalStore(testDir);
@@ -414,9 +419,14 @@ describe("OperationalStore", () => {
         promptText: "Summarize yesterday",
         responseText: "Yesterday was productive.",
         summary: "Yesterday was productive.",
+        attemptNumber: 1,
+        maxAttempts: 1,
         startedAt: 200,
         completedAt: 201,
         deliveryTarget: { connector: "telegram" },
+        deliveryStatus: "delivered",
+        deliveryAttemptedAt: 202,
+        deliveryError: null,
         errorMessage: null,
       },
     ]);

@@ -66,8 +66,12 @@ export async function automationCommand(args: string[]): Promise<void> {
     }
 
     for (const run of runs) {
+      const attempts = run.maxAttempts > 1 ? ` attempt=${run.attemptNumber}/${run.maxAttempts}` : "";
+      const delivery = run.deliveryStatus !== "not_requested"
+        ? ` delivery=${run.deliveryStatus}${run.deliveryError ? ` (${run.deliveryError})` : ""}`
+        : "";
       console.log(`[${run.taskType}] ${run.taskName} ${run.status}`);
-      console.log(`  task=${run.taskId} run=${run.runId ?? "n/a"} session=${run.sessionId ?? "n/a"} started=${new Date(run.startedAt).toLocaleString()}`);
+      console.log(`  task=${run.taskId} run=${run.runId ?? "n/a"} session=${run.sessionId ?? "n/a"} started=${new Date(run.startedAt).toLocaleString()}${attempts}${delivery}`);
       if (run.summary) {
         console.log(`  ${run.summary}`);
       } else if (run.errorMessage) {

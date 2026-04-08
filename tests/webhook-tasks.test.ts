@@ -22,9 +22,11 @@ describe("Webhook task types", () => {
       prompt: "Handle alert: {{payload}}",
       enabled: true,
       model: "fast",
+      retryPolicy: { maxAttempts: 4, delaySeconds: 10 },
       delivery: { connector: "telegram" },
     };
     expect(task.model).toBe("fast");
+    expect(task.retryPolicy?.maxAttempts).toBe(4);
     expect(task.delivery?.connector).toBe("telegram");
   });
 

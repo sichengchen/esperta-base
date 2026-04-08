@@ -1,6 +1,6 @@
 import { mkdir, readFile, writeFile } from "node:fs/promises";
 import { join } from "node:path";
-import type { HeartbeatConfig } from "./config/types.js";
+import type { DeliveryTarget, HeartbeatConfig, RetryPolicy } from "./config/types.js";
 import { DEFAULT_HEARTBEAT } from "./config/defaults.js";
 import type { Agent } from "./agent/index.js";
 import { computeNextRunAt, isTaskDue } from "./automation-schedule.js";
@@ -24,6 +24,10 @@ export interface ScheduledTask {
   builtin?: boolean;
   /** Optional prompt to send to agent (for user-defined tasks) */
   prompt?: string;
+  /** Optional retry policy for agent-backed automation tasks */
+  retryPolicy?: RetryPolicy;
+  /** Optional delivery target for automation output */
+  delivery?: DeliveryTarget;
   /** If true, auto-unregister after first execution */
   oneShot?: boolean;
   /** Callback invoked when a one-shot task completes */
@@ -110,6 +114,8 @@ export class Scheduler {
     schedule: string;
     builtin: boolean;
     prompt?: string;
+    retryPolicy?: RetryPolicy;
+    delivery?: DeliveryTarget;
     scheduleKind?: "cron" | "interval" | "once";
     intervalMinutes?: number;
     runAt?: string;
@@ -124,6 +130,8 @@ export class Scheduler {
       schedule: t.schedule,
       builtin: t.builtin ?? false,
       prompt: t.prompt,
+      retryPolicy: t.retryPolicy,
+      delivery: t.delivery,
       scheduleKind: t.scheduleKind,
       intervalMinutes: t.intervalMinutes,
       runAt: t.runAt,

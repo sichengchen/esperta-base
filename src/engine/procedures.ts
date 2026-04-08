@@ -183,6 +183,11 @@ export function createAppRouter(runtime: EngineRuntime) {
     } as unknown as EngineEvent;
   }
 
+  const retryPolicySchema = z.object({
+    maxAttempts: z.number().int().min(1).max(10).optional(),
+    delaySeconds: z.number().int().min(0).max(3600).optional(),
+  }).optional();
+
   /** Resolve effective danger level — applies exec hybrid classification */
   function getEffectiveDangerLevel(toolName: string, args: Record<string, unknown>): DangerLevel {
     let level = getDangerLevel(toolName);
@@ -1692,6 +1697,7 @@ export function createAppRouter(runtime: EngineRuntime) {
           allowedTools: z.array(z.string()).optional(),
           allowedToolsets: z.array(z.string()).optional(),
           skills: z.array(z.string()).optional(),
+          retryPolicy: retryPolicySchema,
           delivery: z.object({
             connector: z.string().optional(),
           }).optional(),
@@ -1717,6 +1723,7 @@ export function createAppRouter(runtime: EngineRuntime) {
             allowedTools: input.allowedTools,
             allowedToolsets: input.allowedToolsets,
             skills: input.skills,
+            retryPolicy: input.retryPolicy,
             delivery: input.delivery,
             nextRunAt: computeNextRunAt({
               schedule: parsed.schedule,
@@ -1749,6 +1756,7 @@ export function createAppRouter(runtime: EngineRuntime) {
           allowedTools: z.array(z.string()).optional(),
           allowedToolsets: z.array(z.string()).optional(),
           skills: z.array(z.string()).optional(),
+          retryPolicy: retryPolicySchema,
           delivery: z.object({
             connector: z.string().optional(),
           }).optional(),
@@ -1776,6 +1784,7 @@ export function createAppRouter(runtime: EngineRuntime) {
             allowedTools: input.allowedTools ?? existing.allowedTools,
             allowedToolsets: input.allowedToolsets ?? existing.allowedToolsets,
             skills: input.skills ?? existing.skills,
+            retryPolicy: input.retryPolicy ?? existing.retryPolicy,
             delivery: input.delivery ?? existing.delivery,
           };
           updated.nextRunAt = computeNextRunAt(updated);
@@ -1851,6 +1860,7 @@ export function createAppRouter(runtime: EngineRuntime) {
           allowedTools: z.array(z.string()).optional(),
           allowedToolsets: z.array(z.string()).optional(),
           skills: z.array(z.string()).optional(),
+          retryPolicy: retryPolicySchema,
           delivery: z.object({
             connector: z.string().optional(),
           }).optional(),
@@ -1874,6 +1884,7 @@ export function createAppRouter(runtime: EngineRuntime) {
             allowedTools: input.allowedTools,
             allowedToolsets: input.allowedToolsets,
             skills: input.skills,
+            retryPolicy: input.retryPolicy,
             delivery: input.delivery,
           });
 
@@ -1904,6 +1915,7 @@ export function createAppRouter(runtime: EngineRuntime) {
           allowedTools: z.array(z.string()).optional(),
           allowedToolsets: z.array(z.string()).optional(),
           skills: z.array(z.string()).optional(),
+          retryPolicy: retryPolicySchema,
           delivery: z.object({
             connector: z.string().optional(),
           }).optional(),
@@ -1923,6 +1935,7 @@ export function createAppRouter(runtime: EngineRuntime) {
           if (input.allowedTools !== undefined) task.allowedTools = input.allowedTools;
           if (input.allowedToolsets !== undefined) task.allowedToolsets = input.allowedToolsets;
           if (input.skills !== undefined) task.skills = input.skills;
+          if (input.retryPolicy !== undefined) task.retryPolicy = input.retryPolicy;
           if (input.delivery !== undefined) task.delivery = input.delivery;
 
           await runtime.config.saveConfig({

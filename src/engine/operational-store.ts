@@ -9,6 +9,7 @@ export type ToolCallStatus = "running" | "completed" | "failed" | "cancelled" | 
 export type ApprovalStatus = "pending" | "approved" | "denied" | "allow_session" | "interrupted";
 export type AutomationTaskType = "heartbeat" | "cron" | "webhook";
 export type AutomationRunStatus = "running" | "success" | "error" | "cancelled" | "interrupted";
+export type AutomationDeliveryStatus = "not_requested" | "delivered" | "failed";
 
 export interface RunRecord {
   runId: string;
@@ -88,9 +89,14 @@ export interface AutomationRunRecord {
   promptText: string;
   responseText?: string | null;
   summary?: string | null;
+  attemptNumber: number;
+  maxAttempts: number;
   startedAt: number;
   completedAt?: number | null;
   deliveryTarget?: Record<string, unknown> | null;
+  deliveryStatus: AutomationDeliveryStatus;
+  deliveryAttemptedAt?: number | null;
+  deliveryError?: string | null;
   errorMessage?: string | null;
 }
 
@@ -223,9 +229,14 @@ CREATE TABLE IF NOT EXISTS automation_runs (
   prompt_text TEXT NOT NULL,
   response_text TEXT,
   summary TEXT,
+  attempt_number INTEGER NOT NULL DEFAULT 1,
+  max_attempts INTEGER NOT NULL DEFAULT 1,
   started_at INTEGER NOT NULL,
   completed_at INTEGER,
   delivery_target_json TEXT,
+  delivery_status TEXT NOT NULL DEFAULT 'not_requested',
+  delivery_attempted_at INTEGER,
+  delivery_error TEXT,
   error_message TEXT
 );
 
@@ -273,6 +284,11 @@ export class OperationalStore {
     this.db.exec("PRAGMA foreign_keys=ON");
     this.db.exec(SCHEMA_SQL);
     this.ensureColumn("sessions", "destroyed_at", "INTEGER");
+    this.ensureColumn("automation_runs", "attempt_number", "INTEGER NOT NULL DEFAULT 1");
+    this.ensureColumn("automation_runs", "max_attempts", "INTEGER NOT NULL DEFAULT 1");
+    this.ensureColumn("automation_runs", "delivery_status", "TEXT NOT NULL DEFAULT 'not_requested'");
+    this.ensureColumn("automation_runs", "delivery_attempted_at", "INTEGER");
+    this.ensureColumn("automation_runs", "delivery_error", "TEXT");
     this.markInterruptedState();
     this.pruneAuthState();
   }
@@ -1058,15 +1074,18 @@ export class OperationalStore {
     trigger: string;
     promptText: string;
     deliveryTarget?: Record<string, unknown>;
+    attemptNumber?: number;
+    maxAttempts?: number;
     startedAt?: number;
   }): void {
     this.getDb()
       .prepare(`
         INSERT INTO automation_runs (
           task_run_id, task_id, task_type, task_name, session_id, run_id, trigger,
-          status, prompt_text, response_text, summary, started_at, completed_at,
-          delivery_target_json, error_message
-        ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, NULL, NULL, ?, NULL, ?, NULL)
+          status, prompt_text, response_text, summary, attempt_number, max_attempts,
+          started_at, completed_at, delivery_target_json, delivery_status,
+          delivery_attempted_at, delivery_error, error_message
+        ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, NULL, NULL, ?, ?, ?, NULL, ?, 'not_requested', NULL, NULL, NULL)
       `)
       .run(
         input.taskRunId,
@@ -1078,6 +1097,8 @@ export class OperationalStore {
         input.trigger,
         "running",
         input.promptText,
+        input.attemptNumber ?? 1,
+        input.maxAttempts ?? 1,
         input.startedAt ?? Date.now(),
         input.deliveryTarget ? JSON.stringify(input.deliveryTarget) : null,
       );
@@ -1111,13 +1132,36 @@ export class OperationalStore {
       );
   }
 
+  recordAutomationDelivery(input: {
+    taskRunId: string;
+    deliveryStatus: AutomationDeliveryStatus;
+    deliveryAttemptedAt?: number;
+    deliveryError?: string | null;
+  }): void {
+    this.getDb()
+      .prepare(`
+        UPDATE automation_runs
+        SET delivery_status = ?,
+            delivery_attempted_at = ?,
+            delivery_error = ?
+        WHERE task_run_id = ?
+      `)
+      .run(
+        input.deliveryStatus,
+        input.deliveryAttemptedAt ?? Date.now(),
+        input.deliveryError ?? null,
+        input.taskRunId,
+      );
+  }
+
   listAutomationRuns(taskId?: string, limit = 20): AutomationRunRecord[] {
     const rows = (taskId
       ? this.getDb()
         .prepare(`
           SELECT task_run_id, task_id, task_type, task_name, session_id, run_id, trigger,
-                 status, prompt_text, response_text, summary, started_at, completed_at,
-                 delivery_target_json, error_message
+                 status, prompt_text, response_text, summary, attempt_number, max_attempts,
+                 started_at, completed_at, delivery_target_json, delivery_status,
+                 delivery_attempted_at, delivery_error, error_message
           FROM automation_runs
           WHERE task_id = ?
           ORDER BY started_at DESC
@@ -1127,8 +1171,9 @@ export class OperationalStore {
       : this.getDb()
         .prepare(`
           SELECT task_run_id, task_id, task_type, task_name, session_id, run_id, trigger,
-                 status, prompt_text, response_text, summary, started_at, completed_at,
-                 delivery_target_json, error_message
+                 status, prompt_text, response_text, summary, attempt_number, max_attempts,
+                 started_at, completed_at, delivery_target_json, delivery_status,
+                 delivery_attempted_at, delivery_error, error_message
           FROM automation_runs
           ORDER BY started_at DESC
           LIMIT ?
@@ -1147,11 +1192,16 @@ export class OperationalStore {
       promptText: String(row.prompt_text),
       responseText: row.response_text != null ? String(row.response_text) : null,
       summary: row.summary != null ? String(row.summary) : null,
+      attemptNumber: Number(row.attempt_number ?? 1),
+      maxAttempts: Number(row.max_attempts ?? 1),
       startedAt: Number(row.started_at),
       completedAt: row.completed_at != null ? Number(row.completed_at) : null,
       deliveryTarget: row.delivery_target_json != null
         ? JSON.parse(String(row.delivery_target_json)) as Record<string, unknown>
         : null,
+      deliveryStatus: String(row.delivery_status ?? "not_requested") as AutomationDeliveryStatus,
+      deliveryAttemptedAt: row.delivery_attempted_at != null ? Number(row.delivery_attempted_at) : null,
+      deliveryError: row.delivery_error != null ? String(row.delivery_error) : null,
       errorMessage: row.error_message != null ? String(row.error_message) : null,
     }));
   }

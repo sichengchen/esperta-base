@@ -8,7 +8,7 @@ import { createContext } from "./context.js";
 import type { EngineRuntime } from "./runtime.js";
 import { heartbeatState } from "./scheduler.js";
 import { frameAsData } from "./agent/content-frame.js";
-import { deliverAutomationResult, logAutomationResult, runAutomationAgent, upsertWebhookTaskRecord } from "./automation.js";
+import { logAutomationResult, runAutomationAgent, upsertWebhookTaskRecord } from "./automation.js";
 import { RUNTIME_NAME, getRuntimeHome } from "@aria/shared/brand.js";
 
 const DEFAULT_PORT = 7420;
@@ -221,11 +221,11 @@ async function handleWebhookTask(req: Request, slug: string, runtime: EngineRunt
     allowedTools: task.allowedTools,
     allowedToolsets: task.allowedToolsets,
     skills: task.skills,
+    retryPolicy: task.retryPolicy,
     delivery: task.delivery,
   });
 
   await logAutomationResult(runtime, `webhook-${slug}`, prompt, result.responseText, result.toolCalls);
-  await deliverAutomationResult(runtime, task.delivery, result.responseText);
 
   console.log(`[webhook] Task "${task.name}" (${slug}) completed: ${result.summary}`);
 
@@ -255,7 +255,16 @@ async function handleWebhookTask(req: Request, slug: string, runtime: EngineRunt
   }
 
   return new Response(
-    JSON.stringify({ slug, task: task.name, response: result.responseText, sessionId: result.sessionId }),
+    JSON.stringify({
+      slug,
+      task: task.name,
+      response: result.responseText,
+      sessionId: result.sessionId,
+      attempt: result.attemptNumber,
+      maxAttempts: result.maxAttempts,
+      deliveryStatus: result.deliveryStatus,
+      deliveryError: result.deliveryError ?? null,
+    }),
     { headers: { "content-type": "application/json" } },
   );
 }

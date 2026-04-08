@@ -78,6 +78,13 @@ export interface DeliveryTarget {
   connector?: string;
 }
 
+export interface RetryPolicy {
+  /** Total attempts including the initial run (default: 1) */
+  maxAttempts?: number;
+  /** Delay between attempts in seconds (default: 0) */
+  delaySeconds?: number;
+}
+
 /** A user-defined scheduled task */
 export interface CronTask {
   id?: string;
@@ -99,6 +106,8 @@ export interface CronTask {
   allowedToolsets?: string[];
   /** Skills injected into the job session */
   skills?: string[];
+  /** Optional retry behavior for failed runs */
+  retryPolicy?: RetryPolicy;
   /** Optional delivery target for the final response */
   delivery?: DeliveryTarget;
   scheduleKind?: "cron" | "interval" | "once";
@@ -128,6 +137,8 @@ export interface WebhookTask {
   allowedToolsets?: string[];
   /** Skills injected into the task session */
   skills?: string[];
+  /** Optional retry behavior for failed runs */
+  retryPolicy?: RetryPolicy;
   /** Optional delivery target override */
   delivery?: DeliveryTarget;
   lastRunAt?: string;

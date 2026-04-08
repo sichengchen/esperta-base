@@ -6,8 +6,8 @@ import { createSessionToolEnvironment } from "./session-tool-environment.js";
 import { computeNextRunAt } from "./automation-schedule.js";
 import { mergeAllowedTools } from "./toolsets.js";
 import { CRON_DEFAULT_TOOLS, WEBHOOK_DEFAULT_TOOLS } from "./config/defaults.js";
-import type { CronTask, DeliveryTarget, WebhookTask } from "./config/types.js";
-import type { AutomationTaskType, AutomationRunStatus } from "./operational-store.js";
+import type { CronTask, DeliveryTarget, RetryPolicy, WebhookTask } from "./config/types.js";
+import type { AutomationDeliveryStatus, AutomationTaskType, AutomationRunStatus } from "./operational-store.js";
 
 export interface AutomationTaskRunInput {
   taskId?: string;
@@ -20,6 +20,7 @@ export interface AutomationTaskRunInput {
   allowedTools?: string[];
   allowedToolsets?: string[];
   skills?: string[];
+  retryPolicy?: RetryPolicy;
   delivery?: DeliveryTarget;
 }
 
@@ -29,6 +30,40 @@ export interface AutomationTaskRunResult {
   status: "success" | "error";
   summary: string;
   sessionId: string;
+  attemptNumber: number;
+  maxAttempts: number;
+  deliveryStatus: AutomationDeliveryStatus;
+  deliveryError?: string | null;
+}
+
+interface AutomationDeliveryResult {
+  status: AutomationDeliveryStatus;
+  attemptedAt?: number | null;
+  error?: string | null;
+}
+
+interface AutomationAttemptResult {
+  taskRunId?: string;
+  responseText: string;
+  toolCalls: Array<{ name: string; content: string }>;
+  status: "success" | "error";
+  summary: string;
+  sessionId: string;
+  attemptNumber: number;
+  maxAttempts: number;
+}
+
+function sleep(ms: number): Promise<void> {
+  return new Promise((resolve) => setTimeout(resolve, ms));
+}
+
+function normalizeRetryPolicy(policy?: RetryPolicy): Required<RetryPolicy> {
+  const rawMaxAttempts = policy?.maxAttempts ?? 1;
+  const rawDelaySeconds = policy?.delaySeconds ?? 0;
+  return {
+    maxAttempts: Math.max(1, Math.min(10, Math.floor(rawMaxAttempts))),
+    delaySeconds: Math.max(0, Math.min(3600, Math.floor(rawDelaySeconds))),
+  };
 }
 
 export function buildDelegationOptions(runtime: EngineRuntime) {
@@ -43,10 +78,12 @@ export function buildDelegationOptions(runtime: EngineRuntime) {
   };
 }
 
-export async function runAutomationAgent(
+async function runAutomationAttempt(
   runtime: EngineRuntime,
   task: AutomationTaskRunInput,
-): Promise<AutomationTaskRunResult> {
+  attemptNumber: number,
+  maxAttempts: number,
+): Promise<AutomationAttemptResult> {
   const session = runtime.sessions.create(task.sessionPrefix, task.connectorType);
   const defaultTools = task.connectorType === "webhook" ? WEBHOOK_DEFAULT_TOOLS : CRON_DEFAULT_TOOLS;
   const sessionScopedTools = runtime.mcp.filterToolsForSession(runtime.tools, session.id);
@@ -107,6 +144,8 @@ export async function runAutomationAgent(
       trigger: task.connectorType,
       promptText: task.prompt,
       deliveryTarget: task.delivery as unknown as Record<string, unknown> | undefined,
+      attemptNumber,
+      maxAttempts,
       startedAt,
     });
   }
@@ -163,11 +202,58 @@ export async function runAutomationAgent(
   }
 
   return {
+    taskRunId,
     sessionId: session.id,
     responseText,
     toolCalls,
     status,
     summary: responseText.slice(0, 200) || "(no response)",
+    attemptNumber,
+    maxAttempts,
+  };
+}
+
+export async function runAutomationAgent(
+  runtime: EngineRuntime,
+  task: AutomationTaskRunInput,
+): Promise<AutomationTaskRunResult> {
+  const retryPolicy = normalizeRetryPolicy(task.retryPolicy);
+  let finalResult: AutomationAttemptResult | null = null;
+
+  for (let attemptNumber = 1; attemptNumber <= retryPolicy.maxAttempts; attemptNumber++) {
+    finalResult = await runAutomationAttempt(runtime, task, attemptNumber, retryPolicy.maxAttempts);
+    if (finalResult.status === "success") {
+      break;
+    }
+    if (attemptNumber < retryPolicy.maxAttempts && retryPolicy.delaySeconds > 0) {
+      await sleep(retryPolicy.delaySeconds * 1000);
+    }
+  }
+
+  if (!finalResult) {
+    throw new Error("Automation run did not produce a result");
+  }
+
+  const delivery = await deliverAutomationResult(runtime, task.delivery, finalResult.responseText);
+  if (finalResult.taskRunId) {
+    runtime.store.recordAutomationDelivery({
+      taskRunId: finalResult.taskRunId,
+      deliveryStatus: delivery.status,
+      deliveryAttemptedAt: delivery.attemptedAt ?? undefined,
+      deliveryError: delivery.error ?? null,
+    });
+  }
+
+  return {
+    sessionId: finalResult.sessionId,
+    responseText: finalResult.responseText,
+    toolCalls: finalResult.toolCalls,
+    status: finalResult.status,
+    summary: finalResult.summary,
+    attemptNumber: finalResult.attemptNumber,
+    maxAttempts: finalResult.maxAttempts,
+    deliveryStatus: delivery.status,
+    deliveryError: delivery.error ?? null,
   };
 }
 
@@ -260,19 +346,41 @@ export async function deliverAutomationResult(
   runtime: EngineRuntime,
   delivery: DeliveryTarget | undefined,
   responseText: string,
-): Promise<void> {
+): Promise<AutomationDeliveryResult> {
   const connector = delivery?.connector;
   if (!connector || !responseText.trim()) {
-    return;
+    return { status: "not_requested", attemptedAt: null, error: null };
   }
 
   const notifyTool = runtime.tools.find((tool) => tool.name === "notify");
-  if (!notifyTool) return;
+  if (!notifyTool) {
+    return {
+      status: "failed",
+      attemptedAt: Date.now(),
+      error: "notify tool is not available",
+    };
+  }
 
   try {
-    await notifyTool.execute({ message: responseText, connector });
+    const result = await notifyTool.execute({ message: responseText, connector });
+    if (result.isError) {
+      return {
+        status: "failed",
+        attemptedAt: Date.now(),
+        error: result.content,
+      };
+    }
+    return {
+      status: "delivered",
+      attemptedAt: Date.now(),
+      error: null,
+    };
   } catch {
-    // Delivery failure is non-fatal.
+    return {
+      status: "failed",
+      attemptedAt: Date.now(),
+      error: "delivery failed",
+    };
   }
 }
 
@@ -315,6 +423,8 @@ export function registerCronTask(
     runAt: task.runAt,
     paused: task.paused,
     prompt: task.prompt,
+    retryPolicy: task.retryPolicy,
+    delivery: task.delivery,
     oneShot: task.oneShot,
     async handler() {
       const result = await runAutomationAgent(runtime, {
@@ -328,11 +438,11 @@ export function registerCronTask(
         allowedTools: task.allowedTools,
         allowedToolsets: task.allowedToolsets,
         skills: task.skills,
+        retryPolicy: task.retryPolicy,
         delivery: task.delivery,
       });
 
       await logAutomationResult(runtime, task.name, task.prompt, result.responseText, result.toolCalls);
-      await deliverAutomationResult(runtime, task.delivery, result.responseText);
       const lastRunAt = new Date().toISOString();
       const nextRunAt = computeNextRunAt({
         schedule: task.schedule,

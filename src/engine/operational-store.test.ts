@@ -181,4 +181,52 @@ describe("OperationalStore", () => {
     expect(approval.status).toBe("allow_session");
     expect(approval.resolution).toBe("allow_session");
   });
+
+  test("persists session summaries and prompt cache entries", async () => {
+    const store = new OperationalStore(testDir);
+    await store.init();
+
+    store.upsertSession({
+      id: "tui:summary-session",
+      connectorType: "tui",
+      connectorId: "tui",
+      createdAt: 100,
+      lastActiveAt: 200,
+    });
+    store.upsertSessionSummary({
+      sessionId: "tui:summary-session",
+      summaryKind: "rolling",
+      messageCount: 18,
+      summaryText: "- user: earlier request\n- assistant: prior response",
+      updatedAt: 300,
+    });
+    store.putPromptCache({
+      cacheKey: "cache-1",
+      scope: "base_prompt",
+      content: "cached prompt body",
+      metadata: { activeModel: "test-model" },
+      updatedAt: 301,
+    });
+    store.close();
+
+    const reopened = new OperationalStore(testDir);
+    await reopened.init();
+
+    expect(reopened.getSessionSummary("tui:summary-session", "rolling")).toEqual({
+      sessionId: "tui:summary-session",
+      summaryKind: "rolling",
+      messageCount: 18,
+      summaryText: "- user: earlier request\n- assistant: prior response",
+      updatedAt: 300,
+    });
+    expect(reopened.getPromptCache("cache-1")).toEqual({
+      cacheKey: "cache-1",
+      scope: "base_prompt",
+      content: "cached prompt body",
+      metadata: { activeModel: "test-model" },
+      updatedAt: 301,
+    });
+
+    reopened.close();
+  });
 });

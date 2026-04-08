@@ -21,6 +21,22 @@ export interface RunRecord {
   parentRunId?: string | null;
 }
 
+export interface SessionSummaryRecord {
+  sessionId: string;
+  summaryKind: string;
+  messageCount: number;
+  summaryText: string;
+  updatedAt: number;
+}
+
+export interface PromptCacheRecord {
+  cacheKey: string;
+  scope: string;
+  content: string;
+  metadata?: Record<string, unknown>;
+  updatedAt: number;
+}
+
 const SCHEMA_SQL = `
 CREATE TABLE IF NOT EXISTS sessions (
   session_id TEXT PRIMARY KEY,
@@ -79,11 +95,30 @@ CREATE TABLE IF NOT EXISTS approvals (
   resolution TEXT
 );
 
+CREATE TABLE IF NOT EXISTS session_summaries (
+  session_id TEXT NOT NULL REFERENCES sessions(session_id) ON DELETE CASCADE,
+  summary_kind TEXT NOT NULL,
+  message_count INTEGER NOT NULL,
+  summary_text TEXT NOT NULL,
+  updated_at INTEGER NOT NULL,
+  PRIMARY KEY (session_id, summary_kind)
+);
+
+CREATE TABLE IF NOT EXISTS prompt_cache (
+  cache_key TEXT PRIMARY KEY,
+  scope TEXT NOT NULL,
+  content TEXT NOT NULL,
+  metadata_json TEXT,
+  updated_at INTEGER NOT NULL
+);
+
 CREATE INDEX IF NOT EXISTS idx_sessions_last_active ON sessions(last_active_at DESC);
 CREATE INDEX IF NOT EXISTS idx_messages_session_idx ON messages(session_id, message_index);
 CREATE INDEX IF NOT EXISTS idx_runs_session_started ON runs(session_id, started_at DESC);
 CREATE INDEX IF NOT EXISTS idx_tool_calls_run ON tool_calls(run_id, started_at ASC);
 CREATE INDEX IF NOT EXISTS idx_approvals_session_created ON approvals(session_id, created_at DESC);
+CREATE INDEX IF NOT EXISTS idx_session_summaries_updated ON session_summaries(updated_at DESC);
+CREATE INDEX IF NOT EXISTS idx_prompt_cache_scope_updated ON prompt_cache(scope, updated_at DESC);
 `;
 
 function ensureTimestamp(value: unknown): number {
@@ -441,5 +476,98 @@ export class OperationalStore {
           AND status = 'pending'
       `)
       .run(status, resolvedAt, status, approvalId);
+  }
+
+  getSessionSummary(sessionId: string, summaryKind: string): SessionSummaryRecord | undefined {
+    const row = this.getDb()
+      .prepare(`
+        SELECT session_id, summary_kind, message_count, summary_text, updated_at
+        FROM session_summaries
+        WHERE session_id = ? AND summary_kind = ?
+      `)
+      .get(sessionId, summaryKind) as Record<string, unknown> | undefined;
+
+    if (!row) return undefined;
+    return {
+      sessionId: String(row.session_id),
+      summaryKind: String(row.summary_kind),
+      messageCount: Number(row.message_count),
+      summaryText: String(row.summary_text),
+      updatedAt: Number(row.updated_at),
+    };
+  }
+
+  upsertSessionSummary(input: {
+    sessionId: string;
+    summaryKind: string;
+    messageCount: number;
+    summaryText: string;
+    updatedAt?: number;
+  }): void {
+    this.getDb()
+      .prepare(`
+        INSERT INTO session_summaries (
+          session_id, summary_kind, message_count, summary_text, updated_at
+        ) VALUES (?, ?, ?, ?, ?)
+        ON CONFLICT(session_id, summary_kind) DO UPDATE SET
+          message_count = excluded.message_count,
+          summary_text = excluded.summary_text,
+          updated_at = excluded.updated_at
+      `)
+      .run(
+        input.sessionId,
+        input.summaryKind,
+        input.messageCount,
+        input.summaryText,
+        input.updatedAt ?? Date.now(),
+      );
+  }
+
+  getPromptCache(cacheKey: string): PromptCacheRecord | undefined {
+    const row = this.getDb()
+      .prepare(`
+        SELECT cache_key, scope, content, metadata_json, updated_at
+        FROM prompt_cache
+        WHERE cache_key = ?
+      `)
+      .get(cacheKey) as Record<string, unknown> | undefined;
+
+    if (!row) return undefined;
+    return {
+      cacheKey: String(row.cache_key),
+      scope: String(row.scope),
+      content: String(row.content),
+      metadata: typeof row.metadata_json === "string" && row.metadata_json.length > 0
+        ? JSON.parse(row.metadata_json)
+        : undefined,
+      updatedAt: Number(row.updated_at),
+    };
+  }
+
+  putPromptCache(input: {
+    cacheKey: string;
+    scope: string;
+    content: string;
+    metadata?: Record<string, unknown>;
+    updatedAt?: number;
+  }): void {
+    this.getDb()
+      .prepare(`
+        INSERT INTO prompt_cache (
+          cache_key, scope, content, metadata_json, updated_at
+        ) VALUES (?, ?, ?, ?, ?)
+        ON CONFLICT(cache_key) DO UPDATE SET
+          scope = excluded.scope,
+          content = excluded.content,
+          metadata_json = excluded.metadata_json,
+          updated_at = excluded.updated_at
+      `)
+      .run(
+        input.cacheKey,
+        input.scope,
+        input.content,
+        input.metadata ? JSON.stringify(input.metadata) : null,
+        input.updatedAt ?? Date.now(),
+      );
   }
 }

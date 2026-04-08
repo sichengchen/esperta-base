@@ -29,7 +29,7 @@ via HTTP.
   "runtime": {
     "urlPolicy": {
       "additionalBlockedHosts": ["internal.corp.example.com"],
-      "allowedExceptions": ["10.0.0.5"]
+      "allowedExceptions": ["http://localhost:3000", "10.0.0.5"]
     }
   }
 }
@@ -38,7 +38,15 @@ via HTTP.
 | Field | Type | Description |
 |-------|------|-------------|
 | `additionalBlockedHosts` | `string[]` | Extra hostnames/IPs to block |
-| `allowedExceptions` | `string[]` | Specific hosts to allow despite default blocks |
+| `allowedExceptions` | `string[]` | Exact host/host:port allowlist entries or exact URL prefixes matched by parsed origin + path-boundary rules |
+
+### Exception Matching
+
+`allowedExceptions` does not use raw string-prefix matching.
+
+- Host entries such as `10.0.0.5` or `localhost:3000` match the exact host and optional port only
+- URL entries such as `http://localhost:3000/api` match the exact scheme, host, effective port, and the same path or a child path
+- Lookalikes such as `http://localhost:3000.evil.test` do **not** match `http://localhost:3000`
 
 ---
 

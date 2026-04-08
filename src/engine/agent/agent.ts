@@ -125,6 +125,10 @@ export class Agent {
     return true;
   }
 
+  private resolveSystemPrompt(): string | undefined {
+    return this.options.getSystemPrompt?.() ?? this.options.systemPrompt;
+  }
+
   /** Stream a chat turn: sends user message, handles tool calls, yields events */
   async *chat(userText: string): AsyncGenerator<AgentEvent> {
     const userMsg: UserMessage = {
@@ -155,7 +159,7 @@ export class Agent {
         }
 
         const context: Context = {
-          systemPrompt: this.options.systemPrompt,
+          systemPrompt: this.resolveSystemPrompt(),
           messages: this.messages,
           tools: this.registry.getToolDefinitions(),
         };

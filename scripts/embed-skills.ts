@@ -9,6 +9,8 @@ import { join, relative } from "node:path";
 
 const BUNDLED_DIR = join(import.meta.dir, "..", "src", "engine", "skills", "bundled");
 const OUTPUT = join(import.meta.dir, "..", "src", "engine", "skills", "embedded-skills.generated.ts");
+const REPO_ROOT = join(import.meta.dir, "..");
+const SPECS_DIR = join(REPO_ROOT, "specs");
 
 interface SkillFiles {
   name: string;
@@ -43,6 +45,16 @@ async function collectFiles(dir: string, baseDir: string): Promise<{ path: strin
   return results;
 }
 
+async function collectSkillFiles(skillName: string, skillDir: string): Promise<{ path: string; content: string }[]> {
+  const files = await collectFiles(skillDir, skillDir);
+  if (skillName !== "sa") {
+    return files;
+  }
+
+  const specFiles = await collectFiles(SPECS_DIR, REPO_ROOT);
+  return [...files, ...specFiles];
+}
+
 const entries = await readdir(BUNDLED_DIR);
 const skills: SkillFiles[] = [];
 
@@ -51,7 +63,7 @@ for (const entry of entries) {
   const s = await stat(skillDir);
   if (!s.isDirectory()) continue;
 
-  const files = await collectFiles(skillDir, skillDir);
+  const files = await collectSkillFiles(entry, skillDir);
   if (files.length === 0) continue;
 
   skills.push({ name: entry, files });

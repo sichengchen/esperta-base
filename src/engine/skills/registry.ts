@@ -6,6 +6,7 @@ import { fileURLToPath } from "node:url";
 import { scanSkillDirectory, loadSkillContent, parseEmbeddedSkills, loadEmbeddedDoc, listEmbeddedFiles } from "./loader.js";
 import { EMBEDDED_SKILLS } from "./embedded-skills.generated.js";
 import type { SkillMetadata, LoadedSkill } from "./types.js";
+import { isPathInside } from "../path-boundary.js";
 
 const __dirname = dirname(fileURLToPath(import.meta.url));
 export const BUNDLED_SKILLS_DIR = join(__dirname, "bundled");
@@ -108,7 +109,7 @@ export class SkillRegistry {
     const target = resolve(skillDir, relativePath);
 
     // Traversal guard: target must be within the skill directory
-    if (!target.startsWith(skillDir)) return null;
+    if (!isPathInside(skillDir, target)) return null;
 
     try {
       return await readFile(target, "utf-8");

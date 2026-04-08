@@ -4,14 +4,12 @@ import { homedir } from "node:os";
 import { fetchRequestHandler } from "@trpc/server/adapters/fetch";
 import { applyWSSHandler } from "@trpc/server/adapters/ws";
 import { WebSocketServer } from "ws";
-import { createAppRouter, type AppRouter } from "./procedures.js";
+import { createAppRouter, flushProcedureState, type AppRouter } from "./procedures.js";
 import { createContext } from "./context.js";
 import type { EngineRuntime } from "./runtime.js";
-import type { EngineEvent } from "@sa/shared/types.js";
 import { heartbeatState } from "./scheduler.js";
-import { Agent } from "./agent/index.js";
 import { frameAsData } from "./agent/content-frame.js";
-import { WEBHOOK_DEFAULT_TOOLS } from "./config/defaults.js";
+import { deliverAutomationResult, logAutomationResult, runAutomationAgent } from "./automation.js";
 
 const DEFAULT_PORT = 7420;
 
@@ -212,50 +210,45 @@ async function handleWebhookTask(req: Request, slug: string, runtime: EngineRunt
   const securePayload = frameAsData(payloadStr, "webhook");
   const prompt = task.prompt.replace(/\{\{payload\}\}/g, securePayload);
 
-  // Dispatch to isolated agent session with restricted tools
-  const session = runtime.sessions.create(`webhook:${slug}`, "webhook");
-  const allowedTools = task.allowedTools ?? WEBHOOK_DEFAULT_TOOLS;
-  const agent = runtime.createAgent(undefined, task.model, allowedTools);
-  let responseText = "";
+  const result = await runAutomationAgent(runtime, {
+    sessionPrefix: `webhook:${slug}`,
+    connectorType: "webhook",
+    name: task.name,
+    prompt,
+    model: task.model,
+    allowedTools: task.allowedTools,
+    allowedToolsets: task.allowedToolsets,
+    skills: task.skills,
+  });
 
-  try {
-    for await (const event of agent.chat(prompt)) {
-      if (event.type === "text_delta") responseText += event.delta;
-    }
-  } catch (err) {
-    responseText = `Error: ${err instanceof Error ? err.message : String(err)}`;
-  }
+  await logAutomationResult(runtime, `webhook-${slug}`, prompt, result.responseText, result.toolCalls);
+  await deliverAutomationResult(runtime, task.delivery, result.responseText, task.connector);
 
-  // Log result
-  const saHome = process.env.SA_HOME ?? join(homedir(), ".sa");
-  const logDir = join(saHome, "automation");
-  try {
-    await mkdir(logDir, { recursive: true });
-    const timestamp = new Date().toISOString().replace(/[:.]/g, "-");
-    await writeFile(
-      join(logDir, `webhook-${slug}-${timestamp}.log`),
-      `Task: ${task.name}\nSlug: ${slug}\nPrompt: ${prompt}\n---\n${responseText}`,
-    );
-  } catch {
-    // Logging failure is non-fatal
-  }
+  console.log(`[webhook] Task "${task.name}" (${slug}) completed: ${result.summary}`);
 
-  // Deliver to connector if configured
-  if (task.connector) {
-    const notifyTool = runtime.tools.find((t) => t.name === "notify");
-    if (notifyTool) {
-      try {
-        await notifyTool.execute({ message: responseText, connector: task.connector });
-      } catch {
-        // Notification failure is non-fatal
-      }
-    }
-  }
-
-  console.log(`[webhook] Task "${task.name}" (${slug}) completed: ${responseText.slice(0, 100)}`);
+  // Persist run metadata
+  const refreshedConfig = runtime.config.getConfigFile();
+  const webhookTasks = refreshedConfig.runtime.automation?.webhookTasks ?? [];
+  const lastRunAt = new Date().toISOString();
+  const updatedWebhookTasks = webhookTasks.map((item) => item.slug === slug ? {
+    ...item,
+    lastRunAt,
+    lastStatus: result.status,
+    lastSummary: result.summary,
+  } : item);
+  await runtime.config.saveConfig({
+    ...refreshedConfig,
+    runtime: {
+      ...refreshedConfig.runtime,
+      automation: {
+        cronTasks: refreshedConfig.runtime.automation?.cronTasks ?? [],
+        webhookTasks: updatedWebhookTasks,
+      },
+    },
+  });
 
   return new Response(
-    JSON.stringify({ slug, task: task.name, response: responseText, sessionId: session.id }),
+    JSON.stringify({ slug, task: task.name, response: result.responseText, sessionId: result.sessionId }),
     { headers: { "content-type": "application/json" } },
   );
 }
@@ -387,12 +380,13 @@ export async function startServer(runtime: EngineRuntime, options: EngineServerO
   return {
     port,
     async stop() {
+      await flushProcedureState(runtime);
       httpServer.stop(true);
       wssHandler.broadcastReconnectNotification();
       wss.close();
       // Clean up discovery files
       try { await unlink(join(saHome, "engine.url")); } catch {}
-      await runtime.auth.cleanup();
+      await runtime.close();
     },
   };
 }

@@ -143,6 +143,14 @@ describe("validateUrl", () => {
     // But other localhost URLs are still blocked
     expect(validateUrl("http://localhost:4000", config).ok).toBe(false);
   });
+
+  it("does not allow prefix-confusable exception URLs", () => {
+    const config = { allowedExceptions: ["http://localhost:3000"] };
+
+    expect(validateUrl("http://localhost:3000.evil.test/path", config).ok).toBe(false);
+    expect(validateUrl("http://localhost:30001/path", config).ok).toBe(false);
+    expect(validateUrl("http://localhost:3000evil/path", config).ok).toBe(false);
+  });
 });
 
 describe("validateHeaders", () => {

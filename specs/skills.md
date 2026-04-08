@@ -91,6 +91,11 @@ Live at `~/.sa/skills/<name>/SKILL.md` (or `$SA_HOME/skills/`). Users can create
 
 Skills are sorted alphabetically. The block is capped at **150 entries** and **30,000 characters**. If the catalog exceeds these limits, a binary search determines the largest prefix that fits, and a comment notes how many were omitted.
 
+The runtime reads the current skill catalog dynamically on each new turn. After
+`skill.reload` or a successful `skill_manage` mutation, the system prompt is
+rebuilt so existing session agents see the updated catalog on their next turn
+without requiring an engine restart.
+
 ---
 
 ## Activation
@@ -111,6 +116,21 @@ When called with an optional `path` parameter, load a sub-file within the skill 
 
 Active skills are tracked via `getActiveSkills()` and can be formatted into the prompt with `formatActiveSkills()`.
 
+### skill_manage Tool
+
+SA also ships a writable companion tool, `skill_manage`, for turning successful workflows into reusable skills under `~/.sa/skills/`.
+
+Supported actions:
+
+- `create` — create a new user skill with full `SKILL.md` content
+- `edit` — replace the entire `SKILL.md`
+- `patch` — exact single-occurrence text replacement within `SKILL.md`
+- `delete` — remove a user skill
+- `write_file` — write supporting files under `references/`, `templates/`, `scripts/`, or `assets/`
+- `remove_file` — remove a supporting file from one of those directories
+
+The tool refuses to edit bundled or embedded skills directly; only writable user skills under `~/.sa/skills/` are mutable.
+
 ---
 
 ## SKILLS_DIRECTIVE
@@ -130,6 +150,8 @@ Only read one skill up front; read additional skills only if the first one direc
 
 This ensures the agent always considers its skill library before responding, prevents loading overly broad skills when a narrow one exists, and keeps token usage under control.
 
+The runtime also injects a **Skill Learning** guide instructing the agent to save non-trivial reusable workflows with `skill_manage` and patch outdated skills instead of repeatedly working around them in chat.
+
 ---
 
 ## ClawHub Integration
@@ -143,7 +165,9 @@ The ClawHub integration is a bundled skill that delegates to the `clawhub` CLI:
 | `clawhub update --all --workdir ~/.sa`    | moderate | Check installed skills for updates   |
 | `clawhub list --workdir ~/.sa`            | safe     | List locally installed ClawHub skills|
 
-After installation, the skill is discovered on the next registry reload.
+After installation, the skill is discovered on the next registry reload and is
+available to subsequent turns immediately after the runtime refreshes the skill
+catalog.
 
 ---
 
@@ -154,7 +178,7 @@ After installation, the skill is discovered on the next registry reload.
 3. Optionally add `scripts/`, `references/`, or `assets/` directories alongside `SKILL.md`. Reference them from the body using `{baseDir}/scripts/foo.sh`.
 4. The skill is discovered on the next engine restart or registry reload.
 
-The bundled `skill-creator` skill can guide the agent through this process interactively.
+The bundled `skill-creator` skill can guide the agent through this process interactively, and the `skill_manage` tool can create or patch these skills directly.
 
 ---
 

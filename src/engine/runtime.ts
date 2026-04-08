@@ -25,6 +25,12 @@ import { createTranscriber, type Transcriber } from "./audio/index.js";
 import { AuditLogger } from "./audit.js";
 import { SecurityModeManager } from "./security-mode.js";
 import { configureSandbox } from "./tools/exec.js";
+import { SessionArchiveManager } from "./session-archive.js";
+import { buildContextFilesPrompt } from "./context-files.js";
+import { CheckpointManager } from "./checkpoints.js";
+import { createSkillManageTool } from "./tools/skill-manage.js";
+import { MCPManager } from "./mcp.js";
+import { registerCronTask } from "./automation.js";
 
 const SAFETY_ADVISORY = `## Safety
 You have no independent goals: do not pursue self-preservation, resource acquisition, or \
@@ -91,6 +97,11 @@ You MUST follow these steps before every reply:
 NEVER skip this check. NEVER reply without first checking for a matching skill.
 Only read one skill up front; read additional skills only if the first one directs you to.`;
 
+const SKILL_LEARNING_GUIDE = `## Skill Learning
+When you discover a non-trivial workflow, fix a tricky error, or complete a complex multi-step task, save the reusable approach with skill_manage.
+If you notice a skill is outdated, wrong, or incomplete, patch it immediately with skill_manage instead of silently working around it.
+Skills are procedural memory: prefer saving repeatable workflows there instead of burying them in ordinary chat history.`;
+
 function buildHeartbeat(router: ModelRouter): string {
   const now = new Date();
   const dateStr = now.toISOString().replace("T", " ").slice(0, 19) + " UTC";
@@ -104,6 +115,9 @@ export interface EngineRuntime {
   config: ConfigManager;
   router: ModelRouter;
   memory: MemoryManager;
+  archive: SessionArchiveManager;
+  checkpoints: CheckpointManager;
+  mcp: MCPManager;
   tools: ToolImpl[];
   systemPrompt: string;
   sessions: SessionManager;
@@ -118,6 +132,10 @@ export interface EngineRuntime {
   mainSessionId: string;
   /** Create a new Agent instance for a session (each session gets its own Agent) */
   createAgent(onToolApproval?: ToolApprovalCallback, modelOverride?: string, allowedTools?: string[], onAskUser?: AskUserCallback): Agent;
+  /** Rebuild the runtime system prompt from current config, memory, and skills. */
+  refreshSystemPrompt(): Promise<string>;
+  /** Close long-lived runtime resources. Safe to call multiple times. */
+  close(): Promise<void>;
 }
 
 /** Bootstrap all Engine subsystems */
@@ -131,6 +149,13 @@ export async function createRuntime(): Promise<EngineRuntime> {
   const memoryDir = join(config.homeDir, saConfig.runtime.memory.directory);
   const memory = new MemoryManager(memoryDir);
   await memory.init();
+
+  const archive = new SessionArchiveManager(config.homeDir);
+  await archive.init();
+
+  const checkpoints = new CheckpointManager(config.homeDir, saConfig.runtime.checkpoints);
+  const mcp = new MCPManager(saConfig.runtime.mcp?.servers);
+  await mcp.init();
 
   // Apply search weights from config
   const searchConfig = saConfig.runtime.memory.search;
@@ -216,6 +241,7 @@ export async function createRuntime(): Promise<EngineRuntime> {
   // Load skills
   const skills = new SkillRegistry();
   await skills.loadAll(saHome);
+  let runtime: EngineRuntime;
 
   // Build tools
   const tools: ToolImpl[] = [
@@ -226,10 +252,20 @@ export async function createRuntime(): Promise<EngineRuntime> {
     createMemoryReadTool(memory),
     createMemoryDeleteTool(memory),
     createReadSkillTool(skills),
+    createSkillManageTool({
+      homeDir: config.homeDir,
+      registry: skills,
+      onMutate: async () => {
+        if (runtime) {
+          await runtime.refreshSystemPrompt();
+        }
+      },
+    }),
     createSetEnvSecretTool(config),
     createSetEnvVariableTool(config),
     createNotifyTool(secrets),
     askUserTool,
+    ...mcp.getTools(),
   ];
 
   // Create shared orchestrator for background sub-agent execution
@@ -264,30 +300,41 @@ export async function createRuntime(): Promise<EngineRuntime> {
   }));
 
   // Assemble system prompt
-  const userProfile = await config.loadUserProfile();
-  const toolsSection = formatToolsSection(tools);
-  const heartbeat = buildHeartbeat(router);
-  const memoryContext = await memory.loadContext();
+  const buildSystemPrompt = async (): Promise<string> => {
+    const userProfile = await config.loadUserProfile();
+    const toolsSection = formatToolsSection(tools);
+    const heartbeat = buildHeartbeat(router);
+    const memoryContext = await memory.loadContext();
+    const contextFilesPrompt = saConfig.runtime.contextFiles?.enabled === false
+      ? ""
+      : await buildContextFilesPrompt(process.env.TERMINAL_CWD ?? process.cwd(), {
+        maxFileChars: saConfig.runtime.contextFiles?.maxFileChars,
+      });
 
-  const skillsBlock = skills.size > 0
-    ? `\n${SKILLS_DIRECTIVE}\n\n${formatSkillsDiscovery(skills.getMetadataList())}`
-    : "";
+    const skillsBlock = skills.size > 0
+      ? `\n${SKILLS_DIRECTIVE}\n\n${formatSkillsDiscovery(skills.getMetadataList())}`
+      : "";
 
-  const systemPrompt = [
-    saConfig.identity.systemPrompt,
-    `\n${toolsSection}`,
-    `\n${TOOL_CALL_STYLE}`,
-    `\n${MEMORY_GUIDE}`,
-    memoryContext ? `\n**Current memory context:**\n${memoryContext}` : "",
-    skillsBlock,
-    `\n${REACTIONS_GUIDE}`,
-    `\n${GROUP_CHAT_GUIDE}`,
-    `\n${SAFETY_ADVISORY}`,
-    userProfile ? `\n## User Profile\n${userProfile}` : "",
-    `\n${heartbeat}`,
-  ]
-    .filter(Boolean)
-    .join("\n");
+    return [
+      saConfig.identity.systemPrompt,
+      `\n${toolsSection}`,
+      `\n${TOOL_CALL_STYLE}`,
+      `\n${MEMORY_GUIDE}`,
+      memoryContext ? `\n**Current memory context:**\n${memoryContext}` : "",
+      skillsBlock,
+      `\n${SKILL_LEARNING_GUIDE}`,
+      contextFilesPrompt ? `\n${contextFilesPrompt}` : "",
+      `\n${REACTIONS_GUIDE}`,
+      `\n${GROUP_CHAT_GUIDE}`,
+      `\n${SAFETY_ADVISORY}`,
+      userProfile ? `\n## User Profile\n${userProfile}` : "",
+      `\n${heartbeat}`,
+    ]
+      .filter(Boolean)
+      .join("\n");
+  };
+
+  let systemPrompt = await buildSystemPrompt();
 
   // Initialize audio transcriber
   const audioConfig = saConfig.runtime.audio ?? { enabled: true, preferLocal: true };
@@ -318,7 +365,7 @@ export async function createRuntime(): Promise<EngineRuntime> {
   }
 
   // Create the main agent (used by heartbeat and engine-level tasks)
-  const mainAgent = new Agent({ router, tools, systemPrompt });
+  const mainAgent = new Agent({ router, tools, getSystemPrompt: () => systemPrompt });
   const notifyTool = tools.find((t) => t.name === "notify");
 
   // Ensure HEARTBEAT.md exists
@@ -344,49 +391,13 @@ export async function createRuntime(): Promise<EngineRuntime> {
 
   // Restore persisted cron tasks from config
   const cronTasks = saConfig.runtime.automation?.cronTasks ?? [];
-  for (const task of cronTasks) {
-    if (!task.enabled) continue;
-    scheduler.register({
-      name: task.name,
-      schedule: task.schedule,
-      prompt: task.prompt,
-      oneShot: task.oneShot,
-      async handler() {
-        const session = sessions.create(`cron:${task.name}`, "cron");
-        const allowedTools = task.allowedTools ?? CRON_DEFAULT_TOOLS;
-        const filteredTools = tools.filter((t) => allowedTools.includes(t.name));
-        const agent = new Agent({ router, tools: filteredTools, systemPrompt, modelOverride: task.model });
-        let responseText = "";
-        try {
-          for await (const event of agent.chat(task.prompt)) {
-            if (event.type === "text_delta") responseText += event.delta;
-          }
-        } catch (err) {
-          responseText = `Error: ${err instanceof Error ? err.message : String(err)}`;
-        }
-        console.log(`[cron] Task "${task.name}" completed: ${responseText.slice(0, 100)}`);
-      },
-      onComplete: task.oneShot ? async (taskName) => {
-        const configFile = config.getConfigFile();
-        const automation = configFile.runtime.automation ?? { cronTasks: [] };
-        automation.cronTasks = automation.cronTasks.filter((t) => t.name !== taskName);
-        await config.saveConfig({
-          ...configFile,
-          runtime: { ...configFile.runtime, automation },
-        });
-      } : undefined,
-    });
-  }
-  if (cronTasks.length > 0) {
-    console.log(`[sa] Restored ${cronTasks.filter((t) => t.enabled).length} cron task(s)`);
-  }
-
-  scheduler.start();
-
-  return {
+  runtime = {
     config,
     router,
     memory,
+    archive,
+    checkpoints,
+    mcp,
     tools,
     systemPrompt,
     sessions,
@@ -398,6 +409,18 @@ export async function createRuntime(): Promise<EngineRuntime> {
     securityMode,
     agentName: saConfig.identity.name,
     mainSessionId: mainSession.id,
+    async refreshSystemPrompt(): Promise<string> {
+      systemPrompt = await buildSystemPrompt();
+      runtime.systemPrompt = systemPrompt;
+      return systemPrompt;
+    },
+    async close(): Promise<void> {
+      scheduler.stop();
+      await mcp.close();
+      archive.close();
+      memory.close();
+      await auth.cleanup();
+    },
     createAgent(onToolApproval?: ToolApprovalCallback, modelOverride?: string, allowedTools?: string[], onAskUser?: AskUserCallback): Agent {
       const agentTools = allowedTools
         ? tools.filter((t) => allowedTools.includes(t.name))
@@ -405,11 +428,21 @@ export async function createRuntime(): Promise<EngineRuntime> {
       return new Agent({
         router,
         tools: agentTools,
-        systemPrompt,
+        getSystemPrompt: () => runtime.systemPrompt,
         onToolApproval,
         onAskUser,
         modelOverride,
       });
     },
   };
+  for (const task of cronTasks) {
+    if (!task.enabled) continue;
+    registerCronTask(runtime, task);
+  }
+  if (cronTasks.length > 0) {
+    console.log(`[sa] Restored ${cronTasks.filter((t) => t.enabled).length} cron task(s)`);
+  }
+
+  scheduler.start();
+  return runtime;
 }

@@ -15,6 +15,9 @@ import { AuditLogger } from "@sa/engine/audit.js";
 import { SecurityModeManager } from "@sa/engine/security-mode.js";
 import type { EngineRuntime } from "@sa/engine/runtime.js";
 import type { KnownProvider } from "@mariozechner/pi-ai";
+import { SessionArchiveManager } from "@sa/engine/session-archive.js";
+import { CheckpointManager } from "@sa/engine/checkpoints.js";
+import { MCPManager } from "@sa/engine/mcp.js";
 
 let testDir: string;
 let runtime: EngineRuntime;
@@ -64,6 +67,11 @@ async function createTestRuntime(saHome: string): Promise<EngineRuntime> {
   const sessions = new SessionManager();
   const auth = new AuthManager(saHome);
   await auth.init();
+  const archive = new SessionArchiveManager(saHome);
+  await archive.init();
+  const checkpoints = new CheckpointManager(saHome, { enabled: true, maxSnapshots: 10 });
+  const mcp = new MCPManager(undefined, saHome);
+  await mcp.init();
 
   const mainSession = sessions.create("main", "engine");
   const skills = new SkillRegistry();
@@ -74,6 +82,9 @@ async function createTestRuntime(saHome: string): Promise<EngineRuntime> {
     config,
     router,
     memory: { init: async () => {}, loadContext: async () => "", persist: async () => {} } as any,
+    archive,
+    checkpoints,
+    mcp,
     tools: [],
     systemPrompt: "Test agent.",
     sessions,
@@ -85,8 +96,16 @@ async function createTestRuntime(saHome: string): Promise<EngineRuntime> {
     securityMode: new SecurityModeManager(),
     agentName: "Test",
     mainSessionId: mainSession.id,
+    async refreshSystemPrompt() {
+      return "Test agent.";
+    },
+    async close() {
+      scheduler.stop();
+      archive.close();
+      await auth.cleanup();
+    },
     createAgent(_onToolApproval?: any, modelOverride?: string) {
-      return new Agent({ router, tools: [], systemPrompt: "Test", modelOverride });
+      return new Agent({ router, tools: [], getSystemPrompt: () => "Test", modelOverride });
     },
   };
 }
@@ -106,6 +125,15 @@ afterEach(async () => {
 function createCaller() {
   const appRouter = createAppRouter(runtime);
   return appRouter.createCaller(createContext({ rawToken: masterToken }));
+}
+
+function createSessionCaller(connectorId = "telegram:123", connectorType = "telegram") {
+  const paired = runtime.auth.pair(masterToken, connectorId, connectorType);
+  if (!paired.success || !paired.token) {
+    throw new Error("Failed to create a session token for tests");
+  }
+  const appRouter = createAppRouter(runtime);
+  return appRouter.createCaller(createContext({ rawToken: paired.token }));
 }
 
 describe("tRPC procedures (non-live)", () => {
@@ -150,6 +178,78 @@ describe("tRPC procedures (non-live)", () => {
     });
   });
 
+  describe("session token authorization", () => {
+    test("session tokens can only create sessions for their own connector scope", async () => {
+      const caller = createSessionCaller("telegram:123", "telegram");
+
+      const created = await caller.session.create({
+        connectorType: "telegram",
+        prefix: "telegram:123",
+      });
+      expect(created.session.id).toStartWith("telegram:123:");
+
+      await expect(caller.session.create({
+        connectorType: "telegram",
+        prefix: "telegram:999",
+      })).rejects.toThrow("own connector prefix");
+
+      await expect(caller.session.create({
+        connectorType: "tui",
+        prefix: "telegram:123",
+      })).rejects.toThrow("Connector type mismatch");
+    });
+
+    test("session tokens cannot access sessions owned by another connector", async () => {
+      const masterCaller = createCaller();
+      const ownCaller = createSessionCaller("telegram:123", "telegram");
+
+      const owned = await ownCaller.session.create({
+        connectorType: "telegram",
+        prefix: "telegram:123",
+      });
+      const other = await masterCaller.session.create({
+        connectorType: "telegram",
+        prefix: "telegram:999",
+      });
+
+      const visibleSessions = await ownCaller.session.list();
+      expect(visibleSessions.some((session) => session.id === owned.session.id)).toBe(true);
+      expect(visibleSessions.some((session) => session.id === other.session.id)).toBe(false);
+
+      await expect(ownCaller.chat.history({ sessionId: other.session.id })).rejects.toThrow("do not own this session");
+    });
+
+    test("session tokens cannot call admin-only procedures", async () => {
+      const caller = createSessionCaller("telegram:123", "telegram");
+
+      await expect(caller.cron.list()).rejects.toThrow("requires the master token");
+      await expect(caller.engine.shutdown()).rejects.toThrow("requires the master token");
+    });
+  });
+
+  describe("session.search / chat.history archive fallback", () => {
+    test("searches persisted session transcripts and reads archived history after destroy", async () => {
+      const caller = createCaller();
+      const { session } = await caller.session.create({ connectorType: "tui", prefix: "tui" });
+
+      await runtime.archive.syncSession(session, [
+        { role: "user", content: "Debug the failing cron task", timestamp: 100 } as any,
+        { role: "assistant", content: "The cron task is failing because CONFIG_PATH is missing.", timestamp: 101 } as any,
+      ]);
+
+      const results = await caller.session.search({ query: "cron task", limit: 5 });
+      expect(results.some((entry) => entry.sessionId === session.id)).toBe(true);
+
+      const destroyed = await caller.session.destroy({ sessionId: session.id });
+      expect(destroyed.destroyed).toBe(true);
+
+      const history = await caller.chat.history({ sessionId: session.id });
+      expect(history.archived).toBe(true);
+      expect(history.messages).toHaveLength(2);
+      expect((history.messages[0] as any).content).toContain("Debug the failing cron task");
+    });
+  });
+
   describe("session.destroy", () => {
     test("destroys a session", async () => {
       const caller = createCaller();
@@ -166,6 +266,36 @@ describe("tRPC procedures (non-live)", () => {
       const caller = createCaller();
       const result = await caller.session.destroy({ sessionId: "nonexistent" });
       expect(result.destroyed).toBe(false);
+    });
+  });
+
+  describe("checkpoint procedures", () => {
+    test("lists checkpoints for a working directory", async () => {
+      const currentRuntime = runtime;
+      const currentHome = currentRuntime.config.homeDir;
+      const caller = createAppRouter(currentRuntime).createCaller(createContext({ rawToken: masterToken }));
+      const workdir = join(currentHome, "workspace");
+      await mkdir(workdir, { recursive: true });
+
+      const listed = await caller.checkpoint.list({ workingDir: workdir });
+      expect(listed.workingDir).toBe(workdir);
+      expect(Array.isArray(listed.checkpoints)).toBe(true);
+    });
+  });
+
+  describe("toolset / mcp procedures", () => {
+    test("lists builtin toolsets and empty MCP state in the minimal runtime", async () => {
+      const caller = createCaller();
+
+      const toolsets = await caller.toolset.list();
+      expect(toolsets.some((toolset) => toolset.name === "file")).toBe(true);
+      expect(toolsets.some((toolset) => toolset.name === "delegation")).toBe(true);
+
+      const servers = await caller.mcp.listServers();
+      expect(servers).toEqual([]);
+
+      const tools = await caller.mcp.listTools();
+      expect(tools).toEqual([]);
     });
   });
 

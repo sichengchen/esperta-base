@@ -57,6 +57,40 @@ export type ValidateResult =
   | { ok: true }
   | { ok: false; reason: string };
 
+function normalizedPort(parsed: URL): string {
+  if (parsed.port) return parsed.port;
+  return parsed.protocol === "https:" ? "443" : parsed.protocol === "http:" ? "80" : "";
+}
+
+function matchesPathBoundary(pathname: string, allowedPathname: string): boolean {
+  if (allowedPathname === "/" || allowedPathname === "") {
+    return true;
+  }
+  if (pathname === allowedPathname) {
+    return true;
+  }
+  const prefix = allowedPathname.endsWith("/") ? allowedPathname : `${allowedPathname}/`;
+  return pathname.startsWith(prefix);
+}
+
+function matchesAllowedException(target: URL, exception: string): boolean {
+  try {
+    const parsedException = new URL(exception);
+    return (
+      parsedException.protocol === target.protocol &&
+      parsedException.hostname.toLowerCase() === target.hostname.toLowerCase() &&
+      normalizedPort(parsedException) === normalizedPort(target) &&
+      matchesPathBoundary(target.pathname, parsedException.pathname)
+    );
+  } catch {
+    const [host, port] = exception.toLowerCase().split(":");
+    if (!host) return false;
+    const targetHost = target.hostname.toLowerCase();
+    const targetPort = normalizedPort(target);
+    return targetHost === host && (!port || port === targetPort);
+  }
+}
+
 /**
  * Check whether a URL is allowed by the URL policy.
  * Returns `{ ok: true }` when safe, or `{ ok: false, reason }` when blocked.
@@ -75,7 +109,9 @@ export function validateUrl(
   // --- allowed exceptions (checked first) ---
   if (config?.allowedExceptions?.length) {
     for (const exception of config.allowedExceptions) {
-      if (raw.startsWith(exception)) return { ok: true };
+      if (matchesAllowedException(parsed, exception)) {
+        return { ok: true };
+      }
     }
   }
 

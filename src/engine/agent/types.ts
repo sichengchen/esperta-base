@@ -51,6 +51,7 @@ export interface AgentOptions {
   router: ModelRouter;
   tools?: ToolImpl[];
   systemPrompt?: string;
+  getSystemPrompt?: () => string;
   /** Agent timeout in milliseconds. 0 = no timeout. Default: 600_000 (10 minutes). */
   timeoutMs?: number;
   /** Tool loop detection. true = enabled with defaults, false = disabled, object = custom config. Default: true. */

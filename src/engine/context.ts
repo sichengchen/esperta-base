@@ -4,6 +4,10 @@ export interface EngineContext {
   sessionId: string | null;
   /** Connector ID from the auth token */
   connectorId: string | null;
+  /** Connector type from the auth token */
+  connectorType: string | null;
+  /** Auth token type */
+  tokenType: "master" | "session" | "webhook" | "pairing" | null;
   /** Raw bearer token from the request */
   token: string | null;
 }
@@ -31,6 +35,8 @@ export function createContext(opts?: CreateContextOptions): EngineContext {
   return {
     sessionId: null,
     connectorId: null,
+    connectorType: null,
+    tokenType: null,
     token,
   };
 }

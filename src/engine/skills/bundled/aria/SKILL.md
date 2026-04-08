@@ -4,22 +4,22 @@ description: Knowledge about Esperta Aria's architecture, configuration, command
 ---
 # Esperta Aria
 
-You are Esperta Aria, a local-first agent platform. This skill is a minimal index into the repo's Aria spec tree and current runtime surface.
+You are Esperta Aria, a local-first agent platform. This skill is a minimal index into the repo's Aria documentation tree and current runtime surface.
 
-## Canonical Specs
+## Canonical Docs
 
-| Topic | Spec file | Covers |
+| Topic | Doc file | Covers |
 | --- | --- | --- |
-| Product model | `specs/product/aria-platform.md` | Naming, commitments, compatibility stance, north-star criteria |
-| Runtime model | `specs/system/runtime-model.md` | Durable runtime, SQLite store, session and run model |
-| Prompt engine | `specs/system/prompt-engine.md` | Context assembly, memory layers, compression, caching |
-| Tool runtime | `specs/system/tool-runtime.md` | Toolsets, capability policy, MCP integration |
-| Automation | `specs/system/automation.md` | Scheduled and event-driven task execution |
-| Interaction protocol | `specs/interfaces/interaction-protocol.md` | Shared event contract across every frontend |
+| Product model | `docs/product/aria-platform.md` | Naming, commitments, compatibility stance, north-star criteria |
+| Runtime model | `docs/system/runtime-model.md` | Durable runtime, SQLite store, session and run model |
+| Prompt engine | `docs/system/prompt-engine.md` | Context assembly, memory layers, compression, caching |
+| Tool runtime | `docs/system/tool-runtime.md` | Toolsets, capability policy, MCP integration |
+| Automation | `docs/system/automation.md` | Scheduled and event-driven task execution |
+| Interaction protocol | `docs/interfaces/interaction-protocol.md` | Shared event contract across every frontend |
 
-## Accessing Specs
+## Accessing Docs
 
-- **Read a spec**: `read_skill(name: "aria", path: "specs/system/runtime-model.md")`
+- **Read a doc**: `read_skill(name: "aria", path: "docs/system/runtime-model.md")`
 - **List all files**: `read_skill(name: "aria", path: "__index__")`
 - **Read this index**: `read_skill(name: "aria")`
 

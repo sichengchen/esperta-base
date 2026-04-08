@@ -60,7 +60,7 @@ Illustrative layout:
 
 ```text
 ~/.aria/
-  aria.sqlite
+  aria.db
   config.json
   IDENTITY.md
   USER.md

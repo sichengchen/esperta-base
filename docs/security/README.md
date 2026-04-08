@@ -66,5 +66,6 @@ designed around three principles:
 2. **No network sandboxing** -- exec commands can make arbitrary network requests.
 3. **Machine fingerprint as key material** -- if hostname or username changes,
    secrets become inaccessible (re-run onboarding to re-create).
-4. **In-memory token storage** -- session tokens are not persisted across engine
-   restarts. All connectors must re-authenticate after a restart.
+4. **Local runtime trust boundary** -- bearer tokens are scoped and hashed at
+   rest where persisted, but the runtime still assumes the local OS user
+   boundary is trustworthy.

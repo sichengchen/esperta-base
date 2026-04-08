@@ -61,7 +61,7 @@ const authMiddleware = middleware(async ({ ctx, next }) => {
 ```
 
 - **Master token**: always valid (engine lifetime).
-- **Session tokens**: stored in-memory, checked for TTL expiry on every call.
+- **Session tokens**: stored as hashed records in the operational SQLite store, checked for TTL expiry on every call.
 - **Webhook tokens**: valid only for `/webhook/*` HTTP endpoints, never for tRPC.
 - **Comparison**: timing-safe (`crypto.timingSafeEqual`) to prevent timing
   side-channel attacks.
@@ -94,6 +94,13 @@ Session tokens expire after 24 hours by default (configurable via
 `securityConfig.sessionTTL`). Expired tokens are silently removed on
 validation.
 
+### Durable Session Tokens
+
+- Session tokens are persisted in `~/.aria/aria.db` as **SHA-256 hashes**, not plaintext bearer values.
+- Runtime restarts do not invalidate session tokens that are still within TTL.
+- Revocation deletes the hashed record from the operational store immediately.
+- Pairing codes are also stored by hash and remain valid across restart until consumed or expired.
+
 ---
 
 ## Token Lifecycle
@@ -108,7 +115,8 @@ Connector     -->  Read engine.token      -->  Call auth.pair(masterToken)
 Connector     -->  Use session token      -->  Validated on every request
 (any)              as Bearer header
 
-Engine stop   -->  Delete engine.token    -->  All tokens invalidated
+Engine restart -->  Regenerate engine.token/webhook token
+                 -->  Persisted session tokens remain valid until TTL or revoke
 ```
 
 ---
@@ -137,14 +145,6 @@ function safeCompare(a: string, b: string): boolean {
   return timingSafeEqual(Buffer.from(a), Buffer.from(b));
 }
 ```
-
----
-
-## In-Memory Only
-
-All session tokens are stored in-memory only. They do not survive engine
-restarts. After a restart, all connectors must re-authenticate (local
-connectors re-read `engine.token`, remote connectors re-pair).
 
 ---
 

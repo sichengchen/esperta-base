@@ -79,7 +79,7 @@ Before exec, the engine strips sensitive variables from the process environment.
 
 ```
 *_KEY, *_TOKEN, *_SECRET,
-SA_*, ANTHROPIC_*, OPENAI_*, GOOGLE_AI_*, OPENROUTER_*
+ARIA_*, ANTHROPIC_*, OPENAI_*, GOOGLE_AI_*, OPENROUTER_*
 ```
 
 User-provided `env` overrides are merged **after** sanitization, so explicit

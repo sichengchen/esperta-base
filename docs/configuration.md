@@ -2,6 +2,9 @@
 
 Esperta Aria stores all configuration in a local directory (default: `~/.aria/`). Override with `ARIA_HOME`.
 
+Only `config.json` version `3` is supported. Older split or pre-versioned
+config formats are not migrated in place.
+
 ---
 
 ## Environment variables
@@ -22,6 +25,8 @@ Esperta Aria stores all configuration in a local directory (default: `~/.aria/`)
 | `GCHAT_SERVICE_ACCOUNT` | Optional | Google Chat service account JSON |
 | `DISCORD_TOKEN` | Optional | Discord bot token |
 | `DISCORD_GUILD_ID` | Optional | Restrict Discord bot to a specific guild |
+| `ARIA_DISCORD_NOTIFY_CHANNEL` | Optional | Discord channel ID used by the `notify` tool |
+| `ARIA_TELEGRAM_PAIRING_CODE` | Optional | Telegram `/pair` code override for single-chat lock-in |
 | `GITHUB_TOKEN` | Optional | GitHub bot/app token |
 | `LINEAR_API_KEY` | Optional | Linear API key |
 | `ARIA_HOME` | Optional | Override config directory (default: `~/.aria/`) |
@@ -35,6 +40,7 @@ Resolution order: environment variable > `secrets.enc` > `runtime.env`.
 
 ```text
 ~/.aria/
+  aria.db            # operational SQLite store
   config.json        # v3 config (runtime + providers + models + automation)
   IDENTITY.md        # agent name, personality, system prompt
   USER.md            # user profile and preferences
@@ -168,7 +174,7 @@ Resolution order: environment variable > `secrets.enc` > `runtime.env`.
 | Field | Type | Default | Description |
 |---|---|---|---|
 | `runtime.activeModel` | string | `"sonnet"` | Last active model name |
-| `runtime.telegramBotTokenEnvVar` | string | `"TELEGRAM_BOT_TOKEN"` | Legacy Telegram env-var name |
+| `runtime.telegramBotTokenEnvVar` | string | `"TELEGRAM_BOT_TOKEN"` | Telegram bot token env-var name |
 | `runtime.memory.enabled` | boolean | `true` | Enable memory subsystem |
 | `runtime.memory.directory` | string | `"memory"` | Memory dir relative to `ARIA_HOME` |
 | `runtime.memory.search.maxResults` | number | `10` | Max search results |

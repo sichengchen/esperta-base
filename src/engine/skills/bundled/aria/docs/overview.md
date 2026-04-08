@@ -57,7 +57,7 @@ Esperta Aria is a local-first agent platform. It runs as a durable **runtime dae
 | Prompt engine | `src/engine/prompt-engine.ts` | Assemble identity, policy, layered memory, toolset affordances, context files, and session overlays |
 | Agent | `src/engine/agent/` | Conversation loop, streaming events, tool dispatch, tool approval, loop detection, result size guard |
 | Model Router | `src/engine/router/` | Provider/model config, active model switching, tier-based routing, alias resolution, fallback chains. Wraps `@mariozechner/pi-ai` |
-| Config | `src/engine/config/` | `IDENTITY.md`, `config.json` (v3), `USER.md`, `secrets.enc` loading/saving/migration |
+| Config | `src/engine/config/` | `IDENTITY.md`, `config.json` (v3), `USER.md`, `secrets.enc` loading/saving |
 | Tools | `src/engine/tools/` | 23 built-in tools plus dynamic `mcp_*` tools. Exec classifier, tool policy manager, background process management, coding agent subprocess infra |
 | Memory | `src/engine/memory/` | Layered memory files, retrieval indexing, embeddings, and prompt-context loading |
 | Operational store | `src/engine/operational-store.ts` | Durable SQLite store for sessions, messages, runs, tool calls, approvals, prompt cache, and automation state |

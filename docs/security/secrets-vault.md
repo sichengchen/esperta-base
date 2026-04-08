@@ -104,19 +104,12 @@ if (secrets?.apiKeys) {
 }
 ```
 
----
+## Unsupported Legacy Vaults
 
-## Legacy Migration
+Esperta Aria does not attempt to decrypt or migrate secrets written by older
+runtime formats. If `secrets.enc` cannot be decrypted with the current machine
+fingerprint scheme, the runtime warns and falls back to environment variables.
 
-The original key derivation used only the hostname. The current version uses
-the full machine fingerprint (`hostname:username:homedir`).
-
-```
-Load secrets.enc
-  --> Try new key derivation (hostname:user:home)
-  --> If fail, try legacy derivation (hostname only)
-    --> If legacy succeeds, re-encrypt with new derivation
-    --> If both fail, warn and fall back to environment variables
-```
-
-Migration is automatic and transparent -- no user action required.
+If you are moving from an older runtime or a different machine, recreate the
+vault with `aria onboard` or re-enter the required secrets through the current
+configuration flow.

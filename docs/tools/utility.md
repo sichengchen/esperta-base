@@ -36,7 +36,7 @@ Push notification to connectors. Danger level: **safe**.
 | Connector | Required config                                         |
 |-----------|---------------------------------------------------------|
 | Telegram  | `botToken` + `pairedChatId` in secrets.enc              |
-| Discord   | `discordToken` + `SA_DISCORD_NOTIFY_CHANNEL` configured |
+| Discord   | `discordToken` + `ARIA_DISCORD_NOTIFY_CHANNEL` configured |
 
 ### Use Cases
 

@@ -69,38 +69,42 @@ export class ChatSDKAdapter {
 
     // Button clicks for tool approval and model switching
     this.chat.onAction("approve", async (event) => {
-      if (!event.value) return;
+      const thread = event.thread;
+      if (!event.value || !thread) return;
       try {
         await this.client.tool.approve.mutate({ toolCallId: event.value, approved: true });
-        await event.thread.post("Tool approved.");
+        await thread.post("Tool approved.");
       } catch {
-        await event.thread.post("Failed to process approval.");
+        await thread.post("Failed to process approval.");
       }
     });
 
     this.chat.onAction("reject", async (event) => {
-      if (!event.value) return;
+      const thread = event.thread;
+      if (!event.value || !thread) return;
       try {
         await this.client.tool.approve.mutate({ toolCallId: event.value, approved: false });
-        await event.thread.post("Tool rejected.");
+        await thread.post("Tool rejected.");
       } catch {
-        await event.thread.post("Failed to process rejection.");
+        await thread.post("Failed to process rejection.");
       }
     });
 
     this.chat.onAction("always", async (event) => {
-      if (!event.value) return;
+      const thread = event.thread;
+      if (!event.value || !thread) return;
       try {
         await this.client.tool.acceptForSession.mutate({ toolCallId: event.value });
-        await event.thread.post("Tool always allowed for this session.");
+        await thread.post("Tool always allowed for this session.");
       } catch {
-        await event.thread.post("Failed to process.");
+        await thread.post("Failed to process.");
       }
     });
 
     // Question answer button clicks
     this.chat.onAction("answer", async (event) => {
-      if (!event.value) return;
+      const thread = event.thread;
+      if (!event.value || !thread) return;
       // value format: "questionId:answer"
       const sepIdx = event.value.indexOf(":");
       if (sepIdx === -1) return;
@@ -108,20 +112,21 @@ export class ChatSDKAdapter {
       const answer = event.value.slice(sepIdx + 1);
       try {
         await this.client.question.answer.mutate({ id: questionId, answer });
-        await event.thread.post(`Answer: ${answer}`);
+        await thread.post(`Answer: ${answer}`);
       } catch {
-        await event.thread.post("Failed to submit answer.");
+        await thread.post("Failed to submit answer.");
       }
     });
 
     this.chat.onAction("model", async (event) => {
-      if (!event.value) return;
+      const thread = event.thread;
+      if (!event.value || !thread) return;
       try {
         await this.client.model.switch.mutate({ name: event.value });
-        await event.thread.post(`Switched to model: **${event.value}**`);
+        await thread.post(`Switched to model: **${event.value}**`);
       } catch (err) {
         const msg = err instanceof Error ? err.message : String(err);
-        await event.thread.post(`Failed to switch model: ${msg}`);
+        await thread.post(`Failed to switch model: ${msg}`);
       }
     });
   }

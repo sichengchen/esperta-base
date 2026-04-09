@@ -15,6 +15,7 @@
     "outDir": "dist",
     "rootDir": "src",
     "types": ["bun-types"],
+    "ignoreDeprecations": "6.0",
     "baseUrl": ".",
     "paths": {
       "@aria/engine/*": ["src/engine/*"],

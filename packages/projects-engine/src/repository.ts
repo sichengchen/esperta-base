@@ -1,10 +1,14 @@
 import type {
+  DispatchRecord,
   ExternalRefRecord,
   JobRecord,
   ProjectRecord,
+  PublishRunRecord,
   RepoRecord,
+  ReviewRecord,
   TaskRecord,
   ThreadRecord,
+  WorktreeRecord,
 } from "./types.js";
 import { ProjectsEngineStore } from "./store.js";
 
@@ -65,5 +69,41 @@ export class ProjectsEngineRepository {
 
   listExternalRefs(ownerType?: ExternalRefRecord["ownerType"], ownerId?: string): ExternalRefRecord[] {
     return this.store.listExternalRefs(ownerType, ownerId);
+  }
+
+  findExternalRefsByExternal(system: ExternalRefRecord["system"], externalId: string, externalKey?: string): ExternalRefRecord[] {
+    return this.store.findExternalRefsByExternal(system, externalId, externalKey);
+  }
+
+  upsertDispatch(dispatch: DispatchRecord): void {
+    this.store.upsertDispatch(dispatch);
+  }
+
+  listDispatches(threadId?: string, taskId?: string): DispatchRecord[] {
+    return this.store.listDispatches(threadId, taskId);
+  }
+
+  upsertWorktree(worktree: WorktreeRecord): void {
+    this.store.upsertWorktree(worktree);
+  }
+
+  listWorktrees(repoId?: string, threadId?: string): WorktreeRecord[] {
+    return this.store.listWorktrees(repoId, threadId);
+  }
+
+  upsertReview(review: ReviewRecord): void {
+    this.store.upsertReview(review);
+  }
+
+  listReviews(threadId?: string, dispatchId?: string): ReviewRecord[] {
+    return this.store.listReviews(threadId, dispatchId);
+  }
+
+  upsertPublishRun(publishRun: PublishRunRecord): void {
+    this.store.upsertPublishRun(publishRun);
+  }
+
+  listPublishRuns(threadId?: string, dispatchId?: string): PublishRunRecord[] {
+    return this.store.listPublishRuns(threadId, dispatchId);
   }
 }

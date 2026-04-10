@@ -4,12 +4,16 @@ import { Database } from "bun:sqlite";
 import type { SQLQueryBindings } from "bun:sqlite";
 import { PROJECTS_ENGINE_SCHEMA_SQL } from "./schema.js";
 import type {
+  DispatchRecord,
   ExternalRefRecord,
   JobRecord,
   ProjectRecord,
+  PublishRunRecord,
   RepoRecord,
+  ReviewRecord,
   TaskRecord,
   ThreadRecord,
+  WorktreeRecord,
 } from "./types.js";
 
 type SqliteRow = Record<string, unknown>;
@@ -99,6 +103,78 @@ function normalizeExternalRefRow(row: SqliteRow | null | undefined): ExternalRef
     metadataJson: asOptionalText(row.metadata_json),
     createdAt: Number(row.created_at),
     updatedAt: Number(row.updated_at),
+  };
+}
+
+function normalizeDispatchRow(row: SqliteRow | null | undefined): DispatchRecord | undefined {
+  if (!row) return undefined;
+  return {
+    dispatchId: asText(row.dispatch_id),
+    projectId: asText(row.project_id),
+    taskId: asOptionalText(row.task_id),
+    threadId: asText(row.thread_id),
+    jobId: asOptionalText(row.job_id),
+    repoId: asOptionalText(row.repo_id),
+    worktreeId: asOptionalText(row.worktree_id),
+    status: asText(row.status) as DispatchRecord["status"],
+    requestedBackend: asOptionalText(row.requested_backend),
+    requestedModel: asOptionalText(row.requested_model),
+    executionSessionId: asOptionalText(row.execution_session_id),
+    summary: asOptionalText(row.summary),
+    error: asOptionalText(row.error),
+    createdAt: Number(row.created_at),
+    acceptedAt: row.accepted_at == null ? null : Number(row.accepted_at),
+    completedAt: row.completed_at == null ? null : Number(row.completed_at),
+  };
+}
+
+function normalizeWorktreeRow(row: SqliteRow | null | undefined): WorktreeRecord | undefined {
+  if (!row) return undefined;
+  return {
+    worktreeId: asText(row.worktree_id),
+    repoId: asText(row.repo_id),
+    threadId: asOptionalText(row.thread_id),
+    dispatchId: asOptionalText(row.dispatch_id),
+    path: asText(row.path),
+    branchName: asText(row.branch_name),
+    baseRef: asText(row.base_ref),
+    status: asText(row.status) as WorktreeRecord["status"],
+    createdAt: Number(row.created_at),
+    expiresAt: row.expires_at == null ? null : Number(row.expires_at),
+    prunedAt: row.pruned_at == null ? null : Number(row.pruned_at),
+  };
+}
+
+function normalizeReviewRow(row: SqliteRow | null | undefined): ReviewRecord | undefined {
+  if (!row) return undefined;
+  return {
+    reviewId: asText(row.review_id),
+    dispatchId: asText(row.dispatch_id),
+    threadId: asText(row.thread_id),
+    reviewType: asText(row.review_type) as ReviewRecord["reviewType"],
+    status: asText(row.status) as ReviewRecord["status"],
+    summary: asOptionalText(row.summary),
+    artifactJson: asOptionalText(row.artifact_json),
+    createdAt: Number(row.created_at),
+    resolvedAt: row.resolved_at == null ? null : Number(row.resolved_at),
+  };
+}
+
+function normalizePublishRunRow(row: SqliteRow | null | undefined): PublishRunRecord | undefined {
+  if (!row) return undefined;
+  return {
+    publishRunId: asText(row.publish_run_id),
+    dispatchId: asText(row.dispatch_id),
+    threadId: asText(row.thread_id),
+    repoId: asText(row.repo_id),
+    branchName: asText(row.branch_name),
+    remoteName: asText(row.remote_name),
+    status: asText(row.status) as PublishRunRecord["status"],
+    commitSha: asOptionalText(row.commit_sha),
+    prUrl: asOptionalText(row.pr_url),
+    metadataJson: asOptionalText(row.metadata_json),
+    createdAt: Number(row.created_at),
+    completedAt: row.completed_at == null ? null : Number(row.completed_at),
   };
 }
 
@@ -491,6 +567,377 @@ export class ProjectsEngineStore {
     return rows
       .map((row) => normalizeExternalRefRow(row))
       .filter((row): row is ExternalRefRecord => Boolean(row));
+  }
+
+  findExternalRefsByExternal(system: ExternalRefRecord["system"], externalId: string, externalKey?: string): ExternalRefRecord[] {
+    const rows = externalKey
+      ? this.all<SqliteRow>(
+          `
+          SELECT external_ref_id, owner_type, owner_id, system, external_id, external_key,
+                 session_id, metadata_json, created_at, updated_at
+          FROM projects_external_refs
+          WHERE system = ? AND external_id = ? AND external_key = ?
+          ORDER BY updated_at DESC, created_at DESC
+          `,
+          system,
+          externalId,
+          externalKey,
+        )
+      : this.all<SqliteRow>(
+          `
+          SELECT external_ref_id, owner_type, owner_id, system, external_id, external_key,
+                 session_id, metadata_json, created_at, updated_at
+          FROM projects_external_refs
+          WHERE system = ? AND external_id = ?
+          ORDER BY updated_at DESC, created_at DESC
+          `,
+          system,
+          externalId,
+        );
+
+    return rows
+      .map((row) => normalizeExternalRefRow(row))
+      .filter((row): row is ExternalRefRecord => Boolean(row));
+  }
+
+  upsertDispatch(dispatch: DispatchRecord): void {
+    this.run(
+      `
+      INSERT INTO projects_dispatches (
+        dispatch_id, project_id, task_id, thread_id, job_id, repo_id, worktree_id, status,
+        requested_backend, requested_model, execution_session_id, summary, error,
+        created_at, accepted_at, completed_at
+      ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+      ON CONFLICT(dispatch_id) DO UPDATE SET
+        project_id = excluded.project_id,
+        task_id = excluded.task_id,
+        thread_id = excluded.thread_id,
+        job_id = excluded.job_id,
+        repo_id = excluded.repo_id,
+        worktree_id = excluded.worktree_id,
+        status = excluded.status,
+        requested_backend = excluded.requested_backend,
+        requested_model = excluded.requested_model,
+        execution_session_id = excluded.execution_session_id,
+        summary = excluded.summary,
+        error = excluded.error,
+        created_at = excluded.created_at,
+        accepted_at = excluded.accepted_at,
+        completed_at = excluded.completed_at
+      `,
+      dispatch.dispatchId,
+      dispatch.projectId,
+      dispatch.taskId ?? null,
+      dispatch.threadId,
+      dispatch.jobId ?? null,
+      dispatch.repoId ?? null,
+      dispatch.worktreeId ?? null,
+      dispatch.status,
+      dispatch.requestedBackend ?? null,
+      dispatch.requestedModel ?? null,
+      dispatch.executionSessionId ?? null,
+      dispatch.summary ?? null,
+      dispatch.error ?? null,
+      dispatch.createdAt,
+      dispatch.acceptedAt ?? null,
+      dispatch.completedAt ?? null,
+    );
+  }
+
+  listDispatches(threadId?: string, taskId?: string): DispatchRecord[] {
+    let rows: SqliteRow[];
+    if (threadId && taskId) {
+      rows = this.all<SqliteRow>(
+        `
+        SELECT dispatch_id, project_id, task_id, thread_id, job_id, repo_id, worktree_id, status,
+               requested_backend, requested_model, execution_session_id, summary, error,
+               created_at, accepted_at, completed_at
+        FROM projects_dispatches
+        WHERE thread_id = ? AND task_id = ?
+        ORDER BY created_at DESC
+        `,
+        threadId,
+        taskId,
+      );
+    } else if (threadId) {
+      rows = this.all<SqliteRow>(
+        `
+        SELECT dispatch_id, project_id, task_id, thread_id, job_id, repo_id, worktree_id, status,
+               requested_backend, requested_model, execution_session_id, summary, error,
+               created_at, accepted_at, completed_at
+        FROM projects_dispatches
+        WHERE thread_id = ?
+        ORDER BY created_at DESC
+        `,
+        threadId,
+      );
+    } else if (taskId) {
+      rows = this.all<SqliteRow>(
+        `
+        SELECT dispatch_id, project_id, task_id, thread_id, job_id, repo_id, worktree_id, status,
+               requested_backend, requested_model, execution_session_id, summary, error,
+               created_at, accepted_at, completed_at
+        FROM projects_dispatches
+        WHERE task_id = ?
+        ORDER BY created_at DESC
+        `,
+        taskId,
+      );
+    } else {
+      rows = this.all<SqliteRow>(
+        `
+        SELECT dispatch_id, project_id, task_id, thread_id, job_id, repo_id, worktree_id, status,
+               requested_backend, requested_model, execution_session_id, summary, error,
+               created_at, accepted_at, completed_at
+        FROM projects_dispatches
+        ORDER BY created_at DESC
+        `,
+      );
+    }
+
+    return rows.map((row) => normalizeDispatchRow(row)).filter((row): row is DispatchRecord => Boolean(row));
+  }
+
+  upsertWorktree(worktree: WorktreeRecord): void {
+    this.run(
+      `
+      INSERT INTO projects_worktrees (
+        worktree_id, repo_id, thread_id, dispatch_id, path, branch_name, base_ref, status,
+        created_at, expires_at, pruned_at
+      ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+      ON CONFLICT(worktree_id) DO UPDATE SET
+        repo_id = excluded.repo_id,
+        thread_id = excluded.thread_id,
+        dispatch_id = excluded.dispatch_id,
+        path = excluded.path,
+        branch_name = excluded.branch_name,
+        base_ref = excluded.base_ref,
+        status = excluded.status,
+        created_at = excluded.created_at,
+        expires_at = excluded.expires_at,
+        pruned_at = excluded.pruned_at
+      `,
+      worktree.worktreeId,
+      worktree.repoId,
+      worktree.threadId ?? null,
+      worktree.dispatchId ?? null,
+      worktree.path,
+      worktree.branchName,
+      worktree.baseRef,
+      worktree.status,
+      worktree.createdAt,
+      worktree.expiresAt ?? null,
+      worktree.prunedAt ?? null,
+    );
+  }
+
+  listWorktrees(repoId?: string, threadId?: string): WorktreeRecord[] {
+    let rows: SqliteRow[];
+    if (repoId && threadId) {
+      rows = this.all<SqliteRow>(
+        `
+        SELECT worktree_id, repo_id, thread_id, dispatch_id, path, branch_name, base_ref, status,
+               created_at, expires_at, pruned_at
+        FROM projects_worktrees
+        WHERE repo_id = ? AND thread_id = ?
+        ORDER BY created_at DESC
+        `,
+        repoId,
+        threadId,
+      );
+    } else if (repoId) {
+      rows = this.all<SqliteRow>(
+        `
+        SELECT worktree_id, repo_id, thread_id, dispatch_id, path, branch_name, base_ref, status,
+               created_at, expires_at, pruned_at
+        FROM projects_worktrees
+        WHERE repo_id = ?
+        ORDER BY created_at DESC
+        `,
+        repoId,
+      );
+    } else if (threadId) {
+      rows = this.all<SqliteRow>(
+        `
+        SELECT worktree_id, repo_id, thread_id, dispatch_id, path, branch_name, base_ref, status,
+               created_at, expires_at, pruned_at
+        FROM projects_worktrees
+        WHERE thread_id = ?
+        ORDER BY created_at DESC
+        `,
+        threadId,
+      );
+    } else {
+      rows = this.all<SqliteRow>(
+        `
+        SELECT worktree_id, repo_id, thread_id, dispatch_id, path, branch_name, base_ref, status,
+               created_at, expires_at, pruned_at
+        FROM projects_worktrees
+        ORDER BY created_at DESC
+        `,
+      );
+    }
+
+    return rows.map((row) => normalizeWorktreeRow(row)).filter((row): row is WorktreeRecord => Boolean(row));
+  }
+
+  upsertReview(review: ReviewRecord): void {
+    this.run(
+      `
+      INSERT INTO projects_reviews (
+        review_id, dispatch_id, thread_id, review_type, status, summary, artifact_json, created_at, resolved_at
+      ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)
+      ON CONFLICT(review_id) DO UPDATE SET
+        dispatch_id = excluded.dispatch_id,
+        thread_id = excluded.thread_id,
+        review_type = excluded.review_type,
+        status = excluded.status,
+        summary = excluded.summary,
+        artifact_json = excluded.artifact_json,
+        created_at = excluded.created_at,
+        resolved_at = excluded.resolved_at
+      `,
+      review.reviewId,
+      review.dispatchId,
+      review.threadId,
+      review.reviewType,
+      review.status,
+      review.summary ?? null,
+      review.artifactJson ?? null,
+      review.createdAt,
+      review.resolvedAt ?? null,
+    );
+  }
+
+  listReviews(threadId?: string, dispatchId?: string): ReviewRecord[] {
+    let rows: SqliteRow[];
+    if (threadId && dispatchId) {
+      rows = this.all<SqliteRow>(
+        `
+        SELECT review_id, dispatch_id, thread_id, review_type, status, summary, artifact_json, created_at, resolved_at
+        FROM projects_reviews
+        WHERE thread_id = ? AND dispatch_id = ?
+        ORDER BY created_at DESC
+        `,
+        threadId,
+        dispatchId,
+      );
+    } else if (threadId) {
+      rows = this.all<SqliteRow>(
+        `
+        SELECT review_id, dispatch_id, thread_id, review_type, status, summary, artifact_json, created_at, resolved_at
+        FROM projects_reviews
+        WHERE thread_id = ?
+        ORDER BY created_at DESC
+        `,
+        threadId,
+      );
+    } else if (dispatchId) {
+      rows = this.all<SqliteRow>(
+        `
+        SELECT review_id, dispatch_id, thread_id, review_type, status, summary, artifact_json, created_at, resolved_at
+        FROM projects_reviews
+        WHERE dispatch_id = ?
+        ORDER BY created_at DESC
+        `,
+        dispatchId,
+      );
+    } else {
+      rows = this.all<SqliteRow>(
+        `
+        SELECT review_id, dispatch_id, thread_id, review_type, status, summary, artifact_json, created_at, resolved_at
+        FROM projects_reviews
+        ORDER BY created_at DESC
+        `,
+      );
+    }
+
+    return rows.map((row) => normalizeReviewRow(row)).filter((row): row is ReviewRecord => Boolean(row));
+  }
+
+  upsertPublishRun(publishRun: PublishRunRecord): void {
+    this.run(
+      `
+      INSERT INTO projects_publish_runs (
+        publish_run_id, dispatch_id, thread_id, repo_id, branch_name, remote_name, status,
+        commit_sha, pr_url, metadata_json, created_at, completed_at
+      ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+      ON CONFLICT(publish_run_id) DO UPDATE SET
+        dispatch_id = excluded.dispatch_id,
+        thread_id = excluded.thread_id,
+        repo_id = excluded.repo_id,
+        branch_name = excluded.branch_name,
+        remote_name = excluded.remote_name,
+        status = excluded.status,
+        commit_sha = excluded.commit_sha,
+        pr_url = excluded.pr_url,
+        metadata_json = excluded.metadata_json,
+        created_at = excluded.created_at,
+        completed_at = excluded.completed_at
+      `,
+      publishRun.publishRunId,
+      publishRun.dispatchId,
+      publishRun.threadId,
+      publishRun.repoId,
+      publishRun.branchName,
+      publishRun.remoteName,
+      publishRun.status,
+      publishRun.commitSha ?? null,
+      publishRun.prUrl ?? null,
+      publishRun.metadataJson ?? null,
+      publishRun.createdAt,
+      publishRun.completedAt ?? null,
+    );
+  }
+
+  listPublishRuns(threadId?: string, dispatchId?: string): PublishRunRecord[] {
+    let rows: SqliteRow[];
+    if (threadId && dispatchId) {
+      rows = this.all<SqliteRow>(
+        `
+        SELECT publish_run_id, dispatch_id, thread_id, repo_id, branch_name, remote_name, status,
+               commit_sha, pr_url, metadata_json, created_at, completed_at
+        FROM projects_publish_runs
+        WHERE thread_id = ? AND dispatch_id = ?
+        ORDER BY created_at DESC
+        `,
+        threadId,
+        dispatchId,
+      );
+    } else if (threadId) {
+      rows = this.all<SqliteRow>(
+        `
+        SELECT publish_run_id, dispatch_id, thread_id, repo_id, branch_name, remote_name, status,
+               commit_sha, pr_url, metadata_json, created_at, completed_at
+        FROM projects_publish_runs
+        WHERE thread_id = ?
+        ORDER BY created_at DESC
+        `,
+        threadId,
+      );
+    } else if (dispatchId) {
+      rows = this.all<SqliteRow>(
+        `
+        SELECT publish_run_id, dispatch_id, thread_id, repo_id, branch_name, remote_name, status,
+               commit_sha, pr_url, metadata_json, created_at, completed_at
+        FROM projects_publish_runs
+        WHERE dispatch_id = ?
+        ORDER BY created_at DESC
+        `,
+        dispatchId,
+      );
+    } else {
+      rows = this.all<SqliteRow>(
+        `
+        SELECT publish_run_id, dispatch_id, thread_id, repo_id, branch_name, remote_name, status,
+               commit_sha, pr_url, metadata_json, created_at, completed_at
+        FROM projects_publish_runs
+        ORDER BY created_at DESC
+        `,
+      );
+    }
+
+    return rows.map((row) => normalizePublishRunRow(row)).filter((row): row is PublishRunRecord => Boolean(row));
   }
 
 }

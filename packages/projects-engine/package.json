@@ -8,6 +8,7 @@
   "types": "./src/index.ts",
   "exports": {
     ".": "./src/index.ts",
+    "./bridge": "./src/bridge.ts",
     "./schema": "./src/schema.ts",
     "./types": "./src/types.ts"
   }

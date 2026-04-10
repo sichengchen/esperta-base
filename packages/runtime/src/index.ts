@@ -1,6 +1,7 @@
 export * from "./audit.js";
 export * from "./auth.js";
 export * from "./checkpoints.js";
+export * from "./config/index.js";
 export * from "./context.js";
 export * from "./operational-store.js";
 export * from "./runtime.js";

@@ -1,5 +1,5 @@
 import { join } from "node:path";
-import { ConfigManager } from "../../../src/engine/config/index.js";
+import { ConfigManager } from "./config/index.js";
 import { ModelRouter } from "../../../src/engine/router/index.js";
 import { Agent } from "../../../src/engine/agent/index.js";
 import type { ToolImpl, ToolApprovalCallback, AskUserCallback } from "../../../src/engine/agent/index.js";
@@ -17,7 +17,7 @@ import { AuthManager } from "./auth.js";
 import { SkillRegistry } from "../../../src/engine/skills/index.js";
 import { createReadSkillTool } from "../../../src/engine/tools/read-skill.js";
 import { Scheduler, createHeartbeatTask } from "../../../src/engine/scheduler.js";
-import { DEFAULT_HEARTBEAT_MD, CRON_DEFAULT_TOOLS } from "../../../src/engine/config/defaults.js";
+import { DEFAULT_HEARTBEAT_MD } from "./config/defaults.js";
 import { existsSync } from "node:fs";
 import { writeFile } from "node:fs/promises";
 import { createTranscriber, type Transcriber } from "../../../src/engine/audio/index.js";

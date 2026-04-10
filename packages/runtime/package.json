@@ -11,6 +11,7 @@
     "./audit": "./src/audit.ts",
     "./auth": "./src/auth.ts",
     "./checkpoints": "./src/checkpoints.ts",
+    "./config": "./src/config/index.ts",
     "./context": "./src/context.ts",
     "./engine": "./src/engine.ts",
     "./operational-store": "./src/operational-store.ts",

@@ -31,12 +31,20 @@ export class ProjectsEngineRepository {
     return this.store.listProjects();
   }
 
+  getProject(projectId: string): ProjectRecord | undefined {
+    return this.store.getProject(projectId);
+  }
+
   upsertRepo(repo: RepoRecord): void {
     this.store.upsertRepo(repo);
   }
 
   listRepos(projectId?: string): RepoRecord[] {
     return this.store.listRepos(projectId);
+  }
+
+  getRepo(repoId: string): RepoRecord | undefined {
+    return this.store.getRepo(repoId);
   }
 
   upsertTask(task: TaskRecord): void {
@@ -47,12 +55,20 @@ export class ProjectsEngineRepository {
     return this.store.listTasks(projectId, repoId);
   }
 
+  getTask(taskId: string): TaskRecord | undefined {
+    return this.store.getTask(taskId);
+  }
+
   upsertThread(thread: ThreadRecord): void {
     this.store.upsertThread(thread);
   }
 
   listThreads(projectId?: string, taskId?: string): ThreadRecord[] {
     return this.store.listThreads(projectId, taskId);
+  }
+
+  getThread(threadId: string): ThreadRecord | undefined {
+    return this.store.getThread(threadId);
   }
 
   upsertJob(job: JobRecord): void {
@@ -83,12 +99,20 @@ export class ProjectsEngineRepository {
     return this.store.listDispatches(threadId, taskId);
   }
 
+  getDispatch(dispatchId: string): DispatchRecord | undefined {
+    return this.store.getDispatch(dispatchId);
+  }
+
   upsertWorktree(worktree: WorktreeRecord): void {
     this.store.upsertWorktree(worktree);
   }
 
   listWorktrees(repoId?: string, threadId?: string): WorktreeRecord[] {
     return this.store.listWorktrees(repoId, threadId);
+  }
+
+  getWorktree(worktreeId: string): WorktreeRecord | undefined {
+    return this.store.getWorktree(worktreeId);
   }
 
   upsertReview(review: ReviewRecord): void {

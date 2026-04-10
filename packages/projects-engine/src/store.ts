@@ -254,6 +254,19 @@ export class ProjectsEngineStore {
       .filter((row): row is ProjectRecord => Boolean(row));
   }
 
+  getProject(projectId: string): ProjectRecord | undefined {
+    return normalizeProjectRow(
+      this.get<SqliteRow>(
+        `
+        SELECT project_id, name, slug, description, created_at, updated_at
+        FROM projects_projects
+        WHERE project_id = ?
+        `,
+        projectId,
+      ),
+    );
+  }
+
   upsertRepo(repo: RepoRecord): void {
     this.run(
       `
@@ -298,6 +311,19 @@ export class ProjectsEngineStore {
         );
 
     return rows.map((row) => normalizeRepoRow(row)).filter((row): row is RepoRecord => Boolean(row));
+  }
+
+  getRepo(repoId: string): RepoRecord | undefined {
+    return normalizeRepoRow(
+      this.get<SqliteRow>(
+        `
+        SELECT repo_id, project_id, name, remote_url, default_branch, created_at, updated_at
+        FROM projects_repos
+        WHERE repo_id = ?
+        `,
+        repoId,
+      ),
+    );
   }
 
   upsertTask(task: TaskRecord): void {
@@ -372,6 +398,19 @@ export class ProjectsEngineStore {
     return rows.map((row) => normalizeTaskRow(row)).filter((row): row is TaskRecord => Boolean(row));
   }
 
+  getTask(taskId: string): TaskRecord | undefined {
+    return normalizeTaskRow(
+      this.get<SqliteRow>(
+        `
+        SELECT task_id, project_id, repo_id, title, description, status, created_at, updated_at
+        FROM projects_tasks
+        WHERE task_id = ?
+        `,
+        taskId,
+      ),
+    );
+  }
+
   upsertThread(thread: ThreadRecord): void {
     this.run(
       `
@@ -442,6 +481,19 @@ export class ProjectsEngineStore {
     }
 
     return rows.map((row) => normalizeThreadRow(row)).filter((row): row is ThreadRecord => Boolean(row));
+  }
+
+  getThread(threadId: string): ThreadRecord | undefined {
+    return normalizeThreadRow(
+      this.get<SqliteRow>(
+        `
+        SELECT thread_id, project_id, task_id, repo_id, title, status, created_at, updated_at
+        FROM projects_threads
+        WHERE thread_id = ?
+        `,
+        threadId,
+      ),
+    );
   }
 
   upsertJob(job: JobRecord): void {
@@ -698,6 +750,21 @@ export class ProjectsEngineStore {
     return rows.map((row) => normalizeDispatchRow(row)).filter((row): row is DispatchRecord => Boolean(row));
   }
 
+  getDispatch(dispatchId: string): DispatchRecord | undefined {
+    return normalizeDispatchRow(
+      this.get<SqliteRow>(
+        `
+        SELECT dispatch_id, project_id, task_id, thread_id, job_id, repo_id, worktree_id, status,
+               requested_backend, requested_model, execution_session_id, summary, error,
+               created_at, accepted_at, completed_at
+        FROM projects_dispatches
+        WHERE dispatch_id = ?
+        `,
+        dispatchId,
+      ),
+    );
+  }
+
   upsertWorktree(worktree: WorktreeRecord): void {
     this.run(
       `
@@ -779,6 +846,20 @@ export class ProjectsEngineStore {
     }
 
     return rows.map((row) => normalizeWorktreeRow(row)).filter((row): row is WorktreeRecord => Boolean(row));
+  }
+
+  getWorktree(worktreeId: string): WorktreeRecord | undefined {
+    return normalizeWorktreeRow(
+      this.get<SqliteRow>(
+        `
+        SELECT worktree_id, repo_id, thread_id, dispatch_id, path, branch_name, base_ref, status,
+               created_at, expires_at, pruned_at
+        FROM projects_worktrees
+        WHERE worktree_id = ?
+        `,
+        worktreeId,
+      ),
+    );
   }
 
   upsertReview(review: ReviewRecord): void {

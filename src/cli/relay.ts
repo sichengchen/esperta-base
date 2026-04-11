@@ -1,27 +1,23 @@
 import { join } from "node:path";
-import { mkdir, readFile, writeFile } from "node:fs/promises";
-import { existsSync } from "node:fs";
 import { CLI_NAME, getRuntimeHome } from "@aria/shared/brand.js";
-import type { RelayDeviceRecord } from "../../packages/relay/src/types.js";
+import { RelayService } from "../../packages/relay/src/service.js";
+import { RelayStore } from "../../packages/relay/src/store.js";
 
-const RELAY_STORE_FILE = "relay.devices.json";
-
-async function loadDevices(): Promise<RelayDeviceRecord[]> {
-  const path = join(getRuntimeHome(), RELAY_STORE_FILE);
-  if (!existsSync(path)) {
-    return [];
-  }
-  return JSON.parse(await readFile(path, "utf-8")) as RelayDeviceRecord[];
-}
-
-async function saveDevices(devices: RelayDeviceRecord[]): Promise<void> {
-  const home = getRuntimeHome();
-  await mkdir(home, { recursive: true });
-  await writeFile(join(home, RELAY_STORE_FILE), JSON.stringify(devices, null, 2) + "\n");
-}
+const RELAY_STORE_FILE = "relay-state.json";
 
 function printHelp(): void {
-  console.log(`Usage: ${CLI_NAME} relay <list|register <deviceId> <label>|revoke <deviceId>>`);
+  console.log(`Usage: ${CLI_NAME} relay <subcommand>`);
+  console.log("");
+  console.log("  list");
+  console.log("  register <deviceId> <label>");
+  console.log("  revoke <deviceId>");
+  console.log("  attach <deviceId> <sessionId>");
+  console.log("  detach <deviceId> <sessionId>");
+  console.log("  attachments [deviceId]");
+  console.log("  send <deviceId> <sessionId> <message>");
+  console.log("  approve <deviceId> <sessionId> <toolCallId> <approve|deny>");
+  console.log("  events [deviceId]");
+  console.log("  deliver <eventId>");
 }
 
 export async function relayCommand(args: string[]): Promise<void> {
@@ -31,15 +27,17 @@ export async function relayCommand(args: string[]): Promise<void> {
     return;
   }
 
-  const devices = await loadDevices();
+  const store = new RelayStore(join(getRuntimeHome(), RELAY_STORE_FILE));
+  const relay = new RelayService(store);
 
   if (action === "list") {
+    const devices = await relay.listDevices();
     if (devices.length === 0) {
       console.log("No relay devices registered.");
       return;
     }
     for (const device of devices) {
-      console.log(`${device.deviceId}  ${device.label}  paired=${new Date(device.pairedAt).toISOString()}  revoked=${device.revokedAt ? new Date(device.revokedAt).toISOString() : "no"}`);
+      console.log(`${device.deviceId}  ${device.label}  paired=${new Date(device.pairedAt).toISOString()}  revoked=${device.revokedAt ? new Date(device.revokedAt).toISOString() : "no"}  token=${device.pairingToken ?? "n/a"}`);
     }
     return;
   }
@@ -52,12 +50,13 @@ export async function relayCommand(args: string[]): Promise<void> {
       process.exitCode = 1;
       return;
     }
-    const existing = devices.find((device) => device.deviceId === deviceId);
-    const next = existing
-      ? devices.map((device) => device.deviceId === deviceId ? { ...device, label, revokedAt: null } : device)
-      : [...devices, { deviceId, label, pairedAt: Date.now(), revokedAt: null }];
-    await saveDevices(next);
-    console.log(`Registered relay device ${deviceId}.`);
+    const device = await relay.registerDevice({
+      deviceId,
+      label,
+      pairedAt: Date.now(),
+      revokedAt: null,
+    });
+    console.log(`Registered relay device ${device.deviceId}.`);
     return;
   }
 
@@ -68,9 +67,98 @@ export async function relayCommand(args: string[]): Promise<void> {
       process.exitCode = 1;
       return;
     }
-    const next = devices.map((device) => device.deviceId === deviceId ? { ...device, revokedAt: Date.now() } : device);
-    await saveDevices(next);
+    await relay.revokeDevice(deviceId);
     console.log(`Revoked relay device ${deviceId}.`);
+    return;
+  }
+
+  if (action === "attach") {
+    const [deviceId, sessionId] = args.slice(1);
+    if (!deviceId || !sessionId) {
+      printHelp();
+      process.exitCode = 1;
+      return;
+    }
+    const attachment = await relay.attachSession({ deviceId, sessionId });
+    console.log(`Attached ${attachment.deviceId} to ${attachment.sessionId}.`);
+    return;
+  }
+
+  if (action === "detach") {
+    const [deviceId, sessionId] = args.slice(1);
+    if (!deviceId || !sessionId) {
+      printHelp();
+      process.exitCode = 1;
+      return;
+    }
+    const attachment = await relay.detachSession(deviceId, sessionId);
+    if (!attachment) {
+      console.log("No active attachment found.");
+      return;
+    }
+    console.log(`Detached ${deviceId} from ${sessionId}.`);
+    return;
+  }
+
+  if (action === "attachments") {
+    const attachments = await relay.listAttachments(args[1]);
+    if (attachments.length === 0) {
+      console.log("No relay attachments found.");
+      return;
+    }
+    for (const attachment of attachments) {
+      console.log(`${attachment.attachmentId}  device=${attachment.deviceId}  session=${attachment.sessionId}  detached=${attachment.detachedAt ? "yes" : "no"}  send=${attachment.canSendMessages ? "yes" : "no"}  approve=${attachment.canRespondToApprovals ? "yes" : "no"}`);
+    }
+    return;
+  }
+
+  if (action === "send") {
+    const [deviceId, sessionId, ...messageParts] = args.slice(1);
+    const message = messageParts.join(" ").trim();
+    if (!deviceId || !sessionId || !message) {
+      printHelp();
+      process.exitCode = 1;
+      return;
+    }
+    const event = await relay.queueFollowUp({ deviceId, sessionId, message });
+    console.log(`Queued follow-up event ${event.eventId}.`);
+    return;
+  }
+
+  if (action === "approve") {
+    const [deviceId, sessionId, toolCallId, decision] = args.slice(1);
+    if (!deviceId || !sessionId || !toolCallId || !decision) {
+      printHelp();
+      process.exitCode = 1;
+      return;
+    }
+    const approved = decision === "approve" || decision === "approved" || decision === "yes";
+    const event = await relay.queueApprovalResponse({ deviceId, sessionId, toolCallId, approved });
+    console.log(`Queued approval response ${event.eventId}.`);
+    return;
+  }
+
+  if (action === "events") {
+    const events = await relay.listEvents(args[1]);
+    if (events.length === 0) {
+      console.log("No relay events found.");
+      return;
+    }
+    for (const event of events) {
+      console.log(`${event.eventId}  ${event.type}  device=${event.deviceId}  session=${event.sessionId}  delivered=${event.deliveredAt ? "yes" : "no"}`);
+    }
+    return;
+  }
+
+  if (action === "deliver") {
+    const eventId = args[1];
+    if (!eventId) {
+      printHelp();
+      process.exitCode = 1;
+      return;
+    }
+    await relay.markDelivered(eventId);
+    console.log(`Marked relay event ${eventId} delivered.`);
     return;
   }
 

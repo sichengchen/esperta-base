@@ -123,11 +123,19 @@ export class ProjectsEngineRepository {
     return this.store.listReviews(threadId, dispatchId);
   }
 
+  getReview(reviewId: string): ReviewRecord | undefined {
+    return this.store.getReview(reviewId);
+  }
+
   upsertPublishRun(publishRun: PublishRunRecord): void {
     this.store.upsertPublishRun(publishRun);
   }
 
   listPublishRuns(threadId?: string, dispatchId?: string): PublishRunRecord[] {
     return this.store.listPublishRuns(threadId, dispatchId);
+  }
+
+  getPublishRun(publishRunId: string): PublishRunRecord | undefined {
+    return this.store.getPublishRun(publishRunId);
   }
 }

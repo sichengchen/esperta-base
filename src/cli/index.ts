@@ -8,6 +8,7 @@ import { engineCommand, ensureEngine } from "./engine.js";
 import { automationCommand } from "./automation.js";
 import { memoryCommand } from "./memory.js";
 import { projectsCommand } from "./projects.js";
+import { relayCommand } from "./relay.js";
 import { loadConnectorRuntimeEnv } from "./connector-env.js";
 import { createTuiClient } from "@aria/connectors/tui/client.js";
 import { App } from "@aria/connectors/tui/App.js";
@@ -101,6 +102,7 @@ const COMMANDS: Record<string, (args: string[]) => Promise<void>> = {
   },
   memory: memoryCommand,
   projects: projectsCommand,
+  relay: relayCommand,
   config: async () => {
     if (!isConfigured()) {
       console.error(`No configuration found. Run '${CLI_NAME} onboard' first.`);
@@ -260,6 +262,7 @@ const COMMANDS: Record<string, (args: string[]) => Promise<void>> = {
     console.log("  onboard     Run the onboarding wizard");
     console.log("  memory      Inspect layered memory and search results");
     console.log("  projects    Inspect tracked project/task/thread/dispatch records");
+    console.log("  relay       Manage paired relay devices");
     console.log("  engine      Manage the runtime daemon (start/stop/status/logs/restart)");
     console.log("  stop        Stop all running agent tasks");
     console.log("  restart     Restart Aria Runtime");

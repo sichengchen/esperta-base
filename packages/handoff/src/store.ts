@@ -101,6 +101,15 @@ export class HandoffStore {
     `).get(idempotencyKey) as Row | undefined);
   }
 
+  getById(handoffId: string): HandoffRecord | undefined {
+    return normalize(this.getDb().prepare(`
+      SELECT handoff_id, idempotency_key, source_kind, source_session_id, project_id, task_id, thread_id,
+             created_dispatch_id, status, payload_json, created_at, updated_at
+      FROM projects_handoffs
+      WHERE handoff_id = ?
+    `).get(handoffId) as Row | undefined);
+  }
+
   list(projectId?: string): HandoffRecord[] {
     const rows = projectId
       ? this.getDb().prepare(`

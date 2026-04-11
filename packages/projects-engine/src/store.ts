@@ -936,6 +936,19 @@ export class ProjectsEngineStore {
     return rows.map((row) => normalizeReviewRow(row)).filter((row): row is ReviewRecord => Boolean(row));
   }
 
+  getReview(reviewId: string): ReviewRecord | undefined {
+    return normalizeReviewRow(
+      this.get<SqliteRow>(
+        `
+        SELECT review_id, dispatch_id, thread_id, review_type, status, summary, artifact_json, created_at, resolved_at
+        FROM projects_reviews
+        WHERE review_id = ?
+        `,
+        reviewId,
+      ),
+    );
+  }
+
   upsertPublishRun(publishRun: PublishRunRecord): void {
     this.run(
       `
@@ -1019,6 +1032,20 @@ export class ProjectsEngineStore {
     }
 
     return rows.map((row) => normalizePublishRunRow(row)).filter((row): row is PublishRunRecord => Boolean(row));
+  }
+
+  getPublishRun(publishRunId: string): PublishRunRecord | undefined {
+    return normalizePublishRunRow(
+      this.get<SqliteRow>(
+        `
+        SELECT publish_run_id, dispatch_id, thread_id, repo_id, branch_name, remote_name, status,
+               commit_sha, pr_url, metadata_json, created_at, completed_at
+        FROM projects_publish_runs
+        WHERE publish_run_id = ?
+        `,
+        publishRunId,
+      ),
+    );
   }
 
 }

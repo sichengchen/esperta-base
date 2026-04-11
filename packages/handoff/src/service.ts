@@ -1,5 +1,39 @@
+import { randomUUID } from "node:crypto";
+import { ProjectsDispatchService } from "../../projects-engine/src/dispatch.js";
+import type { ProjectsEngineRepository } from "../../projects-engine/src/repository.js";
 import type { HandoffRecord, HandoffSubmission } from "./types.js";
 import { HandoffStore } from "./store.js";
+
+interface ParsedHandoffPayload {
+  title?: string;
+  body?: string;
+  repoId?: string | null;
+  taskId?: string | null;
+  threadId?: string | null;
+  requestedBackend?: string | null;
+  requestedModel?: string | null;
+}
+
+function parsePayload(payloadJson?: string | null): ParsedHandoffPayload {
+  if (!payloadJson) {
+    return {};
+  }
+
+  try {
+    const parsed = JSON.parse(payloadJson) as Record<string, unknown>;
+    return {
+      title: typeof parsed.title === "string" ? parsed.title : undefined,
+      body: typeof parsed.body === "string" ? parsed.body : payloadJson,
+      repoId: typeof parsed.repoId === "string" ? parsed.repoId : null,
+      taskId: typeof parsed.taskId === "string" ? parsed.taskId : null,
+      threadId: typeof parsed.threadId === "string" ? parsed.threadId : null,
+      requestedBackend: typeof parsed.requestedBackend === "string" ? parsed.requestedBackend : null,
+      requestedModel: typeof parsed.requestedModel === "string" ? parsed.requestedModel : null,
+    };
+  } catch {
+    return { body: payloadJson };
+  }
+}
 
 export class HandoffService {
   constructor(private readonly store: HandoffStore) {}
@@ -10,6 +44,14 @@ export class HandoffService {
 
   close(): void {
     this.store.close();
+  }
+
+  get(handoffId: string): HandoffRecord | undefined {
+    return this.store.getById(handoffId);
+  }
+
+  list(projectId?: string): HandoffRecord[] {
+    return this.store.list(projectId);
   }
 
   submit(handoffId: string, submission: HandoffSubmission, now = Date.now()): HandoffRecord {
@@ -49,5 +91,94 @@ export class HandoffService {
     };
     this.store.upsert(updated);
     return updated;
+  }
+
+  materialize(
+    handoffId: string,
+    repository: ProjectsEngineRepository,
+    now = Date.now(),
+  ): { handoff: HandoffRecord; threadId: string; jobId: string; dispatchId: string } {
+    const handoff = this.store.getById(handoffId);
+    if (!handoff) {
+      throw new Error(`Handoff not found: ${handoffId}`);
+    }
+    if (!repository.getProject(handoff.projectId)) {
+      throw new Error(`Project not found: ${handoff.projectId}`);
+    }
+
+    if (handoff.createdDispatchId) {
+      const existingDispatch = repository.getDispatch(handoff.createdDispatchId);
+      if (existingDispatch) {
+        return {
+          handoff,
+          threadId: existingDispatch.threadId,
+          jobId: existingDispatch.jobId ?? `job:${handoff.handoffId}`,
+          dispatchId: existingDispatch.dispatchId,
+        };
+      }
+    }
+
+    const payload = parsePayload(handoff.payloadJson);
+    const threadId = handoff.threadId ?? payload.threadId ?? `thread:${handoff.handoffId}`;
+    const taskId = handoff.taskId ?? payload.taskId ?? null;
+    const existingThread = repository.getThread(threadId);
+    if (!existingThread) {
+      repository.upsertThread({
+        threadId,
+        projectId: handoff.projectId,
+        taskId,
+        repoId: payload.repoId ?? null,
+        title: payload.title ?? `Handoff ${handoff.handoffId}`,
+        status: "queued",
+        createdAt: now,
+        updatedAt: now,
+      });
+    }
+
+    const jobId = `job:${handoff.handoffId}`;
+    repository.upsertJob({
+      jobId,
+      threadId,
+      author: "external",
+      body: payload.body ?? handoff.payloadJson ?? `Handoff ${handoff.handoffId}`,
+      createdAt: now,
+    });
+
+    const dispatchId = handoff.createdDispatchId ?? `dispatch:${handoff.handoffId}`;
+    const dispatchService = new ProjectsDispatchService(repository);
+    dispatchService.queueDispatch({
+      dispatchId,
+      projectId: handoff.projectId,
+      taskId,
+      threadId,
+      jobId,
+      repoId: payload.repoId ?? repository.getThread(threadId)?.repoId ?? null,
+      worktreeId: null,
+      status: "queued",
+      requestedBackend: payload.requestedBackend ?? null,
+      requestedModel: payload.requestedModel ?? null,
+      executionSessionId: null,
+      summary: null,
+      error: null,
+      createdAt: now,
+      acceptedAt: null,
+      completedAt: null,
+    });
+    repository.upsertThread({
+      ...(repository.getThread(threadId) ?? {
+        threadId,
+        projectId: handoff.projectId,
+        taskId,
+        repoId: payload.repoId ?? null,
+        title: payload.title ?? `Handoff ${handoff.handoffId}`,
+        createdAt: now,
+      }),
+      title: repository.getThread(threadId)?.title ?? payload.title ?? `Handoff ${handoff.handoffId}`,
+      status: "queued",
+      updatedAt: now,
+    });
+
+    const updated = this.attachDispatch(handoffId, dispatchId, now);
+    return { handoff: updated, threadId, jobId, dispatchId };
   }
 }

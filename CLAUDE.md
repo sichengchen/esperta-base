@@ -10,7 +10,7 @@ This file provides guidance to Claude Code (claude.ai/code) when working with co
 | `bun run build` | Bundle CLI to `dist/` (Bun target) |
 | `bun test` | Run all tests (Bun's built-in runner) |
 | `bun test packages/runtime/src/config/secrets.test.ts` | Run a single test file |
-| `bun run lint` | ESLint across `src/` |
+| `bun run lint` | ESLint across `packages/` |
 | `bun run typecheck` | TypeScript `tsc --noEmit` |
 
 Runtime: **Bun** (not Node). Package manager: **Bun**. Module system: **ES modules**.
@@ -79,9 +79,9 @@ Tests use Bun's built-in test runner (Jest-compatible API — `describe`, `it`, 
 ## Documentation
 
 - Canonical documentation lives in `docs/`.
-- Start with `docs/README.md` and the product, system, and interface docs under `docs/product/`, `docs/system/`, and `docs/interfaces/`.
+- Start with `docs/README.md`, then use the new reader-oriented sections under `docs/product/`, `docs/architecture/`, `docs/operator/`, `docs/security/`, `docs/reference/`, and `docs/development/`.
 - `scripts/copy-docs.ts` copies the docs tree into the bundled `aria` skill before `scripts/embed-skills.ts` runs.
 
 ## ESLint
 
-Uses ESLint 10+ flat config (`eslint.config.js`) with `@typescript-eslint/parser`. Only covers `src/**/*.ts` and `src/**/*.tsx`.
+Uses ESLint 10+ flat config (`eslint.config.js`) with `@typescript-eslint/parser`. It targets the package-owned source tree.

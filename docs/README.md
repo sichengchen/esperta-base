@@ -1,41 +1,78 @@
-# Esperta Aria Documentation
+# Esperta Aria Docs
 
-`docs/` is the operator and architecture guide for the current repo. `specs/` holds the package-level engineering contracts. In practice:
+This tree is organized by reader intent, not by the old code layout.
 
-- `docs/` explains how Aria behaves and how to operate it
-- `specs/` defines the durable package boundaries and migration direction
+## Start Here
 
-## Core Platform Docs
+- Product overview: [product/overview.md](./product/overview.md)
+- Getting started as an operator: [operator/getting-started.md](./operator/getting-started.md)
+- System map: [architecture/README.md](./architecture/README.md)
+- Security model: [security/README.md](./security/README.md)
+- Contributing and shipping: [development/README.md](./development/README.md)
 
-| File | Focus |
-| --- | --- |
-| [`product/aria-platform.md`](product/aria-platform.md) | Product identity, vocabulary, commitments, compatibility stance |
-| [`system/runtime-model.md`](system/runtime-model.md) | Runtime ownership, durable storage, session/run lifecycle |
-| [`system/prompt-engine.md`](system/prompt-engine.md) | Prompt assembly, memory layers, context loading, compression |
-| [`system/tool-runtime.md`](system/tool-runtime.md) | Toolsets, policy, MCP integration, audit requirements |
-| [`system/automation.md`](system/automation.md) | Cron and webhook execution on the runtime substrate |
-| [`system/projects-engine.md`](system/projects-engine.md) | Durable tracked work, dispatch, review, publish, repo/worktree flow |
-| [`system/relay-model.md`](system/relay-model.md) | Paired-device trust, session attachment, queued relay envelopes |
-| [`system/handoff.md`](system/handoff.md) | Idempotent submission boundary from local/runtime work into Projects |
-| [`interfaces/interaction-protocol.md`](interfaces/interaction-protocol.md) | Shared runtime event contract for every surface |
+## Documentation Map
 
-## Operator And Repo Docs
+### Product
 
-| Area | Entry points |
-| --- | --- |
-| Package architecture and runtime flow | [`overview.md`](overview.md), [`sessions.md`](sessions.md), [`subagents.md`](subagents.md) |
-| CLI and configuration | [`cli.md`](cli.md), [`configuration.md`](configuration.md), [`development.md`](development.md) |
-| Skills, memory, and tool behavior | [`skills.md`](skills.md), [`tools/README.md`](tools/README.md), [`tools/memory.md`](tools/memory.md) |
-| Security surfaces | [`security/README.md`](security/README.md), [`security/approval-flow.md`](security/approval-flow.md), [`security/url-policy.md`](security/url-policy.md) |
+- [product/README.md](./product/README.md)
+- [product/overview.md](./product/overview.md)
+- [product/areas.md](./product/areas.md)
+- [product/glossary.md](./product/glossary.md)
+
+### Architecture
+
+- [architecture/README.md](./architecture/README.md)
+- [architecture/monorepo.md](./architecture/monorepo.md)
+- [architecture/runtime.md](./architecture/runtime.md)
+- [architecture/storage-and-recovery.md](./architecture/storage-and-recovery.md)
+- [architecture/prompt-engine.md](./architecture/prompt-engine.md)
+- [architecture/tool-runtime.md](./architecture/tool-runtime.md)
+- [architecture/projects-engine.md](./architecture/projects-engine.md)
+- [architecture/relay.md](./architecture/relay.md)
+- [architecture/handoff.md](./architecture/handoff.md)
+- [architecture/providers.md](./architecture/providers.md)
+- [architecture/interaction-protocol.md](./architecture/interaction-protocol.md)
+
+### Operator Guides
+
+- [operator/README.md](./operator/README.md)
+- [operator/getting-started.md](./operator/getting-started.md)
+- [operator/cli.md](./operator/cli.md)
+- [operator/configuration.md](./operator/configuration.md)
+- [operator/automation.md](./operator/automation.md)
+- [operator/sessions.md](./operator/sessions.md)
+- [operator/projects.md](./operator/projects.md)
+- [operator/relay.md](./operator/relay.md)
+- [operator/skills.md](./operator/skills.md)
+- [operator/subagents.md](./operator/subagents.md)
+
+### Security
+
+- [security/README.md](./security/README.md)
+- [security/auth.md](./security/auth.md)
+- [security/approval-flow.md](./security/approval-flow.md)
+- [security/content-framing.md](./security/content-framing.md)
+- [security/exec-classifier.md](./security/exec-classifier.md)
+- [security/exec-fence.md](./security/exec-fence.md)
+- [security/sandbox.md](./security/sandbox.md)
+- [security/secrets-vault.md](./security/secrets-vault.md)
+- [security/security-modes.md](./security/security-modes.md)
+- [security/url-policy.md](./security/url-policy.md)
+- [security/audit-log.md](./security/audit-log.md)
+
+### Reference
+
+- [reference/README.md](./reference/README.md)
+- [reference/tools/README.md](./reference/tools/README.md)
+
+### Development
+
+- [development/README.md](./development/README.md)
+- [development/setup.md](./development/setup.md)
+- [development/testing.md](./development/testing.md)
+- [development/release.md](./development/release.md)
+- [development/migration.md](./development/migration.md)
 
 ## Documentation Rule
 
-If implementation changes:
-
-- runtime ownership
-- tracked-work behavior
-- relay or handoff behavior
-- CLI or configuration surfaces
-- user-visible tool or approval behavior
-
-then update the matching file in `docs/` and the matching contract in `specs/` when the change alters the architecture rather than only the operator surface.
+When behavior changes, update the most specific page in this tree in the same change. Product and architecture pages define the model; operator pages describe workflows; development pages describe how the repo is built and maintained.

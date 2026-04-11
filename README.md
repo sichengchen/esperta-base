@@ -66,8 +66,7 @@ Connector and integration surfaces:
 ## Repo Layout
 
 ```text
-docs/                operator and architecture docs
-specs/               package-level engineering contracts
+docs/                canonical documentation tree
 packages/
   cli/
   connectors/
@@ -78,7 +77,6 @@ packages/
   shared-types/
   providers-*/
 scripts/             build, embedding, migration, release helpers
-src/                 compatibility tree and remaining legacy entrypoints
 tests/               unit, integration, workflow, and live-gated tests
 ```
 
@@ -94,13 +92,13 @@ bun run build
 
 ## Documentation
 
-Operator and architecture docs live under [docs](./docs). Package-level engineering contracts live under [specs](./specs).
+Canonical docs live under [docs](./docs).
 
 Recommended entry points:
 
 - [docs/README.md](./docs/README.md)
-- [docs/product/aria-platform.md](./docs/product/aria-platform.md)
-- [docs/system/runtime-model.md](./docs/system/runtime-model.md)
-- [docs/system/projects-engine.md](./docs/system/projects-engine.md)
-- [docs/system/relay-model.md](./docs/system/relay-model.md)
-- [specs/README.md](./specs/README.md)
+- [docs/product/overview.md](./docs/product/overview.md)
+- [docs/architecture/runtime.md](./docs/architecture/runtime.md)
+- [docs/architecture/projects-engine.md](./docs/architecture/projects-engine.md)
+- [docs/architecture/relay.md](./docs/architecture/relay.md)
+- [docs/operator/getting-started.md](./docs/operator/getting-started.md)

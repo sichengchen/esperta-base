@@ -22,7 +22,7 @@
 
 | Test type | Location | When to use |
 |-----------|----------|-------------|
-| Co-located unit test | `src/**/*.test.ts` | Testing a single module's pure logic (no I/O, no LLM) |
+| Co-located unit test | `packages/**/*.test.ts` | Testing a single module's pure logic (no I/O, no LLM) |
 | External unit test | `tests/*.test.ts` | Testing a subsystem with I/O or cross-module deps |
 | Live LLM test | `tests/live/*.test.ts` | Testing agent chat, tool dispatch, tRPC chat.stream |
 | Integration test | `tests/integration/*.test.ts` | Testing two+ subsystems without LLM |

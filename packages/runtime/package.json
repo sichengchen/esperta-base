@@ -10,6 +10,7 @@
     ".": "./src/index.ts",
     "./agent": "./src/agent/index.ts",
     "./automation": "./src/automation.ts",
+    "./automation-registry": "./src/automation-registry.ts",
     "./automation-schedule": "./src/automation-schedule.ts",
     "./audio": "./src/audio/index.ts",
     "./audit": "./src/audit.ts",

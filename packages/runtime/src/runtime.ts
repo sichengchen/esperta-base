@@ -28,7 +28,7 @@ import { SessionArchiveManager } from "./session-archive.js";
 import { CheckpointManager } from "./checkpoints.js";
 import { createSkillManageTool } from "./tools/skill-manage.js";
 import { MCPManager } from "./mcp.js";
-import { registerCronTask, upsertCronTaskRecord, upsertHeartbeatTaskRecord, upsertWebhookTaskRecord } from "./automation.js";
+import { AutomationRegistry } from "./automation-registry.js";
 import { OperationalStore } from "./operational-store.js";
 import { PromptEngine } from "./prompt-engine.js";
 import { CLI_NAME, getRuntimeHome } from "@aria/shared/brand.js";
@@ -339,20 +339,8 @@ export async function createRuntime(): Promise<EngineRuntime> {
       });
     },
   };
-  const heartbeatTask = scheduler.list().find((task) => task.name === "heartbeat");
-  upsertHeartbeatTaskRecord(runtime, {
-    enabled: ariaConfig.runtime.heartbeat?.enabled ?? true,
-    intervalMinutes: ariaConfig.runtime.heartbeat?.intervalMinutes ?? 30,
-    nextRunAt: heartbeatTask?.nextRunAt ?? null,
-  });
-  for (const task of cronTasks) {
-    upsertCronTaskRecord(runtime, task);
-    if (!task.enabled) continue;
-    registerCronTask(runtime, task);
-  }
-  for (const task of webhookTasks) {
-    upsertWebhookTaskRecord(runtime, task);
-  }
+  const automationRegistry = new AutomationRegistry(runtime);
+  automationRegistry.restoreFromRuntimeConfig();
   if (cronTasks.length > 0) {
     console.log(`[aria] Restored ${cronTasks.filter((t) => t.enabled).length} cron task(s)`);
   }

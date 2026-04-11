@@ -1,5 +1,6 @@
 export * from "./agent/index.js";
 export * from "./automation-schedule.js";
+export * from "./automation-registry.js";
 export * from "./automation.js";
 export * from "./audio/index.js";
 export * from "./audit.js";

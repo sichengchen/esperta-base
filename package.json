@@ -3,7 +3,7 @@
   "version": "2026.3.4",
   "description": "Esperta Aria — Local-first agent platform",
   "type": "module",
-  "main": "src/cli/index.ts",
+  "main": "packages/cli/src/index.ts",
   "workspaces": [
     "packages/*"
   ],
@@ -11,8 +11,8 @@
     "aria": "dist/index.js"
   },
   "scripts": {
-    "dev": "bun run src/cli/index.ts",
-    "build": "bun scripts/copy-docs.ts && bun run scripts/embed-skills.ts && bun build src/cli/index.ts --outdir dist --target bun",
+    "dev": "bun run packages/cli/src/index.ts",
+    "build": "bun scripts/copy-docs.ts && bun run scripts/embed-skills.ts && bun build packages/cli/src/index.ts --outdir dist --target bun",
     "test": "bun test",
     "lint": "eslint src/ packages/",
     "typecheck": "tsc --noEmit",

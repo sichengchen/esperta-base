@@ -2,7 +2,7 @@ import { mkdtemp } from "node:fs/promises";
 import { tmpdir } from "node:os";
 import { join } from "node:path";
 import { afterEach, beforeEach, describe, expect, test } from "bun:test";
-import { relayCommand } from "../src/cli/relay.js";
+import { relayCommand } from "../packages/cli/src/relay.js";
 import { RelayStore } from "../packages/relay/src/store.js";
 
 let runtimeHome = "";

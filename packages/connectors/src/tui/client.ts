@@ -5,7 +5,6 @@ import { AuthManager } from "@aria/engine/auth.js";
 import { getRuntimeHome } from "@aria/shared/brand.js";
 
 const DEFAULT_HTTP_PORT = 7420;
-const DEFAULT_WS_PORT = 7421;
 
 /** Read Engine URL from discovery file, fallback to default */
 function readEngineUrl(): string {
@@ -20,12 +19,9 @@ function readEngineUrl(): string {
 /** Create a tRPC client connected to the local Engine */
 export function createTuiClient() {
   const httpUrl = readEngineUrl();
-  // Derive WS URL from HTTP URL
   const url = new URL(httpUrl);
   const wsPort = parseInt(url.port, 10) + 1;
   const wsUrl = `ws://${url.hostname}:${wsPort}`;
-
-  // Read auth token from file
   const token = AuthManager.readTokenFromFile() ?? undefined;
 
   return createEngineClient({ httpUrl, wsUrl, token });

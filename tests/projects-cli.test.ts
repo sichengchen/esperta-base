@@ -2,7 +2,7 @@ import { mkdtemp } from "node:fs/promises";
 import { tmpdir } from "node:os";
 import { join } from "node:path";
 import { afterEach, beforeEach, describe, expect, test } from "bun:test";
-import { projectsCommand } from "../src/cli/projects.js";
+import { projectsCommand } from "../packages/cli/src/projects.js";
 import { ProjectsEngineRepository } from "../packages/projects-engine/src/repository.js";
 import { ProjectsEngineStore } from "../packages/projects-engine/src/store.js";
 import { HandoffStore } from "../packages/handoff/src/store.js";

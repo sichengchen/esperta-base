@@ -8,6 +8,7 @@ import {
   ProjectsPublishService,
   ProjectsReviewService,
 } from "../packages/projects-engine/src/index.js";
+import { ProjectsWorktreeService } from "../packages/projects-engine/src/worktrees.js";
 import { HandoffService } from "../packages/handoff/src/service.js";
 import { HandoffStore } from "../packages/handoff/src/store.js";
 
@@ -160,5 +161,51 @@ describe("projects workflow services", () => {
     expect(repository.listJobs(first.threadId)).toHaveLength(1);
     expect(repository.getDispatch(first.dispatchId)?.status).toBe("queued");
     expect(handoffService.get("handoff-1")?.createdDispatchId).toBe(first.dispatchId);
+  });
+
+  test("workflow services throw on missing records", async () => {
+    const repository = await createProjectsRepository();
+
+    expect(() =>
+      new ProjectsReviewService(repository).resolveReview({
+        reviewId: "missing-review",
+        status: "approved",
+      }),
+    ).toThrow("Review not found: missing-review");
+
+    expect(() =>
+      new ProjectsPublishService(repository).completePublishRun({
+        publishRunId: "missing-publish",
+        status: "failed",
+      }),
+    ).toThrow("Publish run not found: missing-publish");
+
+    expect(() => new ProjectsWorktreeService(repository).markRetained("missing-worktree")).toThrow(
+      "Worktree not found: missing-worktree",
+    );
+    expect(() => new ProjectsWorktreeService(repository).markPruned("missing-worktree")).toThrow(
+      "Worktree not found: missing-worktree",
+    );
+  });
+
+  test("handoff materialization rejects unknown projects", async () => {
+    const dir = await mkdtemp(join(tmpdir(), "aria-handoff-missing-project-"));
+    const dbPath = join(dir, "aria.db");
+    const store = new ProjectsEngineStore(dbPath);
+    await store.init();
+    closers.push(() => store.close());
+    const repository = new ProjectsEngineRepository(store);
+    const handoffService = await createHandoffService(dbPath);
+
+    handoffService.submit("handoff-missing", {
+      idempotencyKey: "handoff-missing-key",
+      sourceKind: "local_session",
+      projectId: "missing-project",
+      payloadJson: "{\"body\":\"hello\"}",
+    });
+
+    expect(() => handoffService.materialize("handoff-missing", repository)).toThrow(
+      "Project not found: missing-project",
+    );
   });
 });

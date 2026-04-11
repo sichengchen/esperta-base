@@ -55,4 +55,32 @@ describe("RelayService", () => {
       approved: true,
     })).toBe(false);
   });
+
+  test("rejects missing devices, revoked devices, and unknown events", async () => {
+    const relay = await createRelayService();
+
+    await expect(relay.revokeDevice("missing-device")).rejects.toThrow(
+      "Device not found: missing-device",
+    );
+
+    await relay.registerDevice({
+      deviceId: "device-2",
+      label: "Tablet",
+      pairedAt: Date.now(),
+      revokedAt: null,
+    });
+    await relay.revokeDevice("device-2");
+
+    await expect(
+      relay.attachSession({ deviceId: "device-2", sessionId: "session-2" }),
+    ).rejects.toThrow("Device not found or revoked: device-2");
+
+    await expect(
+      relay.queueFollowUp({ deviceId: "device-2", sessionId: "session-2", message: "hi" }),
+    ).rejects.toThrow("Device device-2 is not attached to session session-2");
+
+    await expect(relay.markDelivered("missing-event")).rejects.toThrow(
+      "Relay event not found: missing-event",
+    );
+  });
 });

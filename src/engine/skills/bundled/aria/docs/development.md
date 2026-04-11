@@ -2,141 +2,82 @@
 
 ## Prerequisites
 
-- [Bun](https://bun.sh) v1.0+ (runtime, package manager, test runner)
-- Git for version control and CalVer tagging
-- A provider API key (Anthropic, OpenAI, Google, or OpenRouter) for live tests
-
----
+- [Bun](https://bun.sh) for package management, runtime, build, and test execution
+- Git with working GPG signing if you sign commits locally
+- Provider API keys for any live-model testing
 
 ## Setup
 
 ```bash
-git clone <repo-url> aria && cd aria
+git clone <repo-url> aria
+cd aria
 bun install
-cp .env.example .env   # fill at least one provider API key
 ```
 
----
+Use `ARIA_HOME=/tmp/aria-dev` when you want an isolated runtime home for local testing.
 
 ## Scripts
 
-| Script         | Description                                      |
-|----------------|--------------------------------------------------|
-| `dev`          | Start Engine (if needed) and open TUI            |
-| `build`        | Embed bundled skills, then build CLI to `dist/`  |
-| `test`         | Run all tests (skips live without API key)       |
-| `lint`         | ESLint across `src/` (flat config)               |
-| `typecheck`    | `tsc --noEmit`                                   |
-| `version:bump` | CalVer version bump + git tag                    |
+| Script | Description |
+| --- | --- |
+| `bun run dev` | Start Aria and open the TUI |
+| `bun run typecheck` | Run TypeScript with no emit |
+| `bun test` | Run unit, integration, and live-gated tests |
+| `bun run build` | Copy docs, embed bundled skills, and build the CLI bundle |
+| `bun run lint` | Run ESLint across `src/` and `packages/` |
 
----
+## Repo Layout
 
-## Project Structure
-
+```text
+docs/                operator and architecture docs
+specs/               package-level engineering contracts
+packages/
+  cli/               package wrapper for the CLI surface
+  runtime/           runtime implementation owner
+  projects-engine/   durable tracked-work services and schema
+  handoff/           tracked-work submission boundary
+  relay/             paired-device trust and transport state
+  connectors/        TUI and chat connector surfaces
+  shared-types/      shared brand and client/types
+  providers-*/       runtime backend adapters
+scripts/             build, embedding, and migration helpers
+src/                 compatibility tree and remaining legacy entrypoints
+tests/               package- and workflow-level tests
 ```
-src/
-  cli/              # entrypoint, daemon commands, onboarding/config UIs
-  connectors/       # transports: tui, telegram, wechat, chat surfaces
-  engine/           # daemon: agent, config, memory, router, skills, tools
-  shared/           # tRPC client, shared types, markdown utils
-scripts/            # version.ts, update-homebrew.ts, embed-skills.ts
-tests/
-  helpers/          # withTempDir, makeLiveRouter, test tool stubs
-  integration/      # multi-subsystem tests
-  live/             # live LLM tests (require API key)
-```
 
----
+## Path Resolution
 
-## Key Dependencies
+The repo is in a package-first transition.
 
-| Package                        | Purpose                            |
-|--------------------------------|------------------------------------|
-| `@mariozechner/pi-ai`         | Multi-provider LLM abstraction     |
-| `@trpc/server`, `@trpc/client`| Typed RPC (Engine <-> connectors)  |
-| `chat`, `@chat-adapter/*`      | Slack/Teams/GChat/Discord/GitHub/Linear connectors |
-| `ink`, `react`                 | Terminal UI                        |
-| `zod`                          | Runtime validation                 |
+| Alias | Resolves to |
+| --- | --- |
+| `@aria/engine/*` | `packages/runtime/src/*` first, then compatibility wrappers in `src/engine/*` |
+| `@aria/connectors/*` | `packages/connectors/src/*`, then legacy `src/connectors/*` |
+| `@aria/shared/*` | `packages/shared-types/src/*`, then legacy `src/shared/*` |
+| `@aria/cli/*` | `packages/cli/src/*`, then legacy `src/cli/*` |
 
----
+Within the repo, prefer package-owned implementations over deep relative imports into `src/`.
 
 ## Testing
 
-Three tiers, all using Bun's built-in test runner (Jest-compatible API).
+Three test layers are active:
 
-**Unit tests** -- co-located with source as `.test.ts` files. Run: `bun test src/engine/tools/exec.test.ts`
+- co-located unit tests under `src/engine/**` and `src/connectors/**`
+- repo-level integration and workflow tests under `tests/`
+- live-model tests under `tests/live/`, which skip when credentials are absent
 
-**Integration tests** (`tests/integration/`) -- exercise multiple subsystems with temp directories and mocked externals.
-
-**Live LLM tests** (`tests/live/`) -- real API calls, gated behind `ANTHROPIC_API_KEY`. Skip gracefully when absent.
-
-### Test Helpers (`tests/helpers/`)
-
-| Helper             | Description                                                    |
-|--------------------|----------------------------------------------------------------|
-| `withTempDir(fn)`  | Unique temp directory per test, auto-cleaned                   |
-| `makeLiveRouter()` | `ModelRouter` for haiku, `temperature: 0`, `maxTokens: 128`   |
-| `describeLive`     | `describe.if(LIVE)` -- skips block when no API key             |
-| `echoTool`         | Returns `{ content: args.message }` (safe, no side effects)   |
-| `failTool`         | Throws `Error(args.reason)` for error-path testing             |
-| `slowTool`         | Waits `args.ms` ms for timeout/cancellation testing            |
-
----
-
-## CI/CD
-
-**CI** (`ci.yml`) -- runs on push/PR to `main`: TruffleHog secret scan + lint + typecheck + test + build.
-
-**Release** (`release.yml`) -- triggered by `v*` tag: build `aria-darwin` binary, create GitHub Release, update Homebrew tap.
-
----
-
-## CalVer
-
-Format: `YYYY.M.patch` (e.g., `2026.2.0`). Patch resets to `0` on month change.
+Useful commands:
 
 ```bash
-bun run version:bump              # bump + tag
-bun run scripts/version.ts --push # bump + tag + push (triggers release)
+bun test
+bun test tests/projects-workflows.test.ts
+bun test tests/relay.test.ts
+bun test tests/legacy-migration.test.ts
 ```
 
----
+## Change Discipline
 
-## Homebrew Tap
-
-```bash
-brew tap sichengchen/tap && brew install aria
-brew services start aria   # optional: engine as background service
-```
-
----
-
-## Path Aliases
-
-| Alias              | Maps To            |
-|--------------------|--------------------|
-| `@aria/engine/*`     | `src/engine/*`     |
-| `@aria/connectors/*` | `src/connectors/*` |
-| `@aria/shared/*`     | `src/shared/*`     |
-| `@aria/cli/*`        | `src/cli/*`        |
-
-Configured in `tsconfig.json`, resolved by Bun. Always include `.js` extension in imports.
-
----
-
-## Contributing
-
-1. Understand the module and its callers before editing.
-2. Follow existing patterns. Use Bun, not npm.
-3. Use path aliases -- no deep relative imports.
-4. Co-locate unit tests (`.test.ts`). Gate live tests with `describeLive`.
-5. Full check before submitting: `bun run lint && bun run typecheck && bun test && bun run build`
-6. Do not commit secrets (TruffleHog CI enforces this).
-
----
-
-## Debugging
-
-- **ARIA_HOME override**: `ARIA_HOME=/tmp/aria-debug bun run dev` for isolated testing.
-- **Engine logs**: `aria engine logs` or `tail -f ~/.aria/engine.log`.
-- **Single test**: `bun test src/engine/tools/exec.test.ts` or `bun test --grep "pattern"`.
+- Prefer package-owned edits before compatibility wrappers.
+- Update matching docs and specs when architecture changes.
+- Run `bun run typecheck`, `bun test`, and `bun run build` before closing substantial changes.
+- Keep commits small and use conventional commit messages.

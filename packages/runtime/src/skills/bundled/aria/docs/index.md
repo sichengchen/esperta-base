@@ -10,6 +10,9 @@
 - [`system/prompt-engine.md`](system/prompt-engine.md)
 - [`system/tool-runtime.md`](system/tool-runtime.md)
 - [`system/automation.md`](system/automation.md)
+- [`system/projects-engine.md`](system/projects-engine.md)
+- [`system/relay-model.md`](system/relay-model.md)
+- [`system/handoff.md`](system/handoff.md)
 
 ## Interfaces
 

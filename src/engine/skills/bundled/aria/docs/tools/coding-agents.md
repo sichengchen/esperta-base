@@ -58,7 +58,7 @@ Same schema as `claude_code` (task, files, workdir, background, handle).
 
 ## AgentSubprocess Infrastructure
 
-Shared process manager at `src/engine/tools/agent-subprocess.ts`.
+Shared process manager lives in `packages/runtime/src/tools/agent-subprocess.ts` with compatibility re-exports under `src/engine/tools/`.
 
 ### Core Functions
 
@@ -96,7 +96,7 @@ Shared process manager at `src/engine/tools/agent-subprocess.ts`.
 Background handles are stored in memory and can be polled via the tool's
 `handle` parameter. Each handle tracks:
 
-- `id` — 8-character hex handle ID
+- `id` — runtime-generated background handle ID
 - `running` — whether the subprocess is still active
 - `startedAt` — timestamp for elapsed time calculation
 - `result` — populated on completion

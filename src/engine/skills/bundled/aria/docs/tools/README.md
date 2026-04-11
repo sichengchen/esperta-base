@@ -1,7 +1,7 @@
 # Tools Overview and Classification
 
 Esperta Aria provides 23 built-in tools organized by danger level, plus dynamic `mcp_*`
-tools discovered from configured MCP servers. The engine owns all tool
+tools discovered from configured MCP servers. The runtime owns all tool
 definitions; connectors never invoke tools directly.
 
 ## Tool Inventory
@@ -55,8 +55,8 @@ Unknown or unregistered tools default to **dangerous**.
 
 ### 3-Tier Approval Flow
 
-The approval decision combines danger level with the user's configured approval
-mode (`runtime.toolPolicy.approvalMode`).
+The approval decision combines danger level with the per-connector approval
+mode configured in `runtime.toolApproval`.
 
 | Danger \ Mode | never       | ask              | always          |
 |---------------|-------------|------------------|-----------------|
@@ -140,8 +140,8 @@ Controls how much tool execution detail connectors display.
 {
   "runtime": {
     "toolPolicy": {
-      "verbosity": "minimal",
-      "connectorOverrides": {
+      "verbosity": {
+        "tui": "minimal",
         "telegram": "silent"
       }
     }

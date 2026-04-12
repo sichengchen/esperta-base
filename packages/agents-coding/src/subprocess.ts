@@ -9,6 +9,17 @@ import type {
   RuntimeBackendId,
 } from "./contracts.js";
 
+export type {
+  RuntimeBackendAvailability,
+  RuntimeBackendCapabilities,
+  RuntimeBackendExecutionObserver,
+  RuntimeBackendExecutionRequest,
+  RuntimeBackendExecutionResult,
+  RuntimeBackendExecutionStatus,
+  RuntimeBackendId,
+  RuntimeBackendTokenUsage,
+} from "./contracts.js";
+
 interface RunningProcess {
   proc: Bun.Subprocess<"ignore", "pipe", "pipe">;
   timedOut: boolean;

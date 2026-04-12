@@ -577,7 +577,7 @@ describe("tRPC procedures (non-live)", () => {
 
   describe("interaction protocol metadata", () => {
     test("includes durable event identity on streamed errors", async () => {
-      const caller = createCaller();
+      const caller = createSessionCaller("telegram:123", "telegram");
       const events: any[] = [];
       const gen = await caller.chat.stream({ sessionId: "missing-session", message: "hello" });
       for await (const event of gen) {
@@ -589,6 +589,11 @@ describe("tRPC procedures (non-live)", () => {
         type: "error",
         sessionId: "missing-session",
         source: "chat",
+        threadId: "missing-session",
+        connectorType: "telegram",
+        threadType: "connector",
+        agentId: "Test",
+        actorId: "telegram:123",
       });
       expect(typeof events[0].timestamp).toBe("number");
     });

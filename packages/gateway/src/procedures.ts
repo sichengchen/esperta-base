@@ -11,7 +11,7 @@ import type { DangerLevel } from "@aria/runtime/agent";
 import { classifyExecCommand } from "@aria/policy/exec-classifier";
 import { ToolPolicyManager, type ToolEventContext } from "@aria/policy/policy";
 import { ConnectorTypeSchema } from "@aria/protocol";
-import type { EngineEvent, SkillInfo, ConnectorType, ToolApprovalMode, EscalationChoice } from "@aria/protocol";
+import type { EngineEvent, SkillInfo, ConnectorType, ToolApprovalMode, EscalationChoice, Session } from "@aria/protocol";
 import type { ModelConfig, ProviderConfig } from "./router/types.js";
 import { buildDelegationOptions, deleteWebhookTaskRecord, registerCronTask, persistCronTask, removeCronTaskFromConfig, upsertHeartbeatTaskRecord } from "@aria/automation/automation";
 import { computeNextRunAt, parseScheduleInput } from "@aria/automation/automation-schedule";
@@ -141,6 +141,8 @@ export function createAppRouter(runtime: EngineRuntime) {
     return capabilityCatalog.get(toolName);
   }
 
+  type StreamSession = Pick<Session, "id" | "connectorId" | "connectorType">;
+
   function withEventMeta<T extends Omit<EngineEvent, "sessionId" | "timestamp" | "runId" | "parentRunId" | "connectorType" | "source" | "taskId">>(
     event: T,
     meta: {
@@ -150,16 +152,41 @@ export function createAppRouter(runtime: EngineRuntime) {
       source: string;
       parentRunId?: string | null;
       taskId?: string;
+      session?: StreamSession;
+      threadId?: string;
+      threadType?: EngineEvent["threadType"];
+      workspaceId?: string | null;
+      projectId?: string | null;
+      environmentId?: string | null;
+      environmentBindingId?: string | null;
+      jobId?: string | null;
+      agentId?: string | null;
+      actorId?: string | null;
+      serverId?: string | null;
     },
   ): EngineEvent {
+    const resolvedThreadType = meta.threadType
+      ?? (meta.session?.connectorType === "engine" || meta.connectorType === "engine"
+        ? "aria"
+        : "connector");
     return {
       ...event,
+      serverId: meta.serverId ?? undefined,
+      workspaceId: meta.workspaceId ?? undefined,
+      projectId: meta.projectId ?? undefined,
+      environmentId: meta.environmentId ?? undefined,
+      threadId: meta.threadId ?? meta.session?.id ?? meta.sessionId,
       sessionId: meta.sessionId,
+      jobId: meta.jobId ?? undefined,
       connectorType: meta.connectorType,
       runId: meta.runId,
       parentRunId: meta.parentRunId,
       source: meta.source,
       taskId: meta.taskId,
+      threadType: resolvedThreadType,
+      environmentBindingId: meta.environmentBindingId ?? undefined,
+      agentId: meta.agentId ?? runtime.agentName,
+      actorId: meta.actorId ?? meta.session?.connectorId ?? null,
       timestamp: Date.now(),
     } as unknown as EngineEvent;
   }
@@ -516,6 +543,7 @@ export function createAppRouter(runtime: EngineRuntime) {
     runId: string,
     sessionId?: string,
     source = "chat",
+    session?: StreamSession,
   ): AsyncGenerator<EngineEvent> {
     const isIM = connectorType !== "tui";
     const sid = sessionId ?? "unknown";
@@ -524,19 +552,19 @@ export function createAppRouter(runtime: EngineRuntime) {
     for await (const event of events) {
       switch (event.type) {
         case "text_delta":
-          yield withEventMeta(event, { sessionId: sid, connectorType, runId, source });
+          yield withEventMeta(event, { sessionId: sid, connectorType, runId, source, session });
           break;
         case "thinking_delta":
-          yield withEventMeta(event, { sessionId: sid, connectorType, runId, source });
+          yield withEventMeta(event, { sessionId: sid, connectorType, runId, source, session });
           break;
         case "done":
-          yield withEventMeta(event, { sessionId: sid, connectorType, runId, source });
+          yield withEventMeta(event, { sessionId: sid, connectorType, runId, source, session });
           break;
         case "error":
-          yield withEventMeta(event, { sessionId: sid, connectorType, runId, source });
+          yield withEventMeta(event, { sessionId: sid, connectorType, runId, source, session });
           break;
         case "user_question":
-          yield withEventMeta(event, { sessionId: sid, connectorType, runId, source });
+          yield withEventMeta(event, { sessionId: sid, connectorType, runId, source, session });
           break;
         case "tool_start": {
           const dangerLevel = getEffectiveDangerLevel(event.name, event.args);
@@ -577,12 +605,12 @@ export function createAppRouter(runtime: EngineRuntime) {
             const argsStr = formatArgsForIM(event.name, event.args);
             yield withEventMeta(
               { type: "tool_end", name: event.name, id: event.id, content: argsStr, isError: false },
-              { sessionId: sid, connectorType, runId, source },
+              { sessionId: sid, connectorType, runId, source, session },
             );
           } else {
             yield withEventMeta(
               { type: "tool_start", name: event.name, id: event.id },
-              { sessionId: sid, connectorType, runId, source },
+              { sessionId: sid, connectorType, runId, source, session },
             );
           }
           break;
@@ -618,7 +646,7 @@ export function createAppRouter(runtime: EngineRuntime) {
             const emoji = event.result.content.slice("__reaction__:".length);
             yield withEventMeta(
               { type: "reaction", emoji },
-              { sessionId: sid, connectorType, runId, source },
+              { sessionId: sid, connectorType, runId, source, session },
             );
           } else {
             const ctx: ToolEventContext = {
@@ -633,7 +661,7 @@ export function createAppRouter(runtime: EngineRuntime) {
                 id: event.id,
                 content: event.result.content,
                 isError: event.result.isError ?? false,
-              }, { sessionId: sid, connectorType, runId, source });
+              }, { sessionId: sid, connectorType, runId, source, session });
             }
           }
           toolEventMeta.delete(event.id);
@@ -666,7 +694,7 @@ export function createAppRouter(runtime: EngineRuntime) {
             name: event.name,
             id: event.id,
             args: event.args,
-          }, { sessionId: sid, connectorType, runId, source });
+          }, { sessionId: sid, connectorType, runId, source, session });
           break;
         }
       }
@@ -708,7 +736,12 @@ export function createAppRouter(runtime: EngineRuntime) {
           } catch (err) {
             yield withEventMeta(
               { type: "error", message: err instanceof Error ? err.message : String(err) },
-              { sessionId: input.sessionId, connectorType: (ctx.connectorType as ConnectorType) ?? "engine", source: "chat" },
+              {
+                sessionId: input.sessionId,
+                connectorType: (ctx.connectorType as ConnectorType) ?? "engine",
+                source: "chat",
+                actorId: ctx.connectorId,
+              },
             );
             return;
           }
@@ -763,6 +796,7 @@ export function createAppRouter(runtime: EngineRuntime) {
               runId,
               input.sessionId,
               "chat",
+              session,
             )) {
               if (event.type === "done") {
                 finalStopReason = event.stopReason;
@@ -778,7 +812,7 @@ export function createAppRouter(runtime: EngineRuntime) {
             finalErrorMessage = message;
             yield withEventMeta(
               { type: "error", message },
-              { sessionId: input.sessionId, connectorType, runId, source: "chat" },
+              { sessionId: input.sessionId, connectorType, runId, source: "chat", session },
             );
           } finally {
             finishRun(input.sessionId, runId, {
@@ -915,7 +949,12 @@ export function createAppRouter(runtime: EngineRuntime) {
           } catch (err) {
             yield withEventMeta(
               { type: "error", message: err instanceof Error ? err.message : String(err) },
-              { sessionId: input.sessionId, connectorType: (ctx.connectorType as ConnectorType) ?? "engine", source: "audio_transcription" },
+              {
+                sessionId: input.sessionId,
+                connectorType: (ctx.connectorType as ConnectorType) ?? "engine",
+                source: "audio_transcription",
+                actorId: ctx.connectorId,
+              },
             );
             return;
           }
@@ -924,7 +963,7 @@ export function createAppRouter(runtime: EngineRuntime) {
           if (audioConfig && !audioConfig.enabled) {
             yield withEventMeta(
               { type: "error", message: "Audio transcription is disabled in config" },
-              { sessionId: input.sessionId, connectorType: session.connectorType as ConnectorType, source: "audio_transcription" },
+              { sessionId: input.sessionId, connectorType: session.connectorType as ConnectorType, source: "audio_transcription", session },
             );
             return;
           }
@@ -940,7 +979,7 @@ export function createAppRouter(runtime: EngineRuntime) {
             const message = err instanceof Error ? err.message : String(err);
             yield withEventMeta(
               { type: "error", message: `Transcription failed: ${message}` },
-              { sessionId: input.sessionId, connectorType: session.connectorType as ConnectorType, source: "audio_transcription" },
+              { sessionId: input.sessionId, connectorType: session.connectorType as ConnectorType, source: "audio_transcription", session },
             );
             return;
           }
@@ -948,7 +987,7 @@ export function createAppRouter(runtime: EngineRuntime) {
           if (!transcript.trim()) {
             yield withEventMeta(
               { type: "error", message: "Transcription produced empty text" },
-              { sessionId: input.sessionId, connectorType: session.connectorType as ConnectorType, source: "audio_transcription" },
+              { sessionId: input.sessionId, connectorType: session.connectorType as ConnectorType, source: "audio_transcription", session },
             );
             return;
           }
@@ -957,7 +996,7 @@ export function createAppRouter(runtime: EngineRuntime) {
           yield {
             ...withEventMeta(
               { type: "text_delta", delta: "" },
-              { sessionId: input.sessionId, connectorType: session.connectorType as ConnectorType, source: "audio_transcription" },
+              { sessionId: input.sessionId, connectorType: session.connectorType as ConnectorType, source: "audio_transcription", session },
             ),
             transcript,
           };
@@ -982,6 +1021,7 @@ export function createAppRouter(runtime: EngineRuntime) {
               runId,
               input.sessionId,
               "audio_transcription",
+              session,
             )) {
               if (event.type === "done") {
                 finalStopReason = event.stopReason;
@@ -997,7 +1037,7 @@ export function createAppRouter(runtime: EngineRuntime) {
             finalErrorMessage = message;
             yield withEventMeta(
               { type: "error", message },
-              { sessionId: input.sessionId, connectorType, runId, source: "audio_transcription" },
+              { sessionId: input.sessionId, connectorType, runId, source: "audio_transcription", session },
             );
           } finally {
             finishRun(input.sessionId, runId, {

@@ -1,0 +1,7 @@
+{
+  "name": "aria-server",
+  "private": true,
+  "type": "module",
+  "description": "Thin Aria Server app entrypoint over the @aria/server composition root",
+  "main": "./src/index.ts"
+}

@@ -5,7 +5,8 @@
   "type": "module",
   "main": "packages/cli/src/index.ts",
   "workspaces": [
-    "packages/*"
+    "packages/*",
+    "apps/*"
   ],
   "bin": {
     "aria": "dist/index.js"

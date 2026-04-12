@@ -1,4 +1,4 @@
-import type { CronTask } from "@aria/runtime/config/types";
+import type { CronTask } from "./config.js";
 import { matchesCron } from "./scheduler.js";
 
 export interface ParsedSchedule {

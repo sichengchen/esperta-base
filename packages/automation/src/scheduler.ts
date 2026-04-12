@@ -1,12 +1,12 @@
 import { mkdir, readFile, writeFile } from "node:fs/promises";
 import { join } from "node:path";
 import type { Agent } from "@aria/agent-aria";
-import { DEFAULT_HEARTBEAT } from "@aria/runtime/config/defaults";
 import type {
   DeliveryTarget,
   HeartbeatConfig,
   RetryPolicy,
-} from "@aria/runtime/config/types";
+} from "./config.js";
+import { DEFAULT_HEARTBEAT } from "./config.js";
 import { computeNextRunAt, isTaskDue } from "./automation-schedule.js";
 
 /** A scheduled task definition */

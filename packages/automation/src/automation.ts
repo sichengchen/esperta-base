@@ -11,16 +11,16 @@ import type {
   AutomationTaskType,
   AutomationRunStatus,
 } from "@aria/store/operational-store";
-import {
-  CRON_DEFAULT_TOOLS,
-  WEBHOOK_DEFAULT_TOOLS,
-} from "@aria/runtime/config/defaults";
 import type {
   CronTask,
   DeliveryTarget,
   RetryPolicy,
   WebhookTask,
-} from "@aria/runtime/config/types";
+} from "./config.js";
+import {
+  CRON_DEFAULT_TOOLS,
+  WEBHOOK_DEFAULT_TOOLS,
+} from "./config.js";
 import { computeNextRunAt } from "./automation-schedule.js";
 
 export interface AutomationTaskRunInput {

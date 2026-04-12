@@ -84,6 +84,112 @@ describe("projectsCommand", () => {
     });
   });
 
+  test("creates, updates, and lists server hierarchy records through the CLI", async () => {
+    await projectsCommand(["server-create", "server-1", "Aria", "Server", "--relay", "relay-1", "--base-url", "https://aria.example"]);
+    await projectsCommand(["server-create", "server-2", "Relay", "Server", "--relay", "relay-2"]);
+    await projectsCommand([
+      "server-update",
+      "server-1",
+      "Aria",
+      "Server",
+      "Primary",
+      "--relay",
+      "relay-3",
+      "--base-url",
+      "https://aria.example/v2",
+    ]);
+
+    await projectsCommand(["workspace-create", "workspace-1", "desktop_local", "Local", "Workspace", "--server", "server-1"]);
+    await projectsCommand(["workspace-create", "workspace-2", "aria_server", "Remote", "Workspace", "--server", "server-1"]);
+    await projectsCommand([
+      "workspace-update",
+      "workspace-1",
+      "aria_server",
+      "Aria",
+      "Workspace",
+      "Primary",
+      "--server",
+      "server-2",
+    ]);
+
+    await projectsCommand(["project-create", "project-1", "project-one", "Project One"]);
+    await projectsCommand(["project-create", "project-2", "project-two", "Project Two"]);
+
+    await projectsCommand([
+      "environment-create",
+      "environment-1",
+      "workspace-1",
+      "project-1",
+      "local",
+      "worktree",
+      "/tmp/worktrees/project-1",
+      "Local",
+      "Worktree",
+    ]);
+    await projectsCommand([
+      "environment-create",
+      "environment-2",
+      "workspace-2",
+      "project-1",
+      "remote",
+      "sandbox",
+      "ssh://aria/workspaces/workspace-2",
+      "Remote",
+      "Sandbox",
+    ]);
+    await projectsCommand([
+      "environment-update",
+      "environment-1",
+      "workspace-2",
+      "project-2",
+      "remote",
+      "main",
+      "ssh://aria/environments/environment-1",
+      "Remote",
+      "Project",
+    ]);
+
+    const serverLogs = await captureLogs(async () => {
+      await projectsCommand(["servers"]);
+    });
+    const workspaceLogs = await captureLogs(async () => {
+      await projectsCommand(["workspaces", "server-2"]);
+    });
+    const environmentLogs = await captureLogs(async () => {
+      await projectsCommand(["environments", "project-2", "workspace-2"]);
+    });
+
+    expect(serverLogs.join("\n")).toContain("server-1");
+    expect(serverLogs.join("\n")).toContain("Aria Server Primary");
+    expect(serverLogs.join("\n")).toContain("relay=relay-3");
+    expect(serverLogs.join("\n")).toContain("base-url=https://aria.example/v2");
+    expect(serverLogs.join("\n")).toContain("server-2");
+
+    expect(workspaceLogs).toHaveLength(1);
+    expect(workspaceLogs[0]).toContain("workspace-1");
+    expect(workspaceLogs[0]).toContain("Aria Workspace Primary");
+    expect(workspaceLogs[0]).toContain("server=server-2");
+
+    expect(environmentLogs).toHaveLength(1);
+    expect(environmentLogs[0]).toContain("environment-1");
+    expect(environmentLogs[0]).toContain("Remote Project");
+    expect(environmentLogs[0]).toContain("project=project-2");
+    expect(environmentLogs[0]).toContain("workspace=workspace-2");
+
+    await withRepository((repository) => {
+      expect(repository.getServer("server-1")?.label).toBe("Aria Server Primary");
+      expect(repository.getServer("server-1")?.relayId).toBe("relay-3");
+      expect(repository.getServer("server-1")?.directBaseUrl).toBe("https://aria.example/v2");
+      expect(repository.getWorkspace("workspace-1")?.serverId).toBe("server-2");
+      expect(repository.getWorkspace("workspace-1")?.label).toBe("Aria Workspace Primary");
+      expect(repository.getEnvironment("environment-1")?.projectId).toBe("project-2");
+      expect(repository.getEnvironment("environment-1")?.workspaceId).toBe("workspace-2");
+      expect(repository.getEnvironment("environment-1")?.label).toBe("Remote Project");
+      expect(repository.listWorkspaces("server-2").map((workspace) => workspace.workspaceId)).toEqual(["workspace-1"]);
+      expect(repository.listEnvironments("project-2", "workspace-2").map((environment) => environment.environmentId)).toEqual(["environment-1"]);
+    });
+  });
+
   test("materializes handoffs and lists persisted output", async () => {
     await projectsCommand(["project-create", "project-2", "aria-handoff", "Aria Handoff"]);
     await projectsCommand([

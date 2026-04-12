@@ -11,6 +11,12 @@ import {
   ProjectsPublishService,
   ProjectsReviewService,
   resolveThreadType,
+  type EnvironmentKind,
+  type EnvironmentMode,
+  type EnvironmentRecord,
+  type ServerRecord,
+  type WorkspaceHost,
+  type WorkspaceRecord,
   type ThreadEnvironmentBindingRecord,
   type ThreadStatus,
   type ThreadType,
@@ -21,6 +27,9 @@ import { HandoffService, HandoffStore } from "@aria/handoff";
 import { createRuntime } from "@aria/runtime";
 
 const THREAD_TYPE_SET = new Set<ThreadType>(THREAD_TYPES);
+const WORKSPACE_HOST_SET = new Set<WorkspaceHost>(["desktop_local", "aria_server"]);
+const ENVIRONMENT_MODE_SET = new Set<EnvironmentMode>(["local", "remote"]);
+const ENVIRONMENT_KIND_SET = new Set<EnvironmentKind>(["main", "worktree", "sandbox"]);
 
 interface ThreadCreateOptions {
   threadId: string;
@@ -38,6 +47,56 @@ interface ThreadCreateOptions {
 
 function isThreadType(value: string | undefined): value is ThreadType {
   return Boolean(value && THREAD_TYPE_SET.has(value as ThreadType));
+}
+
+function isWorkspaceHost(value: string | undefined): value is WorkspaceHost {
+  return Boolean(value && WORKSPACE_HOST_SET.has(value as WorkspaceHost));
+}
+
+function isEnvironmentMode(value: string | undefined): value is EnvironmentMode {
+  return Boolean(value && ENVIRONMENT_MODE_SET.has(value as EnvironmentMode));
+}
+
+function isEnvironmentKind(value: string | undefined): value is EnvironmentKind {
+  return Boolean(value && ENVIRONMENT_KIND_SET.has(value as EnvironmentKind));
+}
+
+function describeToken(value: string): string {
+  return value
+    .split("_")
+    .filter(Boolean)
+    .map((part) => part[0].toUpperCase() + part.slice(1))
+    .join(" ");
+}
+
+function formatServerSummary(server: ServerRecord): string {
+  const metadata: string[] = [];
+  if (server.relayId) {
+    metadata.push(`relay=${server.relayId}`);
+  }
+  if (server.directBaseUrl) {
+    metadata.push(`base-url=${server.directBaseUrl}`);
+  }
+  return metadata.length > 0 ? `${server.serverId}  ${server.label}  ${metadata.join("  ")}` : `${server.serverId}  ${server.label}`;
+}
+
+function formatWorkspaceSummary(workspace: WorkspaceRecord): string {
+  const metadata: string[] = [`host=${workspace.host}`];
+  if (workspace.serverId) {
+    metadata.push(`server=${workspace.serverId}`);
+  }
+  return `${workspace.workspaceId}  [${describeToken(workspace.host)}]  ${workspace.label}  ${metadata.join("  ")}`;
+}
+
+function formatEnvironmentSummary(environment: EnvironmentRecord): string {
+  const metadata = [
+    `project=${environment.projectId}`,
+    `workspace=${environment.workspaceId}`,
+    `mode=${environment.mode}`,
+    `kind=${environment.kind}`,
+    `locator=${environment.locator}`,
+  ];
+  return `${environment.environmentId}  [${describeToken(environment.mode)} ${describeToken(environment.kind)}]  ${environment.label}  ${metadata.join("  ")}`;
 }
 
 function formatThreadSummary(
@@ -77,6 +136,128 @@ function formatBindingSummary(binding: ThreadEnvironmentBindingRecord): string {
     metadata.push(`reason=${binding.reason}`);
   }
   return `${binding.bindingId}  [${binding.isActive ? "active" : "inactive"}]  ${metadata.join("  ")}`;
+}
+
+function parseServerRecordArgs(args: string[]): { serverId: string; label: string; relayId?: string | null; directBaseUrl?: string | null } | null {
+  const [serverId, ...rest] = args;
+  if (!serverId) {
+    return null;
+  }
+
+  const labelParts: string[] = [];
+  const options: { relayId?: string | null; directBaseUrl?: string | null } = {};
+  let parsingOptions = false;
+
+  for (let index = 0; index < rest.length; index += 1) {
+    const arg = rest[index];
+    if (!parsingOptions && !arg.startsWith("--")) {
+      labelParts.push(arg);
+      continue;
+    }
+
+    parsingOptions = true;
+    switch (arg) {
+      case "--relay": {
+        const value = rest[++index];
+        if (!value) {
+          return null;
+        }
+        options.relayId = value;
+        break;
+      }
+      case "--base-url": {
+        const value = rest[++index];
+        if (!value) {
+          return null;
+        }
+        options.directBaseUrl = value;
+        break;
+      }
+      default:
+        return null;
+    }
+  }
+
+  const label = labelParts.join(" ").trim();
+  if (!label) {
+    return null;
+  }
+
+  return {
+    serverId,
+    label,
+    relayId: options.relayId ?? undefined,
+    directBaseUrl: options.directBaseUrl ?? undefined,
+  };
+}
+
+function parseWorkspaceRecordArgs(args: string[]): { workspaceId: string; host: WorkspaceHost; label: string; serverId?: string | null } | null {
+  const [workspaceId, host, ...rest] = args;
+  if (!workspaceId || !isWorkspaceHost(host)) {
+    return null;
+  }
+
+  const labelParts: string[] = [];
+  const options: { serverId?: string | null } = {};
+  let parsingOptions = false;
+
+  for (let index = 0; index < rest.length; index += 1) {
+    const arg = rest[index];
+    if (!parsingOptions && !arg.startsWith("--")) {
+      labelParts.push(arg);
+      continue;
+    }
+
+    parsingOptions = true;
+    switch (arg) {
+      case "--server": {
+        const value = rest[++index];
+        if (!value) {
+          return null;
+        }
+        options.serverId = value;
+        break;
+      }
+      default:
+        return null;
+    }
+  }
+
+  const label = labelParts.join(" ").trim();
+  if (!label) {
+    return null;
+  }
+
+  return {
+    workspaceId,
+    host,
+    label,
+    serverId: options.serverId ?? undefined,
+  };
+}
+
+function parseEnvironmentRecordArgs(
+  args: string[],
+): { environmentId: string; workspaceId: string; projectId: string; mode: EnvironmentMode; kind: EnvironmentKind; locator: string; label: string } | null {
+  const [environmentId, workspaceId, projectId, mode, kind, locator, ...labelParts] = args;
+  if (!environmentId || !workspaceId || !projectId || !isEnvironmentMode(mode) || !isEnvironmentKind(kind) || !locator) {
+    return null;
+  }
+
+  const label = labelParts.join(" ").trim();
+  if (!label) {
+    return null;
+  }
+
+  return {
+    environmentId,
+    workspaceId,
+    projectId,
+    mode,
+    kind,
+    locator,
+    label,
+  };
 }
 
 function parseThreadCreateOptions(args: string[]): ThreadCreateOptions | null {
@@ -192,6 +373,15 @@ function printHelp(): void {
   console.log("Subcommands:");
   console.log("  projects               List tracked projects");
   console.log("  project-create <projectId> <slug> <name>  Create or update a tracked project");
+  console.log("  servers                List tracked servers");
+  console.log("  server-create <serverId> <label...> [--relay <relayId>] [--base-url <directBaseUrl>]  Create or update a server");
+  console.log("  server-update <serverId> <label...> [--relay <relayId>] [--base-url <directBaseUrl>]  Create or update a server");
+  console.log("  workspaces [serverId]  List tracked workspaces, optionally filtered by server");
+  console.log("  workspace-create <workspaceId> <host> <label...> [--server <serverId>]  Create or update a workspace");
+  console.log("  workspace-update <workspaceId> <host> <label...> [--server <serverId>]  Create or update a workspace");
+  console.log("  environments [projectId] [workspaceId]  List tracked environments, optionally filtered by project and workspace");
+  console.log("  environment-create <environmentId> <workspaceId> <projectId> <mode> <kind> <locator> <label...>  Create or update an environment");
+  console.log("  environment-update <environmentId> <workspaceId> <projectId> <mode> <kind> <locator> <label...>  Create or update an environment");
   console.log("  repos [projectId]      List tracked repos, optionally filtered by project");
   console.log("  repo-register <repoId> <projectId> <name> <remoteUrl> [branch]  Register a repo");
   console.log("  tasks [projectId]      List tracked tasks, optionally filtered by project");
@@ -263,6 +453,110 @@ export async function projectsCommand(args: string[]): Promise<void> {
         updatedAt: now,
       });
       console.log(`Saved project ${projectId}.`);
+      return;
+    }
+
+    if (action === "servers") {
+      const servers = repository.listServers();
+      if (servers.length === 0) {
+        console.log("No tracked servers found.");
+        return;
+      }
+      for (const server of servers) {
+        console.log(formatServerSummary(server));
+      }
+      return;
+    }
+
+    if (action === "server-create" || action === "server-update") {
+      const parsed = parseServerRecordArgs(args.slice(1));
+      if (!parsed) {
+        printHelp();
+        process.exitCode = 1;
+        return;
+      }
+      const existing = repository.getServer(parsed.serverId);
+      const now = Date.now();
+      repository.upsertServer({
+        serverId: parsed.serverId,
+        label: parsed.label,
+        relayId: parsed.relayId ?? existing?.relayId ?? null,
+        directBaseUrl: parsed.directBaseUrl ?? existing?.directBaseUrl ?? null,
+        createdAt: existing?.createdAt ?? now,
+        updatedAt: now,
+      });
+      console.log(`Saved server ${parsed.serverId}.`);
+      return;
+    }
+
+    if (action === "workspaces") {
+      const serverId = args[1];
+      const workspaces = repository.listWorkspaces(serverId);
+      if (workspaces.length === 0) {
+        console.log("No tracked workspaces found.");
+        return;
+      }
+      for (const workspace of workspaces) {
+        console.log(formatWorkspaceSummary(workspace));
+      }
+      return;
+    }
+
+    if (action === "workspace-create" || action === "workspace-update") {
+      const parsed = parseWorkspaceRecordArgs(args.slice(1));
+      if (!parsed) {
+        printHelp();
+        process.exitCode = 1;
+        return;
+      }
+      const existing = repository.getWorkspace(parsed.workspaceId);
+      const now = Date.now();
+      repository.upsertWorkspace({
+        workspaceId: parsed.workspaceId,
+        host: parsed.host,
+        serverId: parsed.serverId ?? existing?.serverId ?? null,
+        label: parsed.label,
+        createdAt: existing?.createdAt ?? now,
+        updatedAt: now,
+      });
+      console.log(`Saved workspace ${parsed.workspaceId}.`);
+      return;
+    }
+
+    if (action === "environments") {
+      const [projectId, workspaceId] = args.slice(1);
+      const environments = repository.listEnvironments(projectId, workspaceId);
+      if (environments.length === 0) {
+        console.log("No tracked environments found.");
+        return;
+      }
+      for (const environment of environments) {
+        console.log(formatEnvironmentSummary(environment));
+      }
+      return;
+    }
+
+    if (action === "environment-create" || action === "environment-update") {
+      const parsed = parseEnvironmentRecordArgs(args.slice(1));
+      if (!parsed) {
+        printHelp();
+        process.exitCode = 1;
+        return;
+      }
+      const existing = repository.getEnvironment(parsed.environmentId);
+      const now = Date.now();
+      repository.upsertEnvironment({
+        environmentId: parsed.environmentId,
+        workspaceId: parsed.workspaceId,
+        projectId: parsed.projectId,
+        label: parsed.label,
+        mode: parsed.mode,
+        kind: parsed.kind,
+        locator: parsed.locator,
+        createdAt: existing?.createdAt ?? now,
+        updatedAt: now,
+      });
+      console.log(`Saved environment ${parsed.environmentId}.`);
       return;
     }
 

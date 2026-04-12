@@ -2,15 +2,14 @@ import { mkdtemp } from "node:fs/promises";
 import { tmpdir } from "node:os";
 import { join } from "node:path";
 import { afterEach, describe, expect, test } from "bun:test";
-import { ProjectsEngineStore } from "../packages/projects-engine/src/store.js";
-import { ProjectsEngineRepository } from "../packages/projects-engine/src/repository.js";
-import { runDispatchExecution } from "../packages/runtime/src/dispatch-runner.js";
+import { ProjectsEngineRepository, ProjectsEngineStore } from "@aria/projects-engine";
 import type {
   RuntimeBackendAdapter,
   RuntimeBackendExecutionObserver,
   RuntimeBackendExecutionRequest,
   RuntimeBackendExecutionResult,
-} from "../packages/providers-aria/src/index.js";
+} from "@aria/providers-aria";
+import { runDispatchExecution } from "../packages/runtime/src/dispatch-runner.js";
 
 const stores: ProjectsEngineStore[] = [];
 

@@ -4,7 +4,7 @@ import {
   type RuntimeBackendCapabilities,
   type RuntimeBackendExecutionRequest,
   type RuntimeBackendExecutionResult,
-} from "../../providers-aria/src/index.js";
+} from "@aria/providers-aria";
 
 type ParsedEvent = Record<string, unknown>;
 

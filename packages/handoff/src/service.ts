@@ -1,6 +1,8 @@
 import { randomUUID } from "node:crypto";
-import { ProjectsDispatchService } from "../../projects-engine/src/dispatch.js";
-import type { ProjectsEngineRepository } from "../../projects-engine/src/repository.js";
+import {
+  ProjectsDispatchService,
+  type ProjectsEngineRepository,
+} from "@aria/projects-engine";
 import type { HandoffRecord, HandoffSubmission } from "./types.js";
 import { HandoffStore } from "./store.js";
 

@@ -1,9 +1,11 @@
 import { Database as Sqlite } from "bun:sqlite";
 import { join } from "node:path";
 import { randomUUID } from "node:crypto";
-import { ProjectsEngineStore } from "../packages/projects-engine/src/store.js";
-import { createLegacyLinearThreadExternalRefs } from "../packages/projects-engine/src/external-refs.js";
-import type { DispatchRecord } from "../packages/projects-engine/src/types.js";
+import {
+  createLegacyLinearThreadExternalRefs,
+  type DispatchRecord,
+  ProjectsEngineStore,
+} from "@aria/projects-engine";
 
 interface LegacyProjectRow {
   id: string;

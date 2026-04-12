@@ -2,10 +2,9 @@ import { mkdtemp } from "node:fs/promises";
 import { tmpdir } from "node:os";
 import { join } from "node:path";
 import { afterEach, beforeEach, describe, expect, test } from "bun:test";
+import { HandoffStore } from "@aria/handoff";
+import { ProjectsEngineRepository, ProjectsEngineStore } from "@aria/projects-engine";
 import { projectsCommand } from "../packages/cli/src/projects.js";
-import { ProjectsEngineRepository } from "../packages/projects-engine/src/repository.js";
-import { ProjectsEngineStore } from "../packages/projects-engine/src/store.js";
-import { HandoffStore } from "../packages/handoff/src/store.js";
 
 let runtimeHome = "";
 let originalAriaHome: string | undefined;

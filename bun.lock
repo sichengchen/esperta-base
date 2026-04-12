@@ -38,8 +38,16 @@
         "typescript": "^6.0.2",
       },
     },
+    "packages/agent-aria": {
+      "name": "@aria/agent-aria",
+      "version": "0.0.0",
+    },
     "packages/audit": {
       "name": "@aria/audit",
+      "version": "0.0.0",
+    },
+    "packages/automation": {
+      "name": "@aria/automation",
       "version": "0.0.0",
     },
     "packages/cli": {
@@ -49,8 +57,24 @@
       "name": "@aria/connectors",
       "version": "0.0.0",
     },
+    "packages/connectors-im": {
+      "name": "@aria/connectors-im",
+      "version": "0.0.0",
+    },
+    "packages/console": {
+      "name": "@aria/console",
+      "version": "0.0.0",
+    },
+    "packages/gateway": {
+      "name": "@aria/gateway",
+      "version": "0.0.0",
+    },
     "packages/handoff": {
       "name": "@aria/handoff",
+      "version": "0.0.0",
+    },
+    "packages/memory": {
+      "name": "@aria/memory",
       "version": "0.0.0",
     },
     "packages/policy": {
@@ -111,13 +135,25 @@
 
     "@anthropic-ai/sdk": ["@anthropic-ai/sdk@0.73.0", "", { "dependencies": { "json-schema-to-ts": "^3.1.1" }, "peerDependencies": { "zod": "^3.25.0 || ^4.0.0" }, "optionalPeers": ["zod"], "bin": { "anthropic-ai-sdk": "bin/cli" } }, "sha512-URURVzhxXGJDGUGFunIOtBlSl7KWvZiAAKY/ttTkZAkXT9bTPqdk2eK0b8qqSxXpikh3QKPnPYpiyX98zf5ebw=="],
 
+    "@aria/agent-aria": ["@aria/agent-aria@workspace:packages/agent-aria"],
+
     "@aria/audit": ["@aria/audit@workspace:packages/audit"],
+
+    "@aria/automation": ["@aria/automation@workspace:packages/automation"],
 
     "@aria/cli": ["@aria/cli@workspace:packages/cli"],
 
     "@aria/connectors": ["@aria/connectors@workspace:packages/connectors"],
 
+    "@aria/connectors-im": ["@aria/connectors-im@workspace:packages/connectors-im"],
+
+    "@aria/console": ["@aria/console@workspace:packages/console"],
+
+    "@aria/gateway": ["@aria/gateway@workspace:packages/gateway"],
+
     "@aria/handoff": ["@aria/handoff@workspace:packages/handoff"],
+
+    "@aria/memory": ["@aria/memory@workspace:packages/memory"],
 
     "@aria/policy": ["@aria/policy@workspace:packages/policy"],
 

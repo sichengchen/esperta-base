@@ -9,10 +9,10 @@ import {
   type RuntimeBackendExecutionObserver,
   type RuntimeBackendExecutionRequest,
   type RuntimeBackendExecutionResult,
-} from "../../providers-aria/src/index.js";
-import { createCodexRuntimeBackendAdapter } from "../../providers-codex/src/index.js";
-import { createClaudeCodeRuntimeBackendAdapter } from "../../providers-claude-code/src/index.js";
-import { createOpenCodeRuntimeBackendAdapter } from "../../providers-opencode/src/index.js";
+} from "@aria/providers-aria";
+import { createCodexRuntimeBackendAdapter } from "@aria/providers-codex";
+import { createClaudeCodeRuntimeBackendAdapter } from "@aria/providers-claude-code";
+import { createOpenCodeRuntimeBackendAdapter } from "@aria/providers-opencode";
 
 export interface RuntimeBackendSummary {
   backend: string;

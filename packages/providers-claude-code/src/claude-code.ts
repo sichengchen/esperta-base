@@ -5,7 +5,7 @@ import {
   type RuntimeBackendExecutionRequest,
   type RuntimeBackendExecutionResult,
   type RuntimeBackendTokenUsage,
-} from "../../providers-aria/src/index.js";
+} from "@aria/providers-aria";
 
 interface ClaudeJsonResult {
   result?: string;

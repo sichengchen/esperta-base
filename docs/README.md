@@ -84,6 +84,8 @@ This tree is organized by reader intent, not by the old code layout.
 - [development/testing.md](./development/testing.md)
 - [development/release.md](./development/release.md)
 - [development/migration.md](./development/migration.md)
+- [development/package-extraction-ledger.md](./development/package-extraction-ledger.md)
+- [development/phase-2-extraction-ledger.md](./development/phase-2-extraction-ledger.md)
 
 ## Documentation Rule
 

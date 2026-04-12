@@ -1,0 +1,13 @@
+{
+  "name": "@aria/tools",
+  "version": "0.0.0",
+  "private": true,
+  "type": "module",
+  "description": "Aria tool runtime surface, built-in tool exports, and toolset metadata",
+  "main": "./src/index.ts",
+  "types": "./src/index.ts",
+  "exports": {
+    ".": "./src/index.ts",
+    "./toolsets": "./src/toolsets.ts"
+  }
+}

@@ -49,6 +49,7 @@ describe("ToolRegistry", () => {
       name: "echo",
       description: "Echoes input",
       parameters: Type.Object({ text: Type.String() }),
+      dangerLevel: "safe",
       execute: async (args) => ({ content: String(args.text) }),
     };
     reg.register(tool);
@@ -62,6 +63,7 @@ describe("ToolRegistry", () => {
       name: "echo",
       description: "Echoes",
       parameters: Type.Object({}),
+      dangerLevel: "safe",
       execute: async () => ({ content: "ok" }),
     };
     reg.register(tool);
@@ -81,6 +83,7 @@ describe("ToolRegistry", () => {
       name: "failing",
       description: "Always fails",
       parameters: Type.Object({}),
+      dangerLevel: "safe",
       execute: async () => {
         throw new Error("boom");
       },
@@ -96,6 +99,7 @@ describe("ToolRegistry", () => {
       name: "echo",
       description: "Echoes input",
       parameters: Type.Object({ text: Type.String() }),
+      dangerLevel: "safe",
       execute: async (args) => ({ content: String(args.text) }),
     });
     const defs = reg.getToolDefinitions();

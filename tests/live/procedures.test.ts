@@ -134,7 +134,7 @@ describeLive("tRPC procedures — live LLM tests", () => {
 
   test("chat.stream returns text_delta and done events", async () => {
     const caller = createCaller();
-    const session = await caller.session.create({ connectorType: "tui", prefix: "tui" });
+    const { session } = await caller.session.create({ connectorType: "tui", prefix: "tui" });
 
     const events: EngineEvent[] = [];
     const gen = await caller.chat.stream({ sessionId: session.id, message: "Say hello" });
@@ -150,7 +150,7 @@ describeLive("tRPC procedures — live LLM tests", () => {
 
   test("chat.stream with tool use emits tool events for TUI", async () => {
     const caller = createCaller();
-    const session = await caller.session.create({ connectorType: "tui", prefix: "tui" });
+    const { session } = await caller.session.create({ connectorType: "tui", prefix: "tui" });
 
     const events: EngineEvent[] = [];
     const gen = await caller.chat.stream({

@@ -41,6 +41,17 @@ The migration tool supports dry-run reporting before mutation.
 - runtime, connectors, CLI, Projects Engine, Handoff, Relay, and shared types are package-owned
 - docs are becoming the only canonical documentation tree
 
+## Phase 1 Runtime Extraction
+
+Phase 1 keeps the current CLI and runtime behavior stable while splitting runtime-owned protocol, store, audit, prompt, tools, and policy code into target-aligned packages.
+
+Use the [runtime extraction ledger](./runtime-extraction-ledger.md) as the source of truth for:
+
+- the current runtime-owned entrypoints for each domain
+- the target package each domain should move into
+- extraction order and compatibility constraints
+- verification expectations before and after each move
+
 ## Cutover Criteria
 
 Before legacy repos are archived:

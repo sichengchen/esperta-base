@@ -1,0 +1,14 @@
+{
+  "name": "@aria/policy",
+  "version": "0.0.0",
+  "private": true,
+  "type": "module",
+  "description": "Aria capability policy, approvals, and tool reporting rules",
+  "main": "./src/index.ts",
+  "types": "./src/index.ts",
+  "exports": {
+    ".": "./src/index.ts",
+    "./capability-policy": "./src/capability-policy.ts",
+    "./policy": "./src/policy.ts"
+  }
+}

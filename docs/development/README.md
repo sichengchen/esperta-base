@@ -6,3 +6,5 @@ This section covers local setup, testing, release flow, and migration discipline
 - [testing.md](./testing.md)
 - [release.md](./release.md)
 - [migration.md](./migration.md)
+- [package-extraction-ledger.md](./package-extraction-ledger.md)
+- [phase-2-extraction-ledger.md](./phase-2-extraction-ledger.md)

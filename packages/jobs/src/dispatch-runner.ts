@@ -13,6 +13,8 @@ function buildDispatchPrompt(repository: ProjectsEngineRepository, dispatchId: s
   if (!dispatch) {
     throw new Error(`Dispatch not found: ${dispatchId}`);
   }
+
+  const launch = new ProjectsDispatchService(repository).buildLaunchRequest(dispatchId);
   const thread = repository.getThread(dispatch.threadId);
   const task = dispatch.taskId
     ? repository.getTask(dispatch.taskId)
@@ -24,9 +26,33 @@ function buildDispatchPrompt(repository: ProjectsEngineRepository, dispatchId: s
   return [
     task ? `Task: ${task.title}` : "",
     thread ? `Thread: ${thread.title}` : "",
+    launch.threadType ? `Thread type: ${launch.threadType}` : "",
+    launch.workspaceId ? `Workspace: ${launch.workspaceId}` : "",
+    launch.environmentId ? `Environment: ${launch.environmentId}` : "",
+    launch.environmentBindingId ? `Environment binding: ${launch.environmentBindingId}` : "",
     task?.description ? `Task description:\n${task.description}` : "",
     jobs.length > 0 ? `Jobs:\n${jobs.map((job) => `- [${job.author}] ${job.body}`).join("\n")}` : "",
   ].filter(Boolean).join("\n\n");
+}
+
+function buildDispatchMetadata(launch: ReturnType<ProjectsDispatchService["buildLaunchRequest"]>): Record<string, string> {
+  const metadata: Record<string, string> = {
+    dispatchId: launch.dispatchId,
+    projectId: launch.projectId,
+    threadId: launch.threadId,
+  };
+
+  if (launch.taskId) metadata.taskId = launch.taskId;
+  if (launch.jobId) metadata.jobId = launch.jobId;
+  if (launch.repoId) metadata.repoId = launch.repoId;
+  if (launch.threadType) metadata.threadType = launch.threadType;
+  if (launch.workspaceId) metadata.workspaceId = launch.workspaceId;
+  if (launch.environmentId) metadata.environmentId = launch.environmentId;
+  if (launch.environmentBindingId) metadata.environmentBindingId = launch.environmentBindingId;
+  if (launch.agentId) metadata.agentId = launch.agentId;
+  if (launch.worktreeId) metadata.worktreeId = launch.worktreeId;
+
+  return metadata;
 }
 
 function mapResultToEvent(
@@ -138,7 +164,7 @@ export async function runDispatchExecution(
       sessionId: backendId === "aria" ? executionSessionId : null,
       threadId: launch.threadId,
       taskId: launch.taskId ?? null,
-      metadata: { dispatchId },
+      metadata: buildDispatchMetadata(launch),
     }, {
       onEvent: async (event) => {
         const mapped = mapBackendEventToDispatchEvent(dispatchId, event);

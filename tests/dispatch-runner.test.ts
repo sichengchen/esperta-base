@@ -87,8 +87,39 @@ describe("runDispatchExecution", () => {
       repoId: null,
       title: "Dispatch execution",
       status: "queued",
+      threadType: "local_project",
+      workspaceId: "workspace-1",
+      environmentId: "env-stale",
+      environmentBindingId: "binding-stale",
+      agentId: "codex",
       createdAt: now,
       updatedAt: now,
+    });
+    repository.upsertThreadEnvironmentBinding({
+      bindingId: "binding-active",
+      threadId: "thread-1",
+      projectId: "project-1",
+      workspaceId: "workspace-1",
+      environmentId: "env-active",
+      attachedAt: now + 1,
+      detachedAt: null,
+      isActive: true,
+      reason: "Current active binding",
+    });
+    repository.upsertThread({
+      threadId: "thread-1",
+      projectId: "project-1",
+      taskId: "task-1",
+      repoId: null,
+      title: "Dispatch execution",
+      status: "queued",
+      threadType: "local_project",
+      workspaceId: "workspace-1",
+      environmentId: "env-stale",
+      environmentBindingId: "binding-stale",
+      agentId: "codex",
+      createdAt: now,
+      updatedAt: now + 2,
     });
     repository.upsertDispatch({
       dispatchId: "dispatch-1",
@@ -118,6 +149,18 @@ describe("runDispatchExecution", () => {
           timestamp: now + 1,
           metadata: request.metadata,
         });
+        expect(request.metadata).toMatchObject({
+          dispatchId: "dispatch-1",
+          projectId: "project-1",
+          threadId: "thread-1",
+          threadType: "local_project",
+          workspaceId: "workspace-1",
+          environmentId: "env-active",
+          environmentBindingId: "binding-active",
+          agentId: "codex",
+        });
+        expect(request.prompt).toContain("Environment: env-active");
+        expect(request.prompt).toContain("Environment binding: binding-active");
         expect(repository.getDispatch("dispatch-1")?.status).toBe("running");
 
         await observer?.onEvent?.({
@@ -194,6 +237,7 @@ describe("runDispatchExecution", () => {
       repoId: null,
       title: "Failing dispatch",
       status: "queued",
+      threadType: "remote_project",
       createdAt: now,
       updatedAt: now,
     });

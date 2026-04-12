@@ -5,6 +5,30 @@ import type { DispatchRecord } from "./types.js";
 export class ProjectsDispatchService {
   constructor(private readonly repository: ProjectsEngineRepository) {}
 
+  private resolveLaunchContext(dispatchId: string) {
+    const dispatch = this.repository.getDispatch(dispatchId);
+    if (!dispatch) {
+      throw new Error(`Dispatch not found: ${dispatchId}`);
+    }
+
+    const thread = this.repository.getThread(dispatch.threadId);
+    const activeBinding = this.repository.getActiveThreadEnvironmentBinding(dispatch.threadId);
+    const worktree = dispatch.worktreeId ? this.repository.getWorktree(dispatch.worktreeId) : undefined;
+    const resolvedWorkspaceId = activeBinding?.workspaceId ?? thread?.workspaceId ?? null;
+    const resolvedEnvironmentId = activeBinding?.environmentId ?? thread?.environmentId ?? null;
+    const resolvedEnvironmentBindingId = activeBinding?.bindingId ?? thread?.environmentBindingId ?? null;
+
+    return {
+      dispatch,
+      thread,
+      activeBinding,
+      worktree,
+      resolvedWorkspaceId,
+      resolvedEnvironmentId,
+      resolvedEnvironmentBindingId,
+    };
+  }
+
   queueDispatch(record: DispatchRecord): void {
     this.repository.upsertDispatch({ ...record, status: "queued" });
   }
@@ -55,20 +79,21 @@ export class ProjectsDispatchService {
   }
 
   buildLaunchRequest(dispatchId: string): DispatchLaunchRequest {
-    const dispatch = this.repository.getDispatch(dispatchId);
-    if (!dispatch) {
-      throw new Error(`Dispatch not found: ${dispatchId}`);
-    }
-
-    const worktree = dispatch.worktreeId ? this.repository.getWorktree(dispatch.worktreeId) : undefined;
+    const { dispatch, thread, worktree, resolvedWorkspaceId, resolvedEnvironmentId, resolvedEnvironmentBindingId } =
+      this.resolveLaunchContext(dispatchId);
 
     return {
       dispatchId: dispatch.dispatchId,
       projectId: dispatch.projectId,
       taskId: dispatch.taskId,
       threadId: dispatch.threadId,
+      threadType: thread?.threadType ?? null,
       jobId: dispatch.jobId,
       repoId: dispatch.repoId,
+      workspaceId: resolvedWorkspaceId,
+      environmentId: resolvedEnvironmentId,
+      environmentBindingId: resolvedEnvironmentBindingId,
+      agentId: thread?.agentId ?? null,
       worktreeId: dispatch.worktreeId,
       worktreePath: worktree?.path ?? null,
       requestedBackend: dispatch.requestedBackend,

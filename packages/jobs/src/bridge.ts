@@ -3,8 +3,13 @@ export interface DispatchLaunchRequest {
   projectId: string;
   taskId?: string | null;
   threadId: string;
+  threadType?: string | null;
   jobId?: string | null;
   repoId?: string | null;
+  workspaceId?: string | null;
+  environmentId?: string | null;
+  environmentBindingId?: string | null;
+  agentId?: string | null;
   worktreeId?: string | null;
   worktreePath?: string | null;
   requestedBackend?: string | null;

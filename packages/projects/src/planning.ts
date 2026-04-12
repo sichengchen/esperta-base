@@ -85,6 +85,23 @@ function compareQueuedDispatches(left: DispatchRecord, right: DispatchRecord): n
   return left.dispatchId.localeCompare(right.dispatchId);
 }
 
+function resolveThreadForPlanning(
+  repository: ProjectsEngineRepository,
+  thread: ThreadRecord,
+): ThreadRecord {
+  const activeBinding = repository.getActiveThreadEnvironmentBinding(thread.threadId);
+  if (!activeBinding) {
+    return thread;
+  }
+
+  return {
+    ...thread,
+    workspaceId: activeBinding.workspaceId,
+    environmentId: activeBinding.environmentId,
+    environmentBindingId: activeBinding.bindingId,
+  };
+}
+
 export class ProjectsPlanningService {
   constructor(
     private readonly repository: ProjectsEngineRepository,
@@ -114,13 +131,14 @@ export class ProjectsPlanningService {
     const plans = threads
       .filter((thread) => !filter.repoId || thread.repoId === filter.repoId)
       .map((thread) => {
-        const task = thread.taskId ? this.repository.getTask(thread.taskId) : undefined;
-        const dispatches = this.repository.listDispatches(thread.threadId, thread.taskId ?? undefined);
+        const resolvedThread = resolveThreadForPlanning(this.repository, thread);
+        const task = resolvedThread.taskId ? this.repository.getTask(resolvedThread.taskId) : undefined;
+        const dispatches = this.repository.listDispatches(resolvedThread.threadId, resolvedThread.taskId ?? undefined);
         return {
-          thread,
+          thread: resolvedThread,
           task,
           dispatches,
-          blockers: getThreadBlockers(thread, task, dispatches),
+          blockers: getThreadBlockers(resolvedThread, task, dispatches),
         };
       })
       .filter((plan) => plan.blockers.length === 0 && isRunnableThreadStatus(plan.thread.status));
@@ -146,13 +164,14 @@ export class ProjectsPlanningService {
     const plans = dispatches
       .map((dispatch) => {
         const thread = this.repository.getThread(dispatch.threadId);
-        const task = dispatch.taskId ? this.repository.getTask(dispatch.taskId) : thread?.taskId ? this.repository.getTask(thread.taskId) : undefined;
-        const siblingDispatches = this.repository.listDispatches(dispatch.threadId, dispatch.taskId ?? thread?.taskId ?? undefined);
+        const resolvedThread = thread ? resolveThreadForPlanning(this.repository, thread) : undefined;
+        const task = dispatch.taskId ? this.repository.getTask(dispatch.taskId) : resolvedThread?.taskId ? this.repository.getTask(resolvedThread.taskId) : undefined;
+        const siblingDispatches = this.repository.listDispatches(dispatch.threadId, dispatch.taskId ?? resolvedThread?.taskId ?? undefined);
         return {
           dispatch,
-          thread,
+          thread: resolvedThread,
           task,
-          blockers: getDispatchBlockers(dispatch, thread, task, siblingDispatches),
+          blockers: getDispatchBlockers(dispatch, resolvedThread, task, siblingDispatches),
         };
       })
       .filter((plan) => plan.blockers.length === 0)

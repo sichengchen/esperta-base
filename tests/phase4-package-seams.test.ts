@@ -54,8 +54,39 @@ describe("phase-4 package seam verification", () => {
       repoId: null,
       title: "Tracked thread",
       status: "idle",
+      threadType: "local_project",
+      workspaceId: "workspace-stale",
+      environmentId: "env-stale",
+      environmentBindingId: "binding-stale",
+      agentId: "codex",
       createdAt: now,
       updatedAt: now,
+    });
+    repository.upsertThreadEnvironmentBinding({
+      bindingId: "binding-active",
+      threadId: "thread-1",
+      projectId: "project-1",
+      workspaceId: "workspace-active",
+      environmentId: "env-active",
+      attachedAt: now + 1,
+      detachedAt: null,
+      isActive: true,
+      reason: "Current active workspace",
+    });
+    repository.upsertThread({
+      threadId: "thread-1",
+      projectId: "project-1",
+      taskId: "task-1",
+      repoId: null,
+      title: "Tracked thread",
+      status: "idle",
+      threadType: "local_project",
+      workspaceId: "workspace-stale",
+      environmentId: "env-stale",
+      environmentBindingId: "binding-stale",
+      agentId: "codex",
+      createdAt: now,
+      updatedAt: now + 2,
     });
 
     const planning = new ProjectsPlanningService(repository);
@@ -63,6 +94,9 @@ describe("phase-4 package seam verification", () => {
 
     expect(runnableThreads).toHaveLength(1);
     expect(runnableThreads[0]?.thread.threadId).toBe("thread-1");
+    expect(runnableThreads[0]?.thread.workspaceId).toBe("workspace-active");
+    expect(runnableThreads[0]?.thread.environmentId).toBe("env-active");
+    expect(runnableThreads[0]?.thread.environmentBindingId).toBe("binding-active");
     repository.close();
   });
 
@@ -161,8 +195,39 @@ describe("phase-4 package seam verification", () => {
       repoId: "repo-1",
       title: "Tracked thread",
       status: "queued",
+      threadType: "local_project",
+      workspaceId: "workspace-stale",
+      environmentId: "env-stale",
+      environmentBindingId: "binding-stale",
+      agentId: "codex",
       createdAt: now,
       updatedAt: now,
+    });
+    repository.upsertThreadEnvironmentBinding({
+      bindingId: "binding-active",
+      threadId: "thread-1",
+      projectId: "project-1",
+      workspaceId: "workspace-active",
+      environmentId: "env-active",
+      attachedAt: now + 1,
+      detachedAt: null,
+      isActive: true,
+      reason: "Active launch binding",
+    });
+    repository.upsertThread({
+      threadId: "thread-1",
+      projectId: "project-1",
+      taskId: "task-1",
+      repoId: "repo-1",
+      title: "Tracked thread",
+      status: "queued",
+      threadType: "local_project",
+      workspaceId: "workspace-stale",
+      environmentId: "env-stale",
+      environmentBindingId: "binding-stale",
+      agentId: "codex",
+      createdAt: now,
+      updatedAt: now + 2,
     });
     repository.upsertJob({
       jobId: "job-1",
@@ -198,8 +263,13 @@ describe("phase-4 package seam verification", () => {
       projectId: "project-1",
       taskId: "task-1",
       threadId: "thread-1",
+      threadType: "local_project",
       jobId: "job-1",
       repoId: "repo-1",
+      workspaceId: "workspace-active",
+      environmentId: "env-active",
+      environmentBindingId: "binding-active",
+      agentId: "codex",
       requestedBackend: "codex",
       requestedModel: "gpt-5.4",
     });

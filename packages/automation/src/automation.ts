@@ -1,7 +1,7 @@
 import { mkdir, writeFile } from "node:fs/promises";
 import { join } from "node:path";
 import { Agent } from "@aria/agent-aria";
-import type { EngineRuntime } from "@aria/runtime";
+import type { EngineRuntime } from "@aria/server/runtime";
 import {
   createSessionToolEnvironment,
   mergeAllowedTools,

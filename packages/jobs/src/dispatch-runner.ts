@@ -6,7 +6,7 @@ import type {
   RuntimeBackendAdapter,
   RuntimeBackendExecutionEvent,
 } from "@aria/agents-coding";
-import type { EngineRuntime } from "@aria/runtime";
+import type { EngineRuntime } from "@aria/server/runtime";
 
 function buildDispatchPrompt(repository: ProjectsEngineRepository, dispatchId: string): string {
   const dispatch = repository.getDispatch(dispatchId);

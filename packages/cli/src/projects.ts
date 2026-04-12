@@ -24,7 +24,7 @@ import {
 } from "@aria/projects";
 import { ProjectsWorktreeService } from "@aria/workspaces";
 import { HandoffService, HandoffStore } from "@aria/handoff";
-import { createRuntime } from "@aria/runtime";
+import { createRuntime } from "@aria/server/runtime";
 
 const THREAD_TYPE_SET = new Set<ThreadType>(THREAD_TYPES);
 const WORKSPACE_HOST_SET = new Set<WorkspaceHost>(["desktop_local", "aria_server"]);

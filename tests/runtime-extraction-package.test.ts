@@ -57,6 +57,8 @@ describe("phase-1 extraction package verification", () => {
     expect(gatewayProceduresSource).toContain("@aria/audit");
     expect(gatewayProceduresSource).toContain("@aria/policy/policy");
     expect(gatewayProceduresSource).toContain("@aria/server/config");
+    expect(gatewayProceduresSource).toContain("@aria/server/runtime");
+    expect(gatewayProceduresSource).toContain("@aria/server/session-coordinator");
 
     const toolsIndexSource = await import("node:fs/promises").then(fs => fs.readFile(new URL("../packages/tools/src/index.ts", import.meta.url), "utf-8"));
     expect(toolsIndexSource).not.toContain("@aria/runtime/tools/");
@@ -85,6 +87,10 @@ describe("phase-1 extraction package verification", () => {
     const serverConfigSource = await import("node:fs/promises").then(fs => fs.readFile(new URL("../packages/server/src/config.ts", import.meta.url), "utf-8"));
     expect(serverConfigSource).toContain("@aria/runtime/config");
     expect(serverConfigSource).toContain("ConfigManager");
+    const serverRuntimeSource = await import("node:fs/promises").then(fs => fs.readFile(new URL("../packages/server/src/runtime.ts", import.meta.url), "utf-8"));
+    expect(serverRuntimeSource).toContain("@aria/runtime/runtime");
+    const serverSessionCoordinatorSource = await import("node:fs/promises").then(fs => fs.readFile(new URL("../packages/server/src/session-coordinator.ts", import.meta.url), "utf-8"));
+    expect(serverSessionCoordinatorSource).toContain("@aria/runtime/session-coordinator");
     const serverCheckpointsSource = await import("node:fs/promises").then(fs => fs.readFile(new URL("../packages/server/src/checkpoints.ts", import.meta.url), "utf-8"));
     expect(serverCheckpointsSource).toContain("@aria/runtime/checkpoints");
 
@@ -92,6 +98,8 @@ describe("phase-1 extraction package verification", () => {
       await import("node:fs/promises").then(fs => fs.readFile(new URL("../packages/server/package.json", import.meta.url), "utf-8")),
     ) as { exports: Record<string, string> };
     expect(serverPackageJson.exports["./config"]).toBe("./src/config.ts");
+    expect(serverPackageJson.exports["./runtime"]).toBe("./src/runtime.ts");
+    expect(serverPackageJson.exports["./session-coordinator"]).toBe("./src/session-coordinator.ts");
     expect(serverPackageJson.exports["./checkpoints"]).toBe("./src/checkpoints.ts");
 
     const skillManageSource = await import("node:fs/promises").then(fs => fs.readFile(new URL("../packages/tools/src/skill-manage.ts", import.meta.url), "utf-8"));

@@ -1,7 +1,7 @@
 import { describe, expect, test } from "bun:test";
 import { CLI_NAME, PRODUCT_NAME, engineCommand, ensureEngine, getRuntimeDiscoveryPaths, startAriaServer } from "@aria/server";
 import type { EngineServer } from "@aria/gateway/server";
-import type { EngineRuntime } from "@aria/runtime/runtime";
+import type { EngineRuntime } from "@aria/server/runtime";
 import { readFileSync } from "node:fs";
 import { join } from "node:path";
 
@@ -112,6 +112,7 @@ describe("Phase 5 server app seam", () => {
     expect(bootstrap.host).toEqual(ariaServerHost);
     expect(bootstrap.host.shellPackage).toBe("@aria/server");
     expect(bootstrap.host.sharedPackages).toContain("@aria/runtime");
+    expect(bootstrap.host.sharedPackages).toContain("@aria/gateway");
     expect(bootstrap.host.capabilities).toContain("aria-agent-host");
     expect(bootstrap.host.ownership).toMatchObject({
       ariaAgent: "server-only",

@@ -156,9 +156,13 @@ describe("Phase 6 client seams", () => {
   });
 
   test("apps/aria-desktop composes the shared client seams without owning new runtime behavior", () => {
-    const bootstrap = createAriaDesktopBootstrap({
-      target: { serverId: "desktop", baseUrl: "http://127.0.0.1:7420/" },
-      servers: [
+    const bootstrap = createAriaDesktopBootstrap(
+      { serverId: "desktop", baseUrl: "http://127.0.0.1:7420/" },
+      {
+        project: { name: "Aria" },
+        thread: { threadId: "thread-1", title: "Desktop thread", status: "running", threadType: "local_project", environmentId: "desktop-main", agentId: "codex" },
+      },
+      [
         {
           label: "Home Server",
           target: { serverId: "desktop", baseUrl: "http://127.0.0.1:7420/" },
@@ -168,12 +172,8 @@ describe("Phase 6 client seams", () => {
           target: { serverId: "relay", baseUrl: "https://relay.example.test/" },
         },
       ],
-      activeServerId: "desktop",
-      initialThread: {
-        project: { name: "Aria" },
-        thread: { threadId: "thread-1", title: "Desktop thread", status: "running", threadType: "local_project", environmentId: "desktop-main", agentId: "codex" },
-      },
-    });
+      "desktop",
+    );
 
     expect(ariaDesktopApp.sharedPackages).toContain("@aria/access-client");
     expect(ariaDesktopApp.capabilities).toContain("local-bridge");
@@ -194,9 +194,13 @@ describe("Phase 6 client seams", () => {
   });
 
   test("apps/aria-mobile stays a thin remote client seam", () => {
-    const bootstrap = createAriaMobileBootstrap({
-      target: { serverId: "mobile", baseUrl: "https://aria.example.test/" },
-      servers: [
+    const bootstrap = createAriaMobileBootstrap(
+      { serverId: "mobile", baseUrl: "https://aria.example.test/" },
+      {
+        project: { name: "Aria" },
+        thread: { threadId: "thread-2", title: "Mobile review", status: "idle", threadType: "remote_project", agentId: "codex" },
+      },
+      [
         {
           label: "Home Server",
           target: { serverId: "mobile", baseUrl: "https://aria.example.test/" },
@@ -206,12 +210,8 @@ describe("Phase 6 client seams", () => {
           target: { serverId: "relay", baseUrl: "https://relay.example.test/" },
         },
       ],
-      activeServerId: "mobile",
-      initialThread: {
-        project: { name: "Aria" },
-        thread: { threadId: "thread-2", title: "Mobile review", status: "idle", threadType: "remote_project", agentId: "codex" },
-      },
-    });
+      "mobile",
+    );
 
     expect(ariaMobileApp.sharedPackages).toContain("@aria/ui");
     expect(ariaMobileApp.capabilities).toEqual([

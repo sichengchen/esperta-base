@@ -5,7 +5,7 @@ import { applyWSSHandler } from "@trpc/server/adapters/ws";
 import { WebSocketServer } from "ws";
 import { createAppRouter, flushProcedureState, type AppRouter } from "./procedures.js";
 import { createContext } from "./context.js";
-import type { EngineRuntime } from "@aria/runtime/runtime";
+import type { EngineRuntime } from "@aria/server/runtime";
 import { heartbeatState } from "@aria/automation/scheduler";
 import { frameAsData } from "@aria/agent-aria/content-frame";
 import { logAutomationResult, runAutomationAgent, upsertWebhookTaskRecord } from "@aria/automation/automation";

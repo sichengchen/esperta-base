@@ -9,7 +9,7 @@ import {
   type RuntimeBackendExecutionResult,
 } from "@aria/agents-coding";
 import { createAppRouter, createContext } from "@aria/gateway";
-import type { EngineRuntime } from "@aria/runtime";
+import type { EngineRuntime } from "@aria/server/runtime";
 
 export interface RuntimeBackendSummary {
   backend: string;

@@ -24,6 +24,7 @@ import {
 } from "@aria/mobile";
 import * as desktopAppModule from "../apps/aria-desktop/src/index.js";
 import * as mobileAppModule from "../apps/aria-mobile/src/index.js";
+import { ariaMobileAppFrame } from "../apps/aria-mobile/src/index.js";
 
 function readRepoFile(relativePath: string): string {
   return readFileSync(join(import.meta.dir, "..", relativePath), "utf-8");
@@ -33,9 +34,13 @@ const PHASE9_LEDGER_PATH = "docs/development/phase-9-architecture-truth-table.md
 
 describe("Phase 8 client shell packages", () => {
   test("@aria/desktop stays the target desktop shell over shared client, UI, and project seams", () => {
-    const bootstrap = createAriaDesktopBootstrap({
-      target: { serverId: "desktop", baseUrl: "http://127.0.0.1:7420/" },
-      servers: [
+    const bootstrap = createAriaDesktopBootstrap(
+      { serverId: "desktop", baseUrl: "http://127.0.0.1:7420/" },
+      {
+        project: { name: "Aria" },
+        thread: { threadId: "thread-1", title: "Desktop shell", status: "running", threadType: "local_project", environmentId: "wt/feature-x", agentId: "codex" },
+      },
+      [
         {
           label: "Home Server",
           target: { serverId: "desktop", baseUrl: "http://127.0.0.1:7420/" },
@@ -45,12 +50,8 @@ describe("Phase 8 client shell packages", () => {
           target: { serverId: "relay", baseUrl: "https://relay.example.test/" },
         },
       ],
-      activeServerId: "desktop",
-      initialThread: {
-        project: { name: "Aria" },
-        thread: { threadId: "thread-1", title: "Desktop shell", status: "running", threadType: "local_project", environmentId: "wt/feature-x", agentId: "codex" },
-      },
-    });
+      "desktop",
+    );
 
     expect(ariaDesktopApp.sharedPackages).toEqual([
       "@aria/access-client",
@@ -238,9 +239,13 @@ describe("Phase 8 client shell packages", () => {
   });
 
   test("@aria/mobile stays the remote-first target shell over shared client, UI, and project seams", () => {
-    const bootstrap = createAriaMobileBootstrap({
-      target: { serverId: "mobile", baseUrl: "https://aria.example.test/" },
-      servers: [
+    const bootstrap = createAriaMobileBootstrap(
+      { serverId: "mobile", baseUrl: "https://aria.example.test/" },
+      {
+        project: { name: "Aria" },
+        thread: { threadId: "thread-2", title: "Mobile shell", status: "idle", threadType: "remote_project", agentId: "codex" },
+      },
+      [
         {
           label: "Home Server",
           target: { serverId: "mobile", baseUrl: "https://aria.example.test/" },
@@ -250,12 +255,8 @@ describe("Phase 8 client shell packages", () => {
           target: { serverId: "relay", baseUrl: "https://relay.example.test/" },
         },
       ],
-      activeServerId: "mobile",
-      initialThread: {
-        project: { name: "Aria" },
-        thread: { threadId: "thread-2", title: "Mobile shell", status: "idle", threadType: "remote_project", agentId: "codex" },
-      },
-    });
+      "mobile",
+    );
 
     expect(ariaMobileApp.sharedPackages).toEqual([
       "@aria/access-client",

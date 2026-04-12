@@ -6,6 +6,8 @@ export {
 export * from "./checkpoints.js";
 export * from "./config.js";
 export * from "./brand.js";
+export * from "./runtime.js";
+export * from "./session-coordinator.js";
 export {
   getRuntimeDiscoveryPaths,
   type RuntimeDiscoveryPaths,

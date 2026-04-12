@@ -1,5 +1,5 @@
 import { startServer, type EngineServer, type EngineServerOptions } from "@aria/gateway/server";
-import { createRuntime, type EngineRuntime } from "@aria/runtime";
+import { createRuntime, type EngineRuntime } from "./runtime.js";
 import { CLI_NAME, PRODUCT_NAME, RUNTIME_NAME, getRuntimeHome } from "./brand.js";
 import { getRuntimeDiscoveryPaths, type RuntimeDiscoveryPaths } from "./discovery.js";
 

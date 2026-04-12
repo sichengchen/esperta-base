@@ -8,7 +8,7 @@ import { MAX_REDIRECTS, SecurityModeManager, ToolPolicyManager, buildToolCapabil
 import { buildContextFilesPrompt, parseContextReferences, preprocessContextReferences, PromptEngine } from "../packages/prompt/src/index.js";
 import { ConnectorTypeSchema } from "../packages/protocol/src/index.js";
 import { OperationalStore } from "../packages/store/src/index.js";
-import { askUserTool, buildDynamicToolsets, createMemoryDeleteTool, createMemoryReadTool, createMemorySearchTool, createMemoryWriteTool, createNotifyTool, createSessionToolEnvironment, createSetEnvSecretTool, createSetEnvVariableTool, createWebFetchTool, editTool, formatToolsSection, getBuiltinTools, mergeAllowedTools, reactionTool, readTool, validateEnvVarName, webSearchTool, writeTool } from "../packages/tools/src/index.js";
+import { askUserTool, buildDynamicToolsets, createMemoryDeleteTool, createMemoryReadTool, createMemorySearchTool, createMemoryWriteTool, createNotifyTool, createReadSkillTool, createSessionToolEnvironment, createSetEnvSecretTool, createSetEnvVariableTool, createSkillManageTool, createWebFetchTool, editTool, formatToolsSection, getBuiltinTools, mergeAllowedTools, reactionTool, readTool, validateEnvVarName, webSearchTool, writeTool } from "../packages/tools/src/index.js";
 
 const tempDirs: string[] = [];
 
@@ -322,6 +322,22 @@ describe("phase-1 extraction package verification", () => {
     } as any;
     await expect(createSetEnvSecretTool(config).execute({ name: "TEST_KEY", value: "secret" } as any)).resolves.toMatchObject({ isError: false });
     await expect(createSetEnvVariableTool(config).execute({ name: "ARIA_LOG_LEVEL", value: "debug" } as any)).resolves.toMatchObject({ isError: false });
+  });
+
+  test("@aria/tools exposes package-owned skill helpers", async () => {
+    const registry = {
+      getContent: async (name: string) => name === "phase-9" ? "skill body" : null,
+      activate: async () => {},
+      listFiles: async () => ["SKILL.md"],
+      getSubFile: async (_name: string, sub: string) => sub === "docs/overview.md" ? "overview" : null,
+      get: () => null,
+      loadAll: async () => {},
+    } as any;
+    await expect(createReadSkillTool(registry).execute({ name: "phase-9" } as any)).resolves.toMatchObject({ content: "skill body" });
+    const homeDir = await makeTempDir("aria-tools-skill-");
+    const skillTool = createSkillManageTool({ homeDir, registry } as any);
+    const createResult = await skillTool.execute({ action: "create", name: "phase-9", content: `---\nname: phase-9\ndescription: test\n---\nBody` } as any);
+    expect(createResult.isError).toBeUndefined();
   });
 
   test("@aria/tools exposes package-owned notify and ask-user helpers", async () => {

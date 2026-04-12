@@ -54,6 +54,7 @@ describe("phase-1 extraction package verification", () => {
     expect(proceduresSource).toContain("../../gateway/src/trpc.js");
     expect(proceduresSource).toContain("../../tools/src/session-tool-environment.js");
     expect(proceduresSource).toContain("../../audit/src/index.js");
+    expect(proceduresSource).toContain("../../policy/src/policy.js");
   });
 
   test("@aria/audit writes and queries entries through the package barrel", async () => {

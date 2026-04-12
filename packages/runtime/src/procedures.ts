@@ -9,7 +9,7 @@ import { Agent } from "./agent/index.js";
 import type { AgentEvent } from "./agent/index.js";
 import type { DangerLevel } from "./agent/types.js";
 import { classifyExecCommand } from "../../policy/src/exec-classifier.js";
-import { ToolPolicyManager, type ToolEventContext } from "./tools/policy.js";
+import { ToolPolicyManager, type ToolEventContext } from "../../policy/src/policy.js";
 import { ConnectorTypeSchema } from "@aria/shared/types.js";
 import type { EngineEvent, SkillInfo, ConnectorType, ToolApprovalMode, EscalationChoice } from "@aria/shared/types.js";
 import type { ModelConfig, ProviderConfig } from "./router/types.js";

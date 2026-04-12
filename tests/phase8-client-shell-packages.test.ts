@@ -4,11 +4,13 @@ import { join } from "node:path";
 
 import {
   ariaDesktopApp,
+  ariaDesktopNavigation,
   ariaDesktopContextPanels,
   ariaDesktopSpaces,
   createAriaDesktopEnvironmentOption,
   createAriaDesktopBootstrap,
   createAriaDesktopSidebarProjects,
+  createAriaDesktopThreadScreen,
   createAriaDesktopThreadContext,
 } from "@aria/desktop";
 import {
@@ -57,6 +59,28 @@ describe("Phase 8 client shell packages", () => {
     expect(ariaDesktopSpaces).toEqual([
       { id: "aria", label: "Aria" },
       { id: "projects", label: "Projects" },
+    ]);
+    expect(ariaDesktopNavigation).toEqual([
+      {
+        spaceId: "aria",
+        label: "Aria",
+        defaultScreenId: "chat",
+        screens: [
+          { id: "chat", label: "Chat" },
+          { id: "inbox", label: "Inbox" },
+          { id: "automations", label: "Automations" },
+          { id: "connectors", label: "Connectors" },
+        ],
+      },
+      {
+        spaceId: "projects",
+        label: "Projects",
+        defaultScreenId: "thread-list",
+        screens: [
+          { id: "thread-list", label: "Thread List" },
+          { id: "thread", label: "Active Thread" },
+        ],
+      },
     ]);
     expect(ariaDesktopContextPanels.map((panel) => panel.id)).toEqual([
       "review",
@@ -107,7 +131,15 @@ describe("Phase 8 client shell packages", () => {
 
     expect(
       createAriaDesktopThreadContext({
-        thread: { threadId: "thread-1", threadType: "local_project" },
+        projectLabel: "Aria",
+        thread: {
+          threadId: "thread-1",
+          threadType: "local_project",
+          title: "Desktop shell",
+          status: "running",
+          environmentId: "wt/feature-x",
+          agentId: "codex",
+        },
         environmentLabel: "This Device / wt/feature-x",
         agentLabel: "Codex",
       }),
@@ -115,9 +147,63 @@ describe("Phase 8 client shell packages", () => {
       threadId: "thread-1",
       threadType: "local_project",
       threadTypeLabel: "Local Project",
+      projectLabel: "Aria",
+      threadTitle: "Desktop shell",
+      threadStatusLabel: "Running",
       environmentLabel: "This Device / wt/feature-x",
       agentLabel: "Codex",
       panels: ariaDesktopContextPanels,
+    });
+
+    expect(
+      createAriaDesktopThreadScreen({
+        projectLabel: "Aria",
+        thread: {
+          threadId: "thread-1",
+          title: "Desktop shell",
+          status: "running",
+          threadType: "local_project",
+          environmentId: "wt/feature-x",
+          agentId: "codex",
+        },
+        environmentLabel: "This Device / wt/feature-x",
+        agentLabel: "Codex",
+        environments: [
+          {
+            hostLabel: "This Device",
+            environmentLabel: "wt/feature-x",
+            mode: "local",
+            target: { serverId: "desktop-local", baseUrl: "http://127.0.0.1:8123/" },
+          },
+        ],
+      }),
+    ).toMatchObject({
+      header: {
+        threadId: "thread-1",
+        title: "Desktop shell",
+        projectLabel: "Aria",
+        threadType: "local_project",
+        threadTypeLabel: "Local Project",
+        statusLabel: "Running",
+        environmentLabel: "This Device / wt/feature-x",
+        agentLabel: "Codex",
+      },
+      environmentSwitcher: {
+        label: "Environment",
+        placement: "thread-header",
+        activeEnvironmentLabel: "This Device / wt/feature-x",
+      },
+      stream: {
+        placement: "center-column",
+        tracks: ["messages", "runs"],
+        live: true,
+      },
+      composer: {
+        placement: "bottom-docked",
+        scope: "active-thread",
+        threadId: "thread-1",
+      },
+      defaultContextPanelId: "review",
     });
 
     expect(
@@ -154,7 +240,14 @@ describe("Phase 8 client shell packages", () => {
       "@aria/projects",
       "@aria/protocol",
     ]);
-    expect(ariaMobileApp.capabilities).not.toContain("local-bridge");
+    expect(ariaMobileApp.capabilities).toEqual([
+      "server-access",
+      "project-threads",
+      "remote-review",
+      "approvals",
+      "automation",
+      "reconnect",
+    ]);
     expect(bootstrap.access).toMatchObject({
       serverId: "mobile",
       httpUrl: "https://aria.example.test",
@@ -170,6 +263,7 @@ describe("Phase 8 client shell packages", () => {
       "approvals",
       "automation",
       "remote-review",
+      "reconnect",
       "job-status",
     ]);
     expect(ariaMobileDetailPresentations).toEqual([
@@ -222,6 +316,7 @@ describe("Phase 8 client shell packages", () => {
       createAriaDesktopBootstrap,
       createAriaDesktopEnvironmentOption,
       createAriaDesktopSidebarProjects,
+      ariaDesktopNavigation,
     });
     expect(mobileAppModule).toMatchObject({
       ariaMobileApp,

@@ -1,4 +1,7 @@
 import {
+  type EnvironmentRecord,
+  type ServerRecord,
+  type WorkspaceRecord,
   describeThreadType,
   resolveThreadType,
   type ProjectRecord,
@@ -27,6 +30,15 @@ export interface ProjectThreadListItem {
   agentId?: string | null;
 }
 
+export interface ProjectEnvironmentListItem {
+  id: string;
+  label: string;
+  hostLabel: string;
+  mode: EnvironmentRecord["mode"];
+  kind: EnvironmentRecord["kind"];
+  locator: string;
+}
+
 function formatStatusLabel(status: TaskStatus | ThreadStatus): string {
   return status
     .split(/[-_]/g)
@@ -53,4 +65,19 @@ export function createProjectThreadListItem(
 
 export function createStatusBadgeLabel(status: TaskStatus | ThreadStatus): string {
   return formatStatusLabel(status);
+}
+
+export function createProjectEnvironmentListItem(
+  workspace: Pick<WorkspaceRecord, "workspaceId" | "label">,
+  environment: Pick<EnvironmentRecord, "environmentId" | "label" | "mode" | "kind" | "locator">,
+  server?: Pick<ServerRecord, "label"> | null,
+): ProjectEnvironmentListItem {
+  return {
+    id: environment.environmentId,
+    label: environment.label,
+    hostLabel: server?.label ?? workspace.label,
+    mode: environment.mode,
+    kind: environment.kind,
+    locator: environment.locator,
+  };
 }

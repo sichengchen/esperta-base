@@ -70,12 +70,42 @@ describe("package shell composition", () => {
         thread: { threadId: "thread-1", title: "Inbox", status: "running", threadType: "aria", agentId: "aria-agent" },
       },
       activeThreadContext: {
-        thread: { threadId: "thread-1", threadType: "aria" },
+        projectLabel: "Aria",
+        thread: {
+          threadId: "thread-1",
+          threadType: "aria",
+          title: "Inbox",
+          status: "running",
+          environmentId: "env-1",
+          agentId: "aria-agent",
+        },
         environmentLabel: "This Device / wt/main",
         agentLabel: "Aria Agent",
       },
     });
 
+    expect(shell.navigation).toEqual([
+      {
+        spaceId: "aria",
+        label: "Aria",
+        defaultScreenId: "chat",
+        screens: [
+          { id: "chat", label: "Chat" },
+          { id: "inbox", label: "Inbox" },
+          { id: "automations", label: "Automations" },
+          { id: "connectors", label: "Connectors" },
+        ],
+      },
+      {
+        spaceId: "projects",
+        label: "Projects",
+        defaultScreenId: "thread-list",
+        screens: [
+          { id: "thread-list", label: "Thread List" },
+          { id: "thread", label: "Active Thread" },
+        ],
+      },
+    ]);
     expect(shell.spaces).toEqual([
       { id: "aria", label: "Aria" },
       { id: "projects", label: "Projects" },
@@ -88,6 +118,34 @@ describe("package shell composition", () => {
       "approvals",
       "artifacts",
     ]);
+    expect(shell.projectSidebar).toEqual({
+      label: "Projects",
+      mode: "unified-project-thread-tree",
+      projects: [
+        {
+          projectLabel: "Aria",
+          threads: [
+            {
+              id: "thread-1",
+              title: "Inbox",
+              projectLabel: "Aria",
+              status: "Running",
+              threadType: "aria",
+              threadTypeLabel: "Aria",
+              environmentId: null,
+              agentId: "aria-agent",
+            },
+          ],
+        },
+      ],
+    });
+    expect(shell.projectThreadListScreen).toEqual({
+      title: "Unified project threads",
+      description:
+        "Project threads stay grouped by project while environment switching happens in the active thread view.",
+      mode: "unified-project-thread-list",
+      projectSidebar: shell.projectSidebar,
+    });
     expect(shell.composerPlacement).toBe("bottom-docked");
     expect(shell.environments).toMatchObject([
       {
@@ -128,8 +186,47 @@ describe("package shell composition", () => {
       threadId: "thread-1",
       threadType: "aria",
       threadTypeLabel: "Aria",
+      projectLabel: "Aria",
+      threadTitle: "Inbox",
+      threadStatusLabel: "Running",
       environmentLabel: "This Device / wt/main",
       agentLabel: "Aria Agent",
+    });
+    expect(shell.activeThreadScreen).toMatchObject({
+      header: {
+        threadId: "thread-1",
+        title: "Inbox",
+        projectLabel: "Aria",
+        threadType: "aria",
+        threadTypeLabel: "Aria",
+        statusLabel: "Running",
+        environmentLabel: "This Device / wt/main",
+        agentLabel: "Aria Agent",
+      },
+      environmentSwitcher: {
+        label: "Environment",
+        placement: "thread-header",
+        activeEnvironmentLabel: "This Device / wt/main",
+      },
+      stream: {
+        placement: "center-column",
+        tracks: ["messages", "runs"],
+        live: true,
+      },
+      composer: {
+        placement: "bottom-docked",
+        scope: "active-thread",
+        threadId: "thread-1",
+      },
+      contextPanels: [
+        { id: "review", label: "Review" },
+        { id: "changes", label: "Changes" },
+        { id: "environment", label: "Environment" },
+        { id: "job", label: "Job State" },
+        { id: "approvals", label: "Approvals" },
+        { id: "artifacts", label: "Artifacts" },
+      ],
+      defaultContextPanelId: "review",
     });
   });
 
@@ -139,15 +236,45 @@ describe("package shell composition", () => {
       projects: [
         {
           project: { name: "Aria" },
-          threads: [{ threadId: "thread-2", title: "Review", status: "idle", threadType: "remote_project", agentId: "codex" }],
+          threads: [{
+            threadId: "thread-2",
+            title: "Review",
+            status: "idle",
+            threadType: "remote_project",
+            agentId: "codex",
+            approvalLabel: "2 approvals pending",
+            automationLabel: "Automation queued",
+            remoteReviewLabel: "Ready for remote review",
+            connectionLabel: "Connected to Home Server",
+            reconnectLabel: "Reconnect after sleep",
+          }],
         },
       ],
       initialThread: {
         project: { name: "Aria" },
-        thread: { threadId: "thread-2", title: "Review", status: "idle", threadType: "remote_project", agentId: "codex" },
+        thread: {
+          threadId: "thread-2",
+          title: "Review",
+          status: "idle",
+          threadType: "remote_project",
+          agentId: "codex",
+          approvalLabel: "2 approvals pending",
+          automationLabel: "Automation queued",
+          remoteReviewLabel: "Ready for remote review",
+          connectionLabel: "Connected to Home Server",
+          reconnectLabel: "Reconnect after sleep",
+        },
       },
       activeThreadContext: {
-        thread: { threadId: "thread-2", threadType: "remote_project" },
+        thread: {
+          threadId: "thread-2",
+          threadType: "remote_project",
+          approvalLabel: "2 approvals pending",
+          automationLabel: "Automation queued",
+          remoteReviewLabel: "Ready for remote review",
+          connectionLabel: "Connected to Home Server",
+          reconnectLabel: "Reconnect after sleep",
+        },
         remoteStatusLabel: "Connected to Home Server",
       },
     });
@@ -165,6 +292,7 @@ describe("package shell composition", () => {
       "approvals",
       "automation",
       "remote-review",
+      "reconnect",
       "job-status",
     ]);
     expect(shell.projectThreads).toEqual([
@@ -180,6 +308,11 @@ describe("package shell composition", () => {
             threadTypeLabel: "Remote Project",
             environmentId: null,
             agentId: "codex",
+            approvalLabel: "2 approvals pending",
+            automationLabel: "Automation queued",
+            remoteReviewLabel: "Ready for remote review",
+            connectionLabel: "Connected to Home Server",
+            reconnectLabel: "Reconnect after sleep",
           },
         ],
       },
@@ -195,6 +328,11 @@ describe("package shell composition", () => {
       threadType: "remote_project",
       threadTypeLabel: "Remote Project",
       remoteStatusLabel: "Connected to Home Server",
+      connectionLabel: "Connected to Home Server",
+      approvalLabel: "2 approvals pending",
+      automationLabel: "Automation queued",
+      remoteReviewLabel: "Ready for remote review",
+      reconnectLabel: "Reconnect after sleep",
     });
   });
 });

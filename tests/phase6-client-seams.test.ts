@@ -114,7 +114,14 @@ describe("Phase 6 client seams", () => {
     );
 
     expect(ariaMobileApp.sharedPackages).toContain("@aria/ui");
-    expect(ariaMobileApp.capabilities).not.toContain("local-bridge");
+    expect(ariaMobileApp.capabilities).toEqual([
+      "server-access",
+      "project-threads",
+      "remote-review",
+      "approvals",
+      "automation",
+      "reconnect",
+    ]);
     expect(bootstrap.access).toMatchObject({
       serverId: "mobile",
       httpUrl: "https://aria.example.test",

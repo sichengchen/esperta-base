@@ -1,4 +1,7 @@
 import {
+  type EnvironmentRecord,
+  type ServerRecord,
+  type WorkspaceRecord,
   describeThreadType,
   resolveThreadType,
   type ProjectRecord,
@@ -28,6 +31,18 @@ export interface ClientProjectThreadSummary {
   agentId?: string | null;
 }
 
+export interface ClientExecutionHierarchySummary {
+  serverId?: string | null;
+  serverLabel?: string | null;
+  workspaceId: string;
+  workspaceLabel: string;
+  environmentId: string;
+  environmentLabel: string;
+  environmentMode: EnvironmentRecord["mode"];
+  environmentKind: EnvironmentRecord["kind"];
+  locator: string;
+}
+
 export function buildClientProjectThreadSummary(
   project: Pick<ProjectRecord, "projectId" | "name">,
   thread: Pick<ThreadRecord, "threadId" | "title" | "status" | "threadType" | "workspaceId" | "environmentId" | "agentId">,
@@ -44,5 +59,23 @@ export function buildClientProjectThreadSummary(
     workspaceId: thread.workspaceId ?? null,
     environmentId: thread.environmentId ?? null,
     agentId: thread.agentId ?? null,
+  };
+}
+
+export function buildClientExecutionHierarchySummary(
+  workspace: Pick<WorkspaceRecord, "workspaceId" | "label" | "serverId">,
+  environment: Pick<EnvironmentRecord, "environmentId" | "label" | "mode" | "kind" | "locator">,
+  server?: Pick<ServerRecord, "serverId" | "label"> | null,
+): ClientExecutionHierarchySummary {
+  return {
+    serverId: server?.serverId ?? workspace.serverId ?? null,
+    serverLabel: server?.label ?? null,
+    workspaceId: workspace.workspaceId,
+    workspaceLabel: workspace.label,
+    environmentId: environment.environmentId,
+    environmentLabel: environment.label,
+    environmentMode: environment.mode,
+    environmentKind: environment.kind,
+    locator: environment.locator,
   };
 }

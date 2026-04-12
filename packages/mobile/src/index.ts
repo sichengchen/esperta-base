@@ -24,7 +24,14 @@ export const ariaMobileApp = {
     "@aria/projects",
     "@aria/protocol",
   ],
-  capabilities: ["server-access", "project-threads", "remote-review"],
+  capabilities: [
+    "server-access",
+    "project-threads",
+    "remote-review",
+    "approvals",
+    "automation",
+    "reconnect",
+  ],
 } as const;
 
 export const ariaMobileTabs = [
@@ -42,6 +49,7 @@ export const ariaMobileActionSections = [
   { id: "approvals", label: "Approvals" },
   { id: "automation", label: "Automations" },
   { id: "remote-review", label: "Remote Review" },
+  { id: "reconnect", label: "Reconnect" },
   { id: "job-status", label: "Job Status" },
 ] as const;
 
@@ -51,39 +59,61 @@ export type AriaMobileActionSection = (typeof ariaMobileActionSections)[number];
 
 export interface AriaMobileProjectThreads {
   projectLabel: string;
-  threads: ProjectThreadListItem[];
+  threads: AriaMobileProjectThreadItem[];
 }
 
 export interface AriaMobileBootstrap {
   app: typeof ariaMobileApp;
   access: ReturnType<typeof buildAccessClientConfig>;
-  initialThread?: ProjectThreadListItem;
+  initialThread?: AriaMobileProjectThreadItem;
 }
+
+export interface AriaMobileThreadSignals {
+  approvalLabel?: string;
+  automationLabel?: string;
+  remoteReviewLabel?: string;
+  connectionLabel?: string;
+  reconnectLabel?: string;
+}
+
+export interface AriaMobileProjectThreadItem extends ProjectThreadListItem, AriaMobileThreadSignals {}
 
 export interface AriaMobileThreadContext {
   threadId: string;
   threadType: ThreadType;
   threadTypeLabel: string;
   remoteStatusLabel?: string;
+  connectionLabel?: string;
+  approvalLabel?: string;
+  automationLabel?: string;
+  remoteReviewLabel?: string;
+  reconnectLabel?: string;
   sections: typeof ariaMobileActionSections;
 }
 
 export interface AriaMobileShellProjectInput {
   project: Pick<ProjectRecord, "name">;
-  threads: Array<Pick<ThreadRecord, "threadId" | "title" | "status" | "threadType" | "environmentId" | "agentId">>;
+  threads: AriaMobileProjectThreadInput[];
 }
 
 export interface AriaMobileShellInitialThread {
   project: Pick<ProjectRecord, "name">;
-  thread: Pick<ThreadRecord, "threadId" | "title" | "status" | "threadType" | "environmentId" | "agentId">;
+  thread: AriaMobileProjectThreadInput;
 }
+
+export interface AriaMobileProjectThreadInput
+  extends Pick<
+    ThreadRecord,
+    "threadId" | "title" | "status" | "threadType" | "environmentId" | "agentId"
+  >,
+    AriaMobileThreadSignals {}
 
 export interface CreateAriaMobileShellOptions {
   target: AccessClientTarget;
   projects?: AriaMobileShellProjectInput[];
   initialThread?: AriaMobileShellInitialThread;
   activeThreadContext?: {
-    thread: Pick<ThreadRecord, "threadId" | "threadType">;
+    thread: Pick<ThreadRecord, "threadId" | "threadType"> & AriaMobileThreadSignals;
     remoteStatusLabel?: string;
   };
 }
@@ -95,24 +125,39 @@ export interface AriaMobileShell {
   actionSections: typeof ariaMobileActionSections;
   access: ReturnType<typeof buildAccessClientConfig>;
   projectThreads: AriaMobileProjectThreads[];
-  initialThread?: ProjectThreadListItem;
+  initialThread?: AriaMobileProjectThreadItem;
   activeThreadContext?: AriaMobileThreadContext;
+}
+
+export function createAriaMobileProjectThreadItem(
+  project: Pick<ProjectRecord, "name">,
+  thread: AriaMobileProjectThreadInput,
+): AriaMobileProjectThreadItem {
+  const threadItem = createProjectThreadListItem(project, thread);
+  return {
+    ...threadItem,
+    ...(thread.approvalLabel ? { approvalLabel: thread.approvalLabel } : {}),
+    ...(thread.automationLabel ? { automationLabel: thread.automationLabel } : {}),
+    ...(thread.remoteReviewLabel ? { remoteReviewLabel: thread.remoteReviewLabel } : {}),
+    ...(thread.connectionLabel ? { connectionLabel: thread.connectionLabel } : {}),
+    ...(thread.reconnectLabel ? { reconnectLabel: thread.reconnectLabel } : {}),
+  };
 }
 
 export function createAriaMobileProjectThreads(
   projects: Array<{
     project: Pick<ProjectRecord, "name">;
-    threads: Array<Pick<ThreadRecord, "threadId" | "title" | "status" | "threadType" | "environmentId" | "agentId">>;
+    threads: AriaMobileProjectThreadInput[];
   }>,
 ): AriaMobileProjectThreads[] {
   return projects.map(({ project, threads }) => ({
     projectLabel: project.name,
-    threads: threads.map((thread) => createProjectThreadListItem(project, thread)),
+    threads: threads.map((thread) => createAriaMobileProjectThreadItem(project, thread)),
   }));
 }
 
 export function createAriaMobileThreadContext(input: {
-  thread: Pick<ThreadRecord, "threadId" | "threadType">;
+  thread: Pick<ThreadRecord, "threadId" | "threadType"> & AriaMobileThreadSignals;
   remoteStatusLabel?: string;
 }): AriaMobileThreadContext {
   const threadType = resolveThreadType(input.thread);
@@ -121,6 +166,11 @@ export function createAriaMobileThreadContext(input: {
     threadType,
     threadTypeLabel: describeThreadType(threadType),
     remoteStatusLabel: input.remoteStatusLabel,
+    ...(input.thread.connectionLabel ? { connectionLabel: input.thread.connectionLabel } : {}),
+    ...(input.thread.approvalLabel ? { approvalLabel: input.thread.approvalLabel } : {}),
+    ...(input.thread.automationLabel ? { automationLabel: input.thread.automationLabel } : {}),
+    ...(input.thread.remoteReviewLabel ? { remoteReviewLabel: input.thread.remoteReviewLabel } : {}),
+    ...(input.thread.reconnectLabel ? { reconnectLabel: input.thread.reconnectLabel } : {}),
     sections: ariaMobileActionSections,
   };
 }
@@ -129,14 +179,14 @@ export function createAriaMobileBootstrap(
   target: AccessClientTarget,
   initialThread?: {
     project: Pick<ProjectRecord, "name">;
-    thread: Pick<ThreadRecord, "threadId" | "title" | "status" | "threadType" | "environmentId" | "agentId">;
+    thread: AriaMobileProjectThreadInput;
   },
 ): AriaMobileBootstrap {
   return {
     app: ariaMobileApp,
     access: buildAccessClientConfig(target),
     initialThread: initialThread
-      ? createProjectThreadListItem(initialThread.project, initialThread.thread)
+      ? createAriaMobileProjectThreadItem(initialThread.project, initialThread.thread)
       : undefined,
   };
 }

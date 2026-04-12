@@ -1,5 +1,6 @@
 import {
   ariaDesktopApp,
+  ariaDesktopNavigation,
   ariaDesktopContextPanels,
   ariaDesktopSpaces,
   createAriaDesktopBootstrap,
@@ -18,6 +19,7 @@ export const ariaDesktopHost = {
   shellPackage: "@aria/desktop",
   sharedPackages: ariaDesktopApp.sharedPackages,
   capabilities: ariaDesktopApp.capabilities,
+  navigation: ariaDesktopNavigation,
   spaces: ariaDesktopSpaces,
   contextPanels: ariaDesktopContextPanels,
 } as const;

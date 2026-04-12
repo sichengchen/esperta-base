@@ -5,9 +5,9 @@ import {
   ariaMobileTabs,
   createAriaMobileBootstrap,
   type AriaMobileBootstrap,
+  type AriaMobileShellInitialThread,
 } from "@aria/mobile";
 import type { AccessClientTarget } from "@aria/access-client";
-import type { ProjectRecord, ThreadRecord } from "@aria/projects";
 
 export * from "@aria/mobile";
 
@@ -32,10 +32,7 @@ export interface AriaMobileHostBootstrap {
 
 export function createAriaMobileHostBootstrap(
   target: AccessClientTarget,
-  initialThread?: {
-    project: Pick<ProjectRecord, "name">;
-    thread: Pick<ThreadRecord, "threadId" | "title" | "status" | "threadType" | "environmentId" | "agentId">;
-  },
+  initialThread?: AriaMobileShellInitialThread,
 ): AriaMobileHostBootstrap {
   return {
     host: ariaMobileHost,

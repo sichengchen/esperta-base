@@ -18,7 +18,7 @@ The goal is to make those boundaries explicit **without** breaking the current C
 During Phase 2:
 
 1. Keep existing `@aria/runtime` export paths working while implementation moves behind them.
-2. Keep existing `@aria/connectors/*` leaf entrypoints working; today those leaf exports are the public contract because `packages/connectors/src/index.ts` is intentionally empty.
+2. Keep connector/operator behavior stable while the target connector and console packages become the direct import surfaces.
 3. Preserve operator-visible behavior for `aria automation`, `aria memory`, TUI `/automation`, TUI `/memory`, webhook endpoints, and current runtime-home storage paths.
 4. Prefer moving implementation ownership first; delay route-shape churn, CLI renames, or connector UX changes until the new package seams are stable.
 
@@ -30,8 +30,8 @@ During Phase 2:
 | `@aria/memory` | `packages/runtime/src/memory/*` with runtime wiring in `packages/runtime/src/runtime.ts` and `packages/runtime/src/procedures.ts` | `packages/memory/src/` | `packages/runtime/src/memory/*`, `packages/runtime/src/index.ts` |
 | `@aria/automation` | `packages/runtime/src/automation.ts`, `automation-registry.ts`, `automation-schedule.ts`, `scheduler.ts`, plus automation bridges in `runtime.ts`, `server.ts`, and `procedures.ts` | `packages/automation/src/` | `packages/runtime/src/automation.ts`, `automation-registry.ts`, `automation-schedule.ts`, `scheduler.ts`, `packages/runtime/src/index.ts` |
 | `@aria/gateway` | `packages/gateway/src/*` with `@aria/runtime/{server,procedures,trpc,context}` kept as compatibility shims | `packages/gateway/src/` | `packages/runtime/src/server.ts`, `trpc.ts`, `context.ts`, `procedures.ts`, `packages/runtime/src/index.ts` |
-| `@aria/connectors-im` | `packages/connectors/src/chat-sdk/*`, `shared/stream-handler.ts`, and connector entrypoints under `discord/`, `gchat/`, `github/`, `linear/`, `slack/`, `teams/`, `telegram/`, `wechat/` | `packages/connectors-im/src/` | current `packages/connectors/src/*` leaf entrypoints and `@aria/connectors` package exports |
-| `@aria/console` | `packages/connectors/src/tui/*` | `packages/console/src/` | `packages/connectors/src/tui/*` and `@aria/connectors/tui/*` package exports |
+| `@aria/connectors-im` | `packages/connectors-im/src/` | `packages/connectors-im/src/` | direct target package imports |
+| `@aria/console` | `packages/console/src/` | `packages/console/src/` | direct target package imports |
 
 ## Review Notes And Hotspots
 
@@ -61,14 +61,12 @@ During Phase 2:
 
 ### `@aria/connectors-im`
 
-- The CLI imports connector leaf entrypoints directly (`@aria/connectors/slack/index.js`, etc.), so Phase 2 should preserve those paths as shims while implementations move.
-- `packages/connectors/src/chat-sdk/*` and `shared/stream-handler.ts` are shared IM-connector support code and belong with this extraction.
+- The target connector package now owns the shared IM-connector support code directly.
 - WeChat is the main outlier because it owns login and long-polling state in addition to protocol streaming; keep that asymmetry documented during the move.
 
 ### `@aria/console`
 
-- The current console surface is the Ink TUI under `packages/connectors/src/tui/*`.
-- `packages/cli/src/index.ts`, `packages/cli/src/memory.ts`, and `packages/cli/src/automation.ts` import `@aria/connectors/tui/*` paths directly, so those paths must remain stable during extraction.
+- The current console surface is the Ink TUI under `packages/console/src/*`.
 - TUI slash commands for `/memory` and `/automation` depend on existing admin procedures; keep those integrations behaviorally identical while moving UI ownership.
 
 ## Recommended Extraction Order
@@ -98,4 +96,4 @@ Every Phase 2 extraction step should still pass:
 
 ## Exit Condition
 
-Phase 2 is complete when each listed domain has a package-owned implementation path, current `@aria/runtime` and `@aria/connectors/*` import surfaces still behave as compatibility shims, and operator-visible CLI/runtime behavior remains unchanged.
+Phase 2 is complete when each listed domain has a package-owned implementation path and operator-visible CLI/runtime behavior remains unchanged.

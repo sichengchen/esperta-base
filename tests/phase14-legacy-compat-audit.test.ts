@@ -9,11 +9,9 @@ const LEGACY_IMPORT_PATTERNS = [
   /@aria\/projects-engine(?:\/|["'])/,
   /@aria\/shared-types(?:\/|["'])/,
   /@aria\/shared\//,
-  /@aria\/connectors\//,
 ];
 
 const EXCLUDED_PREFIXES = [
-  "packages/connectors/",
   "packages/runtime/src/skills/",
   "scripts/migrate-legacy-esperta-code.ts",
 ];

@@ -19,7 +19,6 @@
     "baseUrl": ".",
     "paths": {
       "@aria/engine/*": ["packages/runtime/src/*"],
-      "@aria/connectors/*": ["packages/connectors/src/*"],
       "@aria/cli/*": ["packages/cli/src/*"],
       "@aria/protocol": ["packages/protocol/src/index.ts"],
       "@aria/protocol/*": ["packages/protocol/src/*"],

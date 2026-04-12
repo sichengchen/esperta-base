@@ -16,7 +16,6 @@ Aria is implemented as a package-oriented monorepo.
 | `packages/relay` | paired-device trust and queued remote control envelopes |
 | `packages/console` | server-local console surface |
 | `packages/connectors-im` | IM connector surfaces |
-| `packages/connectors` | compatibility wrappers for older connector entrypoints |
 | `packages/cli` | operator CLI surface |
 
 ## System Model

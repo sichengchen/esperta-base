@@ -27,8 +27,8 @@ Use this page whenever a package name appears in the target architecture docs an
 | `@aria/automation` | `target-owned` | `packages/automation/src/*` | `@aria/runtime` automation/scheduler exports | Automation logic is target-owned; runtime paths stay compatible for now. |
 | `@aria/agent-aria` | `target-owned` | `packages/agent-aria/src/*` | `@aria/runtime` agent exports | The Aria assistant implementation is target-owned. |
 | `@aria/gateway` | `target-owned` | `packages/gateway/src/*` | `@aria/runtime` server/tRPC/context entrypoints | Gateway transport/auth behavior should change in the target package first. |
-| `@aria/connectors-im` | `target-owned` | `packages/connectors-im/src/*` | `packages/connectors/src/*` for older entrypoints and remaining tails such as WeChat | The target IM-connector package is live, but a few legacy connector surfaces still need compatibility treatment. |
-| `@aria/console` | `target-owned` | `packages/console/src/*` | `packages/connectors/src/tui/*`, local shared client helpers | The console package owns the TUI surface even though older connector/runtime helpers still exist underneath. |
+| `@aria/connectors-im` | `target-owned` | `packages/connectors-im/src/*` | direct target-package imports | The target IM-connector package owns the connector surfaces directly. |
+| `@aria/console` | `target-owned` | `packages/console/src/*` | local shared client helpers | The console package owns the TUI surface directly. |
 | `@aria/projects` | `target-owned` | `packages/projects/src/*` | direct target-package imports | The target package now owns project-control coordination and persistence APIs. |
 | `@aria/workspaces` | `target-owned` | `packages/workspaces/src/*` | `@aria/projects` persistence APIs | Repo/worktree ownership now lives in the target package. |
 | `@aria/jobs` | `target-owned` | `packages/jobs/src/*` | `@aria/runtime/src/{dispatch-runner,backend-registry}.ts` | Dispatch lifecycle ownership now lives in the target jobs package even though legacy runtime entrypoints still re-export it. |
@@ -50,7 +50,6 @@ Use this page whenever a package name appears in the target architecture docs an
 | Legacy or compatibility surface | Classification | Current responsibility today | Target owner(s) it feeds | Migration note |
 | --- | --- | --- | --- | --- |
 | `@aria/runtime` | `legacy-only compatibility surface` | Runtime bootstrap wrappers, compatibility exports, and a few still-live server/job seams | `@aria/server`, `@aria/gateway`, `@aria/agent-aria`, `@aria/memory`, `@aria/automation`, `@aria/prompt`, `@aria/tools`, `@aria/policy`, `@aria/store`, `@aria/audit`, `@aria/jobs` | Keep this stable while server-oriented target packages absorb the last compatibility-only behavior. |
-| `packages/connectors` | `legacy-only compatibility surface` | Older connector entrypoints, TUI-era exports, and the remaining non-migrated connector tails | `@aria/connectors-im`, `@aria/console` | Prefer the target packages for new work; touch `packages/connectors` only when maintaining compatibility or moving a remaining tail. |
 | `packages/cli` and the `aria` binary | `legacy-only compatibility surface` | Operator CLI entrypoints, daemon commands, and current local launch flows | `@aria/server`, `apps/aria-server`, `@aria/console` | Treat the CLI as an operator surface, not a reason to move server ownership back out of the target packages. |
 
 ## Decision Rule

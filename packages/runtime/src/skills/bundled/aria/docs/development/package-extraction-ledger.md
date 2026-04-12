@@ -31,8 +31,8 @@ During phase 1, the current `packages/runtime` and `packages/shared-types` entry
 | `@aria/memory` | `packages/runtime/src/memory/*` | `packages/memory/src/*` | `packages/runtime/src/memory/index.ts` |
 | `@aria/automation` | `packages/runtime/src/automation.ts`, `automation-registry.ts`, `automation-schedule.ts`, `scheduler.ts` | `packages/automation/src/*` | `packages/runtime/src/automation*.ts`, `packages/runtime/src/scheduler.ts` |
 | `@aria/agent-aria` | `packages/runtime/src/agent/*` | `packages/agent-aria/src/*` | `packages/runtime/src/agent/index.ts` |
-| `@aria/connectors-im` | `packages/connectors/src/chat-sdk/*`, platform connector entrypoints | `packages/connectors-im/src/*` | `packages/connectors/src/*` |
-| `@aria/console` | `packages/connectors/src/tui/*` | `packages/console/src/*` | `packages/connectors/src/tui/*` |
+| `@aria/connectors-im` | `packages/connectors-im/src/*` | `packages/connectors-im/src/*` | direct target package imports |
+| `@aria/console` | `packages/console/src/*` | `packages/console/src/*` | direct target package imports |
 | `@aria/gateway` | `packages/runtime/src/context.ts`, `procedures.ts`, `server.ts`, `trpc.ts` | `packages/gateway/src/*` | `packages/runtime/src/{context,procedures,server,trpc}.ts` |
 
 ## Phase 2 Notes

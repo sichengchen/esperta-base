@@ -2,6 +2,6 @@
   "name": "aria-mobile",
   "private": true,
   "type": "module",
-  "description": "Thin Aria Mobile app wrapper over the @aria/mobile client shell seam",
+  "description": "Aria Mobile app surface over the @aria/mobile client shell seam",
   "main": "./src/index.ts"
 }

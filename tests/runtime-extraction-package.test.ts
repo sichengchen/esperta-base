@@ -66,6 +66,25 @@ describe("phase-1 extraction package verification", () => {
     expect(toolsIndexSource).toContain("./claude-code.js");
     expect(toolsIndexSource).toContain("./codex.js");
 
+    const localToolFiles = [
+      "exec.ts",
+      "delegate.ts",
+      "delegate-status.ts",
+      "claude-code.ts",
+      "codex.ts",
+    ];
+    for (const file of localToolFiles) {
+      const source = await import("node:fs/promises").then(fs => fs.readFile(new URL(`../packages/tools/src/${file}`, import.meta.url), "utf-8"));
+      expect(source).not.toContain("@aria/runtime/tools/");
+    }
+    const execSource = await import("node:fs/promises").then(fs => fs.readFile(new URL("../packages/tools/src/exec.ts", import.meta.url), "utf-8"));
+    expect(execSource).toContain("./sandbox.js");
+    expect(execSource).toContain("@aria/agent-aria/content-frame");
+    const codexSource = await import("node:fs/promises").then(fs => fs.readFile(new URL("../packages/tools/src/codex.ts", import.meta.url), "utf-8"));
+    expect(codexSource).toContain("./agent-subprocess.js");
+    const claudeSource = await import("node:fs/promises").then(fs => fs.readFile(new URL("../packages/tools/src/claude-code.ts", import.meta.url), "utf-8"));
+    expect(claudeSource).toContain("./agent-subprocess.js");
+
     const sessionToolEnvironmentSource = await import("node:fs/promises").then(fs => fs.readFile(new URL("../packages/tools/src/session-tool-environment.ts", import.meta.url), "utf-8"));
     expect(sessionToolEnvironmentSource).not.toContain("@aria/runtime/tools/");
     expect(sessionToolEnvironmentSource).toContain("@aria/agent-aria");

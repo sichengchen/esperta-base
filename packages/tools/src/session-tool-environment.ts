@@ -56,13 +56,14 @@ export function createSessionToolEnvironment(options: SessionToolEnvironmentOpti
   const wrappedTools = nonDelegationBaseTools.map(wrapTool);
 
   let orchestrator: Orchestrator | undefined;
-  if (options.delegation && hasDelegation) {
+  const delegation = options.delegation;
+  if (delegation && hasDelegation) {
     const createSessionSubAgent = (subAgentOptions: ConstructorParameters<typeof SubAgent>[2]) => {
       const subAgentEnvironment = createSessionToolEnvironment({ baseTools: nonDelegationBaseTools, workingDir, checkpointManager, maxContextHintChars: options.maxContextHintChars });
       subAgentEnvironment.newTurn();
-      return new SubAgent(options.delegation.router, subAgentEnvironment.tools, {
+      return new SubAgent(delegation.router, subAgentEnvironment.tools, {
         ...subAgentOptions,
-        memoryWrite: subAgentOptions.memoryWrite ?? options.delegation!.memoryWriteDefault,
+        memoryWrite: subAgentOptions.memoryWrite ?? delegation.memoryWriteDefault,
         systemPrompt: [
           "You are a focused sub-agent executing a specific delegated task.",
           `Workspace path: ${workingDir}`,
@@ -71,20 +72,20 @@ export function createSessionToolEnvironment(options: SessionToolEnvironmentOpti
       });
     };
 
-    orchestrator = new Orchestrator(options.delegation.router, wrappedTools, {
-      maxConcurrent: options.delegation.maxConcurrent,
-      maxSubAgentsPerTurn: options.delegation.maxSubAgentsPerTurn,
-      resultRetentionMs: options.delegation.resultRetentionMs,
-      defaultTimeoutMs: options.delegation.defaultTimeoutMs,
+    orchestrator = new Orchestrator(delegation.router, wrappedTools, {
+      maxConcurrent: delegation.maxConcurrent,
+      maxSubAgentsPerTurn: delegation.maxSubAgentsPerTurn,
+      resultRetentionMs: delegation.resultRetentionMs,
+      defaultTimeoutMs: delegation.defaultTimeoutMs,
       createSubAgent: createSessionSubAgent,
     });
     const sessionOrchestrator = orchestrator;
     if (options.baseTools.some((tool) => tool.name === "delegate")) {
       wrappedTools.push(createDelegateTool({
-        router: options.delegation.router,
+        router: delegation.router,
         tools: wrappedTools,
-        defaultTimeoutMs: options.delegation.defaultTimeoutMs,
-        memoryWriteDefault: options.delegation.memoryWriteDefault,
+        defaultTimeoutMs: delegation.defaultTimeoutMs,
+        memoryWriteDefault: delegation.memoryWriteDefault,
         getOrchestrator: () => sessionOrchestrator,
         createSubAgent: createSessionSubAgent,
       }));

@@ -3,6 +3,7 @@ import { createContext } from "../../gateway/src/context.js";
 import type { EngineRuntime } from "./runtime.js";
 import {
   createAriaRuntimeBackendAdapter,
+  createCodingAgentBackendRegistry,
   type RuntimeBackendAdapter,
   type RuntimeBackendAvailability,
   type RuntimeBackendCapabilities,

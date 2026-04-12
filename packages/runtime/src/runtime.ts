@@ -13,7 +13,7 @@ import { Orchestrator } from "./agent/orchestrator.js";
 
 
 import { SessionManager } from "./sessions.js";
-import { AuthManager } from "./auth.js";
+import { AuthManager } from "../../gateway/src/auth.js";
 import { SkillRegistry } from "./skills/index.js";
 
 import { AutomationRegistry, Scheduler, createHeartbeatTask } from "../../automation/src/index.js";

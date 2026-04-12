@@ -1,15 +1,16 @@
 import { join } from "node:path";
 import { randomUUID } from "node:crypto";
 import { CLI_NAME, getRuntimeHome } from "@aria/shared/brand.js";
-import { ProjectsEngineStore } from "../../projects-engine/src/store.js";
-import { ProjectsEngineRepository } from "../../projects-engine/src/repository.js";
-import { ProjectsPlanningService } from "../../projects-engine/src/planning.js";
-import { ProjectsDispatchService } from "../../projects-engine/src/dispatch.js";
-import { ProjectsPublishService } from "../../projects-engine/src/publish.js";
-import { ProjectsReviewService } from "../../projects-engine/src/reviews.js";
-import { ProjectsWorktreeService } from "../../projects-engine/src/worktrees.js";
-import { HandoffStore } from "../../handoff/src/store.js";
-import { HandoffService } from "../../handoff/src/service.js";
+import {
+  ProjectsDispatchService,
+  ProjectsEngineRepository,
+  ProjectsEngineStore,
+  ProjectsPlanningService,
+  ProjectsPublishService,
+  ProjectsReviewService,
+  ProjectsWorktreeService,
+} from "@aria/projects-engine";
+import { HandoffService, HandoffStore } from "@aria/handoff";
 import { createRuntime } from "../../runtime/src/runtime.js";
 import { listRuntimeBackends } from "../../runtime/src/backend-registry.js";
 import { runDispatchExecution } from "../../runtime/src/dispatch-runner.js";

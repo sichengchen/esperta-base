@@ -7,10 +7,9 @@ import {
   ProjectsEngineStore,
   ProjectsPublishService,
   ProjectsReviewService,
-} from "../packages/projects-engine/src/index.js";
-import { ProjectsWorktreeService } from "../packages/projects-engine/src/worktrees.js";
-import { HandoffService } from "../packages/handoff/src/service.js";
-import { HandoffStore } from "../packages/handoff/src/store.js";
+  ProjectsWorktreeService,
+} from "@aria/projects-engine";
+import { HandoffService, HandoffStore } from "@aria/handoff";
 
 const closers: Array<() => void> = [];
 

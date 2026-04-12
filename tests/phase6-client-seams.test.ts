@@ -46,7 +46,7 @@ describe("Phase 6 client seams", () => {
       projectLabel: "Aria",
       status: "Queued",
     });
-    expect(createStatusBadgeLabel("waiting_review")).toBe("Waiting Review");
+    expect(createStatusBadgeLabel("in_progress")).toBe("In Progress");
     expect(describeUiEngineEvent({ type: "tool_approval_request" })).toBe("Approval requested");
   });
 

@@ -135,6 +135,15 @@ export interface AriaDesktopEnvironmentOption {
   access: ReturnType<typeof buildAccessClientConfig>;
 }
 
+export type AriaDesktopEnvironmentInput =
+  | AriaDesktopEnvironmentOption
+  | {
+      hostLabel: string;
+      environmentLabel: string;
+      mode: "local" | "remote";
+      target: AccessClientTarget;
+    };
+
 export interface AriaDesktopBootstrap {
   app: typeof ariaDesktopApp;
   access: ReturnType<typeof buildAccessClientConfig>;
@@ -257,10 +266,12 @@ export function createAriaDesktopThreadScreen(input: {
   >;
   environmentLabel?: string;
   agentLabel?: string;
-  environments?: AriaDesktopEnvironmentOption[];
+  environments?: AriaDesktopEnvironmentInput[];
 }): AriaDesktopThreadScreen {
   const threadType = resolveThreadType(input.thread);
-  const availableEnvironments = input.environments ?? [];
+  const availableEnvironments = (input.environments ?? []).map((environment) =>
+    "access" in environment ? environment : createAriaDesktopEnvironmentOption(environment),
+  );
 
   return {
     header: {
@@ -364,9 +375,7 @@ export function createAriaDesktopShell(
             thread: activeThreadSource.thread,
             environmentLabel: activeThreadSource.environmentLabel,
             agentLabel: activeThreadSource.agentLabel,
-            environments: (options.environments ?? []).map((environment) =>
-              createAriaDesktopEnvironmentOption(environment),
-            ),
+            environments: options.environments,
           })
         : undefined,
   };

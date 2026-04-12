@@ -1,6 +1,1 @@
-export type {
-  RepoRecord,
-  WorktreeRecord,
-  WorktreeStatus,
-} from "../../workspaces/src/types.js";
-export * from "./types-compat.js";
+export type * from "../../projects/src/types.js";

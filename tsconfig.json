@@ -21,7 +21,19 @@
       "@aria/engine/*": ["packages/runtime/src/*"],
       "@aria/connectors/*": ["packages/connectors/src/*"],
       "@aria/shared/*": ["packages/shared-types/src/*"],
-      "@aria/cli/*": ["packages/cli/src/*"]
+      "@aria/cli/*": ["packages/cli/src/*"],
+      "@aria/agent-aria": ["packages/agent-aria/src/index.ts"],
+      "@aria/agent-aria/*": ["packages/agent-aria/src/*"],
+      "@aria/automation": ["packages/automation/src/index.ts"],
+      "@aria/automation/*": ["packages/automation/src/*"],
+      "@aria/connectors-im": ["packages/connectors-im/src/index.ts"],
+      "@aria/connectors-im/*": ["packages/connectors-im/src/*"],
+      "@aria/console": ["packages/console/src/index.ts"],
+      "@aria/console/*": ["packages/console/src/*"],
+      "@aria/gateway": ["packages/gateway/src/index.ts"],
+      "@aria/gateway/*": ["packages/gateway/src/*"],
+      "@aria/memory": ["packages/memory/src/index.ts"],
+      "@aria/memory/*": ["packages/memory/src/*"]
     }
   },
   "include": [

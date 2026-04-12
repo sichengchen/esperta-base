@@ -2,6 +2,8 @@
 
 This section describes how the current repo is built and how the major subsystems divide ownership.
 
+For the target-state redesign work, see [../new-architecture/README.md](../new-architecture/README.md).
+
 ## Overall Diagram
 
 ```mermaid

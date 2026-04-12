@@ -12,6 +12,18 @@ This tree is organized by reader intent, not by the old code layout.
 
 ## Documentation Map
 
+### Target Architecture
+
+- [new-architecture/README.md](./new-architecture/README.md)
+- [new-architecture/overview.md](./new-architecture/overview.md)
+- [new-architecture/deployment.md](./new-architecture/deployment.md)
+- [new-architecture/relay.md](./new-architecture/relay.md)
+- [new-architecture/server.md](./new-architecture/server.md)
+- [new-architecture/desktop-and-mobile.md](./new-architecture/desktop-and-mobile.md)
+- [new-architecture/tech-decisions.md](./new-architecture/tech-decisions.md)
+- [new-architecture/domain-model.md](./new-architecture/domain-model.md)
+- [new-architecture/packages.md](./new-architecture/packages.md)
+
 ### Product
 
 - [product/README.md](./product/README.md)
@@ -72,6 +84,8 @@ This tree is organized by reader intent, not by the old code layout.
 - [development/testing.md](./development/testing.md)
 - [development/release.md](./development/release.md)
 - [development/migration.md](./development/migration.md)
+- [development/package-extraction-ledger.md](./development/package-extraction-ledger.md)
+- [development/phase-2-extraction-ledger.md](./development/phase-2-extraction-ledger.md)
 
 ## Documentation Rule
 

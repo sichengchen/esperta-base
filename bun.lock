@@ -38,11 +38,55 @@
         "typescript": "^6.0.2",
       },
     },
+    "packages/audit": {
+      "name": "@aria/audit",
+      "version": "0.0.0",
+    },
     "packages/cli": {
       "name": "@aria/cli",
     },
     "packages/connectors": {
       "name": "@aria/connectors",
+      "version": "0.0.0",
+    },
+    "packages/handoff": {
+      "name": "@aria/handoff",
+      "version": "0.0.0",
+    },
+    "packages/policy": {
+      "name": "@aria/policy",
+      "version": "0.0.0",
+    },
+    "packages/projects-engine": {
+      "name": "@aria/projects-engine",
+      "version": "0.0.0",
+    },
+    "packages/prompt": {
+      "name": "@aria/prompt",
+      "version": "0.0.0",
+    },
+    "packages/protocol": {
+      "name": "@aria/protocol",
+      "version": "0.0.0",
+    },
+    "packages/providers-aria": {
+      "name": "@aria/providers-aria",
+      "version": "0.0.0",
+    },
+    "packages/providers-claude-code": {
+      "name": "@aria/providers-claude-code",
+      "version": "0.0.0",
+    },
+    "packages/providers-codex": {
+      "name": "@aria/providers-codex",
+      "version": "0.0.0",
+    },
+    "packages/providers-opencode": {
+      "name": "@aria/providers-opencode",
+      "version": "0.0.0",
+    },
+    "packages/relay": {
+      "name": "@aria/relay",
       "version": "0.0.0",
     },
     "packages/runtime": {
@@ -53,19 +97,53 @@
       "name": "@aria/shared-types",
       "version": "0.0.0",
     },
+    "packages/store": {
+      "name": "@aria/store",
+      "version": "0.0.0",
+    },
+    "packages/tools": {
+      "name": "@aria/tools",
+      "version": "0.0.0",
+    },
   },
   "packages": {
     "@alcalzone/ansi-tokenize": ["@alcalzone/ansi-tokenize@0.3.0", "", { "dependencies": { "ansi-styles": "^6.2.1", "is-fullwidth-code-point": "^5.0.0" } }, "sha512-p+CMKJ93HFmLkjXKlXiVGlMQEuRb6H0MokBSwUsX+S6BRX8eV5naFZpQJFfJHjRZY0Hmnqy1/r6UWl3x+19zYA=="],
 
     "@anthropic-ai/sdk": ["@anthropic-ai/sdk@0.73.0", "", { "dependencies": { "json-schema-to-ts": "^3.1.1" }, "peerDependencies": { "zod": "^3.25.0 || ^4.0.0" }, "optionalPeers": ["zod"], "bin": { "anthropic-ai-sdk": "bin/cli" } }, "sha512-URURVzhxXGJDGUGFunIOtBlSl7KWvZiAAKY/ttTkZAkXT9bTPqdk2eK0b8qqSxXpikh3QKPnPYpiyX98zf5ebw=="],
 
+    "@aria/audit": ["@aria/audit@workspace:packages/audit"],
+
     "@aria/cli": ["@aria/cli@workspace:packages/cli"],
 
     "@aria/connectors": ["@aria/connectors@workspace:packages/connectors"],
 
+    "@aria/handoff": ["@aria/handoff@workspace:packages/handoff"],
+
+    "@aria/policy": ["@aria/policy@workspace:packages/policy"],
+
+    "@aria/projects-engine": ["@aria/projects-engine@workspace:packages/projects-engine"],
+
+    "@aria/prompt": ["@aria/prompt@workspace:packages/prompt"],
+
+    "@aria/protocol": ["@aria/protocol@workspace:packages/protocol"],
+
+    "@aria/providers-aria": ["@aria/providers-aria@workspace:packages/providers-aria"],
+
+    "@aria/providers-claude-code": ["@aria/providers-claude-code@workspace:packages/providers-claude-code"],
+
+    "@aria/providers-codex": ["@aria/providers-codex@workspace:packages/providers-codex"],
+
+    "@aria/providers-opencode": ["@aria/providers-opencode@workspace:packages/providers-opencode"],
+
+    "@aria/relay": ["@aria/relay@workspace:packages/relay"],
+
     "@aria/runtime": ["@aria/runtime@workspace:packages/runtime"],
 
     "@aria/shared-types": ["@aria/shared-types@workspace:packages/shared-types"],
+
+    "@aria/store": ["@aria/store@workspace:packages/store"],
+
+    "@aria/tools": ["@aria/tools@workspace:packages/tools"],
 
     "@aws-crypto/crc32": ["@aws-crypto/crc32@5.2.0", "", { "dependencies": { "@aws-crypto/util": "^5.2.0", "@aws-sdk/types": "^3.222.0", "tslib": "^2.6.2" } }, "sha512-nLbCWqQNgUiwwtFsen1AdzAtvuLRsQS8rYgMuxCrdKf9kOssamGLuPwyTY9wyYblNr9+1XM8v6zoDTPPSIeANg=="],
 

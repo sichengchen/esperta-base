@@ -241,7 +241,7 @@ describe("wizard config generation", () => {
     });
 
     expect(result.providers[0].baseUrl).toBe("http://localhost:8080");
-    expect(result.providers[0].type).toBe("openai-compat");
+    expect(String(result.providers[0].type)).toBe("openai-compat");
   });
 
   test("no eco model skips modelTiers", () => {

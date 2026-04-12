@@ -8,7 +8,7 @@ import { SecurityModeManager, ToolPolicyManager, buildToolCapabilityCatalog, des
 import { buildContextFilesPrompt, parseContextReferences, preprocessContextReferences, PromptEngine } from "../packages/prompt/src/index.js";
 import { ConnectorTypeSchema } from "../packages/protocol/src/index.js";
 import { OperationalStore } from "../packages/store/src/index.js";
-import { buildDynamicToolsets, createSessionToolEnvironment, editTool, formatToolsSection, getBuiltinTools, mergeAllowedTools, reactionTool, readTool, writeTool } from "../packages/tools/src/index.js";
+import { buildDynamicToolsets, createSessionToolEnvironment, createWebFetchTool, editTool, formatToolsSection, getBuiltinTools, mergeAllowedTools, reactionTool, readTool, webSearchTool, writeTool } from "../packages/tools/src/index.js";
 
 const tempDirs: string[] = [];
 
@@ -271,6 +271,13 @@ describe("phase-1 extraction package verification", () => {
     await expect(readTool.execute({ file_path: filePath } as any)).resolves.toMatchObject({ content: "hello" });
     await expect(editTool.execute({ file_path: filePath, old_string: "hello", new_string: "hi" } as any)).resolves.toMatchObject({ content: `File edited: ${filePath}` });
     await expect(readTool.execute({ file_path: filePath } as any)).resolves.toMatchObject({ content: "hi" });
+  });
+
+  test("@aria/tools exposes package-owned web search and fetch helpers", async () => {
+    await expect(webSearchTool.execute({ query: "aria", backend: "auto" } as any)).resolves.toMatchObject({ isError: true });
+    const webFetch = createWebFetchTool();
+    await expect(webFetch.execute({ url: "http://127.0.0.1:1234" } as any)).resolves.toMatchObject({ isError: true });
+    expect(webFetch.name).toBe("web_fetch");
   });
 
   test("@aria/tools exposes a package-owned session tool environment", async () => {

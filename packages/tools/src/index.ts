@@ -4,8 +4,8 @@ import { writeTool } from "./write.js";
 import { editTool } from "./edit.js";
 import { execTool } from "../../runtime/src/tools/exec.js";
 import { execStatusTool, execKillTool } from "../../runtime/src/tools/exec-background.js";
-import { webFetchTool, createWebFetchTool } from "../../runtime/src/tools/web-fetch.js";
-import { webSearchTool } from "../../runtime/src/tools/web-search.js";
+import { webFetchTool, createWebFetchTool } from "./web-fetch.js";
+import { webSearchTool } from "./web-search.js";
 import { reactionTool } from "./reaction.js";
 
 export { readTool } from "./read.js";
@@ -15,8 +15,8 @@ export { execTool } from "../../runtime/src/tools/exec.js";
 export { execStatusTool, execKillTool } from "../../runtime/src/tools/exec-background.js";
 /** @deprecated Use execTool instead */
 export { bashTool } from "../../runtime/src/tools/bash.js";
-export { webFetchTool, createWebFetchTool } from "../../runtime/src/tools/web-fetch.js";
-export { webSearchTool } from "../../runtime/src/tools/web-search.js";
+export { webFetchTool, createWebFetchTool } from "./web-fetch.js";
+export { webSearchTool } from "./web-search.js";
 export { reactionTool } from "./reaction.js";
 export { createSetEnvSecretTool, createSetEnvVariableTool } from "../../runtime/src/tools/set-api-key.js";
 export { createMemoryWriteTool } from "../../runtime/src/tools/memory-write.js";

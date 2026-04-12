@@ -8,6 +8,8 @@
   "types": "./src/index.ts",
   "exports": {
     ".": "./src/index.ts",
+    "./web-search": "./src/web-search.ts",
+    "./web-fetch": "./src/web-fetch.ts",
     "./edit": "./src/edit.ts",
     "./write": "./src/write.ts",
     "./read": "./src/read.ts",

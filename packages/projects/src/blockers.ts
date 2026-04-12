@@ -4,7 +4,7 @@ import type {
   ThreadRecord,
   ThreadStatus,
 } from "./types.js";
-import type { DispatchRecord, DispatchStatus } from "../../jobs/src/types.js";
+import type { DispatchRecord, DispatchStatus } from "@aria/jobs/types";
 
 export type ProjectBlockerKind =
   | "task_not_ready"

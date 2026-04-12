@@ -1,6 +1,3 @@
-import { createAppRouter } from "../../gateway/src/procedures.js";
-import { createContext } from "../../gateway/src/context.js";
-import type { EngineRuntime } from "../../runtime/src/runtime.js";
 import {
   createAriaRuntimeBackendAdapter,
   createCodingAgentBackendRegistry,
@@ -11,6 +8,8 @@ import {
   type RuntimeBackendExecutionRequest,
   type RuntimeBackendExecutionResult,
 } from "@aria/agents-coding";
+import { createAppRouter, createContext } from "@aria/gateway";
+import type { EngineRuntime } from "@aria/runtime";
 
 export interface RuntimeBackendSummary {
   backend: string;

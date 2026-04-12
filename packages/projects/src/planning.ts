@@ -5,8 +5,8 @@ import type {
   TaskRecord,
   ThreadRecord,
 } from "./types.js";
-import type { DispatchRecord } from "../../jobs/src/types.js";
-import type { RepoRecord } from "../../workspaces/src/types.js";
+import type { DispatchRecord } from "@aria/jobs/types";
+import type { RepoRecord } from "@aria/workspaces/types";
 import {
   getDispatchBlockers,
   getTaskBlockers,

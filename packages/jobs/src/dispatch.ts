@@ -1,4 +1,4 @@
-import type { ProjectsEngineRepository } from "../../projects/src/repository.js";
+import type { ProjectsEngineRepository } from "@aria/projects";
 import type { DispatchAccepted, DispatchExecutionEvent, DispatchLaunchRequest } from "./bridge.js";
 import type { DispatchRecord } from "./types.js";
 

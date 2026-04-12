@@ -40,13 +40,13 @@ export type {
   DispatchStatus,
   JobAuthor,
   JobRecord,
-} from "../../jobs/src/types.js";
+} from "@aria/jobs/types";
 
 export type {
   RepoRecord,
   WorktreeRecord,
   WorktreeStatus,
-} from "../../workspaces/src/types.js";
+} from "@aria/workspaces/types";
 
 export type ReviewStatus = "pending" | "changes_requested" | "approved" | "dismissed";
 

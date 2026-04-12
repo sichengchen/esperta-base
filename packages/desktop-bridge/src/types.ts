@@ -1,3 +1,3 @@
-export type { RuntimeBackendAdapter } from "../../agents-coding/src/contracts.js";
+export type { RuntimeBackendAdapter } from "@aria/agents-coding";
 export type { DesktopBridge, DesktopBridgeOptions } from "./bridge.js";
-export type { DesktopGitBridge } from "../../desktop-git/src/git.js";
+export type { DesktopGitBridge } from "@aria/desktop-git";

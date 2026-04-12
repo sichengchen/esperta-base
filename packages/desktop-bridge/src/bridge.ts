@@ -1,11 +1,12 @@
-import { createCodingAgentBackendRegistry } from "../../agents-coding/src/registry.js";
-import type { RuntimeBackendAdapter } from "../../agents-coding/src/contracts.js";
-import { ProjectsPlanningService } from "../../projects/src/planning.js";
-import type { ProjectsEngineRepository } from "../../projects/src/repository.js";
 import {
-  createDesktopGitBridge,
-  type DesktopGitBridge,
-} from "../../desktop-git/src/git.js";
+  createCodingAgentBackendRegistry,
+  type RuntimeBackendAdapter,
+} from "@aria/agents-coding";
+import { createDesktopGitBridge, type DesktopGitBridge } from "@aria/desktop-git";
+import {
+  ProjectsPlanningService,
+  type ProjectsEngineRepository,
+} from "@aria/projects";
 
 export interface DesktopBridgeOptions {
   readonly repository: ProjectsEngineRepository;
@@ -29,6 +30,6 @@ export function createDesktopBridge(
 }
 
 export { createCodingAgentBackendRegistry };
-export { createDesktopGitBridge } from "../../desktop-git/src/git.js";
-export { ProjectsPlanningService } from "../../projects/src/planning.js";
-export type { RuntimeBackendAdapter } from "../../agents-coding/src/contracts.js";
+export { createDesktopGitBridge } from "@aria/desktop-git";
+export { ProjectsPlanningService } from "@aria/projects";
+export type { RuntimeBackendAdapter } from "@aria/agents-coding";

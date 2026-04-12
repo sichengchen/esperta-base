@@ -1,10 +1,13 @@
-import type { ProjectsEngineRepository } from "../../projects/src/repository.js";
-import { ProjectsRepoService } from "../../workspaces/src/repos.js";
 import {
+  ProjectsRepoService,
   ProjectsWorktreeService,
   buildBranchName,
   sanitizeWorktreeSegment,
-} from "../../workspaces/src/worktrees.js";
+  type RepoRecord,
+  type WorktreeRecord,
+  type WorktreeStatus,
+} from "@aria/workspaces";
+import type { ProjectsEngineRepository } from "@aria/projects";
 
 export interface DesktopGitBridge {
   readonly repos: ProjectsRepoService;
@@ -26,8 +29,4 @@ export {
   buildBranchName,
   sanitizeWorktreeSegment,
 };
-export type {
-  RepoRecord,
-  WorktreeRecord,
-  WorktreeStatus,
-} from "../../workspaces/src/types.js";
+export type { RepoRecord, WorktreeRecord, WorktreeStatus };

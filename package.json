@@ -18,6 +18,7 @@
     "test": "bun test",
     "lint": "eslint packages/ tests/ scripts/",
     "typecheck": "tsc --noEmit",
+    "audit:history": "bun run scripts/audit-history.ts",
     "version:bump": "bun run scripts/version.ts"
   },
   "dependencies": {

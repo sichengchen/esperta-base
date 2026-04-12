@@ -1,6 +1,6 @@
 import type { DangerLevel } from "@aria/agent-aria";
 import type { ConnectorType, ToolApprovalMode } from "@aria/protocol";
-import type { ToolPolicyConfig, ToolVerbosity } from "@aria/runtime/config";
+import type { ToolPolicyConfig, ToolVerbosity } from "@aria/server/config";
 
 /** Default per-connector verbosity */
 const DEFAULT_VERBOSITY: Record<string, ToolVerbosity> = {

@@ -18,7 +18,7 @@ import { heartbeatState, createHeartbeatTask } from "@aria/automation";
 import { buildToolCapabilityCatalog, describeModeEffects, resolveCapabilityPolicyDecision } from "@aria/policy";
 import { createSessionToolEnvironment } from "@aria/tools/session-tool-environment";
 import { preprocessContextReferences } from "@aria/prompt/context-references";
-import type { CronTask } from "@aria/runtime/config";
+import type { CronTask } from "@aria/server/config";
 
 import { listToolsets } from "@aria/tools/toolsets";
 

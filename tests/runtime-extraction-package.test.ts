@@ -56,6 +56,7 @@ describe("phase-1 extraction package verification", () => {
     expect(gatewayProceduresSource).toContain("@aria/tools/session-tool-environment");
     expect(gatewayProceduresSource).toContain("@aria/audit");
     expect(gatewayProceduresSource).toContain("@aria/policy/policy");
+    expect(gatewayProceduresSource).toContain("@aria/server/config");
 
     const toolsIndexSource = await import("node:fs/promises").then(fs => fs.readFile(new URL("../packages/tools/src/index.ts", import.meta.url), "utf-8"));
     expect(toolsIndexSource).not.toContain("@aria/runtime/tools/");
@@ -75,10 +76,20 @@ describe("phase-1 extraction package verification", () => {
     expect(promptEngineSource).not.toContain("@aria/runtime/skills");
     expect(promptEngineSource).toContain("@aria/memory");
     expect(promptEngineSource).toContain("formatSkillsDiscovery");
+    expect(promptEngineSource).toContain("@aria/server/config");
 
     const readSkillSource = await import("node:fs/promises").then(fs => fs.readFile(new URL("../packages/tools/src/read-skill.ts", import.meta.url), "utf-8"));
     expect(readSkillSource).not.toContain("@aria/runtime/skills");
     expect(readSkillSource).toContain("@aria/memory");
+
+    const serverConfigSource = await import("node:fs/promises").then(fs => fs.readFile(new URL("../packages/server/src/config.ts", import.meta.url), "utf-8"));
+    expect(serverConfigSource).toContain("@aria/runtime/config");
+    expect(serverConfigSource).toContain("ConfigManager");
+
+    const serverPackageJson = JSON.parse(
+      await import("node:fs/promises").then(fs => fs.readFile(new URL("../packages/server/package.json", import.meta.url), "utf-8")),
+    ) as { exports: Record<string, string> };
+    expect(serverPackageJson.exports["./config"]).toBe("./src/config.ts");
 
     const skillManageSource = await import("node:fs/promises").then(fs => fs.readFile(new URL("../packages/tools/src/skill-manage.ts", import.meta.url), "utf-8"));
     expect(skillManageSource).not.toContain("@aria/runtime/skills");

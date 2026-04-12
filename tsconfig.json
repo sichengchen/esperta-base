@@ -22,6 +22,8 @@
       "@aria/connectors/*": ["packages/connectors/src/*"],
       "@aria/shared/*": ["packages/shared-types/src/*"],
       "@aria/cli/*": ["packages/cli/src/*"],
+      "@aria/runtime": ["packages/runtime/src/index.ts"],
+      "@aria/runtime/*": ["packages/runtime/src/*"],
       "@aria/server": ["packages/server/src/index.ts"],
       "@aria/server/*": ["packages/server/src/*"],
       "@aria/agents-coding": ["packages/agents-coding/src/index.ts"],

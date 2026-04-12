@@ -1,6 +1,6 @@
 import { Type } from "@mariozechner/pi-ai";
 import type { ToolImpl } from "@aria/agent-aria";
-import type { ConfigManager } from "@aria/runtime/config";
+import type { ConfigManager } from "@aria/server/config";
 
 /** Environment variables that must not be overwritten by the agent (injection risk). */
 const BLOCKED_ENV_VARS = new Set([

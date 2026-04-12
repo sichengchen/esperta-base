@@ -5,6 +5,7 @@ import {
   ariaDesktopSpaces,
   createAriaDesktopBootstrap,
   type AriaDesktopBootstrap,
+  type AriaDesktopServerInput,
 } from "@aria/desktop";
 import type { AccessClientTarget } from "@aria/access-client";
 import { ariaDesktopHost, createAriaDesktopHostBootstrap } from "./host.js";
@@ -37,6 +38,7 @@ export const ariaDesktopApplication = {
   shell: ariaDesktopShell,
   sharedPackages: ariaDesktopShell.sharedPackages,
   capabilities: ariaDesktopShell.capabilities,
+  serverSwitcher: ariaDesktopShell.serverSwitcher,
   spaces: ariaDesktopSpaces,
   navigation: ariaDesktopNavigation,
   contextPanels: ariaDesktopContextPanels,
@@ -61,10 +63,14 @@ export interface AriaDesktopApplicationBootstrap {
 }
 
 export function createAriaDesktopApplicationBootstrap(
-  target: AccessClientTarget,
-  initialThread?: Parameters<typeof createAriaDesktopBootstrap>[1],
+  options: {
+    target: AccessClientTarget;
+    initialThread?: Parameters<typeof createAriaDesktopBootstrap>[1];
+    servers?: AriaDesktopServerInput[];
+    activeServerId?: string;
+  },
 ): AriaDesktopApplicationBootstrap {
-  const hostBootstrap = createAriaDesktopHostBootstrap(target, initialThread);
+  const hostBootstrap = createAriaDesktopHostBootstrap(options);
 
   return {
     application: ariaDesktopApplication,

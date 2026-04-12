@@ -28,6 +28,11 @@ export const ariaDesktopApp = {
     "@aria/protocol",
   ],
   capabilities: ["server-access", "project-threads", "local-bridge"],
+  serverSwitcher: {
+    label: "Server",
+    placement: "top-chrome",
+    mode: "multi-server",
+  },
 } as const;
 
 export const ariaDesktopSpaces = [
@@ -87,6 +92,7 @@ export interface AriaDesktopThreadListScreen {
 export interface AriaDesktopThreadHeader {
   threadId: string;
   title: string;
+  serverLabel?: string;
   projectLabel?: string;
   threadType: ThreadType;
   threadTypeLabel: string;
@@ -147,6 +153,10 @@ export type AriaDesktopEnvironmentInput =
 export interface AriaDesktopBootstrap {
   app: typeof ariaDesktopApp;
   access: ReturnType<typeof buildAccessClientConfig>;
+  servers: AriaDesktopServerOption[];
+  activeServerId: string;
+  activeServerLabel: string;
+  serverSwitcher: AriaDesktopServerSwitcher;
   initialThread?: ProjectThreadListItem;
 }
 
@@ -154,6 +164,7 @@ export interface AriaDesktopThreadContext {
   threadId: string;
   threadType: ThreadType;
   threadTypeLabel: string;
+  serverLabel?: string;
   projectLabel?: string;
   threadTitle?: string;
   threadStatusLabel?: string;
@@ -167,6 +178,27 @@ export interface AriaDesktopShellProjectInput {
   threads: Array<Pick<ThreadRecord, "threadId" | "title" | "status" | "threadType" | "environmentId" | "agentId">>;
 }
 
+export interface AriaDesktopServerInput {
+  label?: string;
+  target: AccessClientTarget;
+}
+
+export interface AriaDesktopServerOption {
+  id: string;
+  label: string;
+  access: ReturnType<typeof buildAccessClientConfig>;
+}
+
+export interface AriaDesktopServerSwitcher {
+  label: string;
+  placement: "top-chrome";
+  mode: "multi-server";
+  activeServerId: string;
+  activeServerLabel: string;
+  activeServerAccess: ReturnType<typeof buildAccessClientConfig>;
+  availableServers: AriaDesktopServerOption[];
+}
+
 export interface AriaDesktopShellInitialThread {
   project: Pick<ProjectRecord, "name">;
   thread: Pick<ThreadRecord, "threadId" | "title" | "status" | "threadType" | "environmentId" | "agentId">;
@@ -174,6 +206,8 @@ export interface AriaDesktopShellInitialThread {
 
 export interface CreateAriaDesktopShellOptions {
   target: AccessClientTarget;
+  servers?: AriaDesktopServerInput[];
+  activeServerId?: string;
   projects?: AriaDesktopShellProjectInput[];
   environments?: Array<{
     hostLabel: string;
@@ -183,6 +217,7 @@ export interface CreateAriaDesktopShellOptions {
   }>;
   initialThread?: AriaDesktopShellInitialThread;
   activeThreadContext?: {
+    serverLabel?: string;
     projectLabel?: string;
     thread: Pick<
       ThreadRecord,
@@ -200,6 +235,10 @@ export interface AriaDesktopShell {
   contextPanels: typeof ariaDesktopContextPanels;
   composerPlacement: "bottom-docked";
   access: ReturnType<typeof buildAccessClientConfig>;
+  servers: AriaDesktopServerOption[];
+  activeServerId: string;
+  activeServerLabel: string;
+  serverSwitcher: AriaDesktopServerSwitcher;
   projectSidebar: AriaDesktopProjectSidebar;
   projectThreadListScreen: AriaDesktopThreadListScreen;
   environments: AriaDesktopEnvironmentOption[];
@@ -221,7 +260,45 @@ export function createAriaDesktopSidebarProjects(
   }));
 }
 
+export function createAriaDesktopServerOption(
+  input: AriaDesktopServerInput | AccessClientTarget,
+): AriaDesktopServerOption {
+  const target = "target" in input ? input.target : input;
+  return {
+    id: target.serverId,
+    label: "label" in input && input.label ? input.label : target.serverId,
+    access: buildAccessClientConfig(target),
+  };
+}
+
+export function createAriaDesktopServerSwitcher(
+  options: {
+    servers: Array<AriaDesktopServerInput | AccessClientTarget>;
+    activeServerId?: string;
+    access: ReturnType<typeof buildAccessClientConfig>;
+  },
+): AriaDesktopServerSwitcher {
+  const availableServers = options.servers.map((server) => createAriaDesktopServerOption(server));
+  const activeServer =
+    availableServers.find((server) => server.id === (options.activeServerId ?? options.access.serverId)) ??
+    availableServers[0] ??
+    createAriaDesktopServerOption({
+      serverId: options.access.serverId,
+      baseUrl: options.access.httpUrl,
+      token: options.access.token,
+    });
+
+  return {
+    ...ariaDesktopApp.serverSwitcher,
+    activeServerId: activeServer.id,
+    activeServerLabel: activeServer.label,
+    activeServerAccess: activeServer.access,
+    availableServers,
+  };
+}
+
 export function createAriaDesktopThreadContext(input: {
+  serverLabel?: string;
   projectLabel?: string;
   thread: Pick<
     ThreadRecord,
@@ -235,6 +312,7 @@ export function createAriaDesktopThreadContext(input: {
     threadId: input.thread.threadId,
     threadType,
     threadTypeLabel: describeThreadType(threadType),
+    serverLabel: input.serverLabel,
     projectLabel: input.projectLabel,
     threadTitle: input.thread.title,
     threadStatusLabel: createStatusBadgeLabel(input.thread.status),
@@ -259,6 +337,7 @@ export function createAriaDesktopEnvironmentOption(input: {
 }
 
 export function createAriaDesktopThreadScreen(input: {
+  serverLabel?: string;
   projectLabel?: string;
   thread: Pick<
     ThreadRecord,
@@ -277,6 +356,7 @@ export function createAriaDesktopThreadScreen(input: {
     header: {
       threadId: input.thread.threadId,
       title: input.thread.title,
+      serverLabel: input.serverLabel,
       projectLabel: input.projectLabel,
       threadType,
       threadTypeLabel: describeThreadType(threadType),
@@ -314,10 +394,22 @@ export function createAriaDesktopBootstrap(
       "threadId" | "title" | "status" | "threadType" | "environmentId" | "agentId"
     >;
   },
+  servers: Array<AriaDesktopServerInput | AccessClientTarget> = [target],
+  activeServerId = target.serverId,
 ): AriaDesktopBootstrap {
+  const access = buildAccessClientConfig(target);
+  const serverSwitcher = createAriaDesktopServerSwitcher({
+    access,
+    servers,
+    activeServerId,
+  });
   return {
     app: ariaDesktopApp,
-    access: buildAccessClientConfig(target),
+    access,
+    servers: serverSwitcher.availableServers,
+    activeServerId: serverSwitcher.activeServerId,
+    activeServerLabel: serverSwitcher.activeServerLabel,
+    serverSwitcher,
     initialThread: initialThread
       ? createProjectThreadListItem(initialThread.project, initialThread.thread)
       : undefined,
@@ -327,7 +419,12 @@ export function createAriaDesktopBootstrap(
 export function createAriaDesktopShell(
   options: CreateAriaDesktopShellOptions,
 ): AriaDesktopShell {
-  const bootstrap = createAriaDesktopBootstrap(options.target, options.initialThread);
+  const bootstrap = createAriaDesktopBootstrap(
+    options.target,
+    options.initialThread,
+    options.servers ?? [options.target],
+    options.activeServerId,
+  );
   const projectSidebar: AriaDesktopProjectSidebar = {
     label: "Projects",
     mode: "unified-project-thread-tree",
@@ -340,16 +437,20 @@ export function createAriaDesktopShell(
     mode: "unified-project-thread-list",
     projectSidebar,
   };
-  const activeThreadSource =
-    options.activeThreadContext ??
-    (options.initialThread
+  const activeThreadSource = options.activeThreadContext
+    ? {
+        ...options.activeThreadContext,
+        serverLabel: options.activeThreadContext.serverLabel ?? bootstrap.activeServerLabel,
+      }
+    : options.initialThread
       ? {
+          serverLabel: bootstrap.activeServerLabel,
           projectLabel: options.initialThread.project.name,
           thread: {
             ...options.initialThread.thread,
           },
         }
-      : undefined);
+      : undefined;
 
   return {
     app: bootstrap.app,
@@ -358,6 +459,10 @@ export function createAriaDesktopShell(
     contextPanels: ariaDesktopContextPanels,
     composerPlacement: "bottom-docked",
     access: bootstrap.access,
+    servers: bootstrap.servers,
+    activeServerId: bootstrap.activeServerId,
+    activeServerLabel: bootstrap.activeServerLabel,
+    serverSwitcher: bootstrap.serverSwitcher,
     projectSidebar,
     projectThreadListScreen,
     environments: (options.environments ?? []).map((environment) =>
@@ -371,6 +476,7 @@ export function createAriaDesktopShell(
     activeThreadScreen:
       activeThreadSource && activeThreadSource.thread
         ? createAriaDesktopThreadScreen({
+            serverLabel: bootstrap.activeServerLabel,
             projectLabel: activeThreadSource.projectLabel,
             thread: activeThreadSource.thread,
             environmentLabel: activeThreadSource.environmentLabel,

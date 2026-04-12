@@ -11,7 +11,9 @@ import { createAriaDesktopApplicationBootstrap } from "./app.js";
 
 export interface CreateAriaDesktopAppShellModelOptions {
   target: AccessClientTarget;
-  initialThread?: Parameters<typeof createAriaDesktopApplicationBootstrap>[1];
+  initialThread?: Parameters<typeof createAriaDesktopApplicationBootstrap>[0]["initialThread"];
+  servers?: CreateAriaDesktopShellOptions["servers"];
+  activeServerId?: CreateAriaDesktopShellOptions["activeServerId"];
   projects?: CreateAriaDesktopShellOptions["projects"];
   environments?: CreateAriaDesktopShellOptions["environments"];
   activeThreadContext?: CreateAriaDesktopShellOptions["activeThreadContext"];
@@ -23,6 +25,8 @@ export interface AriaDesktopAppShellModel {
   application: ReturnType<typeof createAriaDesktopApplicationBootstrap>["application"];
   bootstrap: ReturnType<typeof createAriaDesktopApplicationBootstrap>;
   shell: ReturnType<typeof createAriaDesktopShell>;
+  activeServerId: string;
+  activeServerLabel: string;
   activeSpaceId: (typeof ariaDesktopSpaces)[number]["id"];
   activeContextPanelId: (typeof ariaDesktopContextPanels)[number]["id"];
 }
@@ -44,12 +48,14 @@ function deriveProjectsFromInitialThread(
 
 function deriveActiveThreadFromInitialThread(
   initialThread?: CreateAriaDesktopAppShellModelOptions["initialThread"],
+  serverLabel?: string,
 ): CreateAriaDesktopShellOptions["activeThreadContext"] {
   if (!initialThread) {
     return undefined;
   }
 
   return {
+    serverLabel,
     projectLabel: initialThread.project.name,
     thread: initialThread.thread,
     environmentLabel: initialThread.thread.environmentId ?? undefined,
@@ -60,20 +66,30 @@ function deriveActiveThreadFromInitialThread(
 export function createAriaDesktopAppShellModel(
   options: CreateAriaDesktopAppShellModelOptions,
 ): AriaDesktopAppShellModel {
-  const bootstrap = createAriaDesktopApplicationBootstrap(options.target, options.initialThread);
+  const bootstrap = createAriaDesktopApplicationBootstrap({
+    target: options.target,
+    initialThread: options.initialThread,
+    servers: options.servers,
+    activeServerId: options.activeServerId,
+  });
   const shell = createAriaDesktopShell({
     target: options.target,
     initialThread: options.initialThread,
+    servers: options.servers,
+    activeServerId: options.activeServerId,
     projects: options.projects ?? deriveProjectsFromInitialThread(options.initialThread),
     environments: options.environments,
     activeThreadContext:
-      options.activeThreadContext ?? deriveActiveThreadFromInitialThread(options.initialThread),
+      options.activeThreadContext ??
+      deriveActiveThreadFromInitialThread(options.initialThread, bootstrap.bootstrap.activeServerLabel),
   });
 
   return {
     application: bootstrap.application,
     bootstrap,
     shell,
+    activeServerId: shell.activeServerId,
+    activeServerLabel: shell.activeServerLabel,
     activeSpaceId: options.activeSpaceId ?? bootstrap.application.startup.defaultSpaceId,
     activeContextPanelId:
       options.activeContextPanelId ?? bootstrap.application.startup.defaultContextPanelId,
@@ -106,8 +122,18 @@ export function AriaDesktopAppShell(props: AriaDesktopAppShellProps): ReactEleme
         <h1>{model.application.displayName}</h1>
         <p>{model.application.startup.landingDescription}</p>
         <small>
-          Access: {model.bootstrap.bootstrap.access.serverId} ({model.bootstrap.bootstrap.access.httpUrl})
+          Access: {model.activeServerLabel} ({model.bootstrap.bootstrap.access.httpUrl})
         </small>
+        <label data-slot="server-switcher" data-placement={model.application.frame.serverSwitcher.placement}>
+          {model.application.frame.serverSwitcher.label}
+          <select aria-label="Server switcher" defaultValue={model.activeServerId}>
+            {model.shell.serverSwitcher.availableServers.map((server) => (
+              <option key={server.id} value={server.id}>
+                {server.label}
+              </option>
+            ))}
+          </select>
+        </label>
         <p>
           Active space: {model.activeSpaceId} | Active panel: {model.activeContextPanelId}
         </p>

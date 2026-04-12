@@ -21,6 +21,11 @@ export const ariaDesktopAppFrame = {
     placement: "bottom-docked",
     scope: "active-thread",
   },
+  serverSwitcher: {
+    label: "Server",
+    placement: "top-chrome",
+    mode: "multi-server",
+  },
   statusStrip: {
     threadEnvironmentPlacement: "thread-header",
     connectionPlacement: "top-chrome",

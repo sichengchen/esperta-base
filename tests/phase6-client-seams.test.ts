@@ -2,11 +2,13 @@ import { describe, expect, test } from "bun:test";
 
 import {
   buildAccessClientConfig,
+  buildAccessClientTargetRoster,
   buildClientProjectThreadSummary,
   createEngineClient,
 } from "@aria/access-client";
 import {
   createProjectThreadListItem,
+  createProjectServerRoster,
   createStatusBadgeLabel,
   describeUiEngineEvent,
   markdownToHtml,
@@ -82,6 +84,75 @@ describe("Phase 6 client seams", () => {
     });
     expect(createStatusBadgeLabel("in_progress")).toBe("In Progress");
     expect(describeUiEngineEvent({ type: "tool_approval_request" })).toBe("Approval requested");
+  });
+
+  test("@aria/access-client resolves active server selection for multi-server clients", () => {
+    const roster = buildAccessClientTargetRoster(
+      [
+        { serverId: "home", baseUrl: "https://aria.home.example/" },
+        { serverId: "desktop", baseUrl: "http://127.0.0.1:7420/" },
+      ],
+      "desktop",
+    );
+
+    expect(roster).toEqual({
+      selectedServerId: "desktop",
+      targets: [
+        {
+          serverId: "home",
+          label: "home",
+          httpUrl: "https://aria.home.example",
+          wsUrl: "wss://aria.home.example",
+          isSelected: false,
+          selectionLabel: "Available",
+        },
+        {
+          serverId: "desktop",
+          label: "desktop",
+          httpUrl: "http://127.0.0.1:7420",
+          wsUrl: "ws://127.0.0.1:7420",
+          isSelected: true,
+          selectionLabel: "Selected",
+        },
+      ],
+      selectedTarget: {
+        serverId: "desktop",
+        label: "desktop",
+        httpUrl: "http://127.0.0.1:7420",
+        wsUrl: "ws://127.0.0.1:7420",
+        isSelected: true,
+        selectionLabel: "Selected",
+      },
+    });
+
+    expect(
+      createProjectServerRoster(roster.targets),
+    ).toEqual({
+      selectedServerId: "desktop",
+      items: [
+        {
+          id: "home",
+          label: "home",
+          connectionLabel: "https://aria.home.example",
+          selectionLabel: "Available",
+          isSelected: false,
+        },
+        {
+          id: "desktop",
+          label: "desktop",
+          connectionLabel: "http://127.0.0.1:7420",
+          selectionLabel: "Selected",
+          isSelected: true,
+        },
+      ],
+      selectedItem: {
+        id: "desktop",
+        label: "desktop",
+        connectionLabel: "http://127.0.0.1:7420",
+        selectionLabel: "Selected",
+        isSelected: true,
+      },
+    });
   });
 
   test("apps/aria-desktop composes the shared client seams without owning new runtime behavior", () => {

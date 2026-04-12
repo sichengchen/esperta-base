@@ -7,6 +7,7 @@ import {
   type AriaMobileShell,
   type CreateAriaMobileShellOptions,
   type AriaMobileBootstrap,
+  type AriaMobileServerInput,
   type AriaMobileShellInitialThread,
 } from "@aria/mobile";
 import type { AccessClientTarget } from "@aria/access-client";
@@ -101,6 +102,7 @@ export function createAriaMobileAppShell(
 export const ariaMobileAppModel = {
   app: ariaMobileApp,
   navigation: ariaMobileNavigation,
+  serverSwitcher: ariaMobileApp.serverSwitcher,
 } as const;
 
 export const ariaMobileLaunchModes = [
@@ -120,6 +122,10 @@ export const ariaMobileLaunchModes = [
 
 export const ariaMobileAppFrame = {
   kind: "stacked-mobile-shell",
+  serverSwitcher: {
+    placement: "header",
+    mode: "multi-server",
+  },
   tabs: ariaMobileTabs,
   ariaSpace: {
     defaultScreenId: "chat",
@@ -147,6 +153,7 @@ export const ariaMobileApplication = {
   shell: ariaMobileApp,
   sharedPackages: ariaMobileApp.sharedPackages,
   capabilities: ariaMobileApp.capabilities,
+  serverSwitcher: ariaMobileApp.serverSwitcher,
   navigation: ariaMobileNavigation,
   launchModes: ariaMobileLaunchModes,
   frame: ariaMobileAppFrame,
@@ -164,14 +171,33 @@ export interface AriaMobileApplicationBootstrap {
   bootstrap: AriaMobileBootstrap;
 }
 
+interface AriaMobileApplicationBootstrapOptions {
+  target: AccessClientTarget;
+  initialThread?: AriaMobileShellInitialThread;
+  servers?: AriaMobileServerInput[];
+  activeServerId?: string;
+}
+
+function normalizeMobileApplicationBootstrapOptions(
+  targetOrOptions: AccessClientTarget | AriaMobileApplicationBootstrapOptions,
+  initialThread?: AriaMobileShellInitialThread,
+): AriaMobileApplicationBootstrapOptions {
+  if ("target" in targetOrOptions) {
+    return targetOrOptions;
+  }
+
+  return {
+    target: targetOrOptions,
+    initialThread,
+  };
+}
+
 export function createAriaMobileApplicationBootstrap(
-  target: AccessClientTarget,
+  targetOrOptions: AccessClientTarget | AriaMobileApplicationBootstrapOptions,
   initialThread?: AriaMobileShellInitialThread,
 ): AriaMobileApplicationBootstrap {
-  const bootstrap = createAriaMobileAppShell({
-    target,
-    initialThread,
-  });
+  const options = normalizeMobileApplicationBootstrapOptions(targetOrOptions, initialThread);
+  const bootstrap = createAriaMobileAppShell(options);
 
   return {
     application: ariaMobileApplication,

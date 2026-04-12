@@ -1,7 +1,10 @@
 import { describe, expect, test } from "bun:test";
 
-import { buildClientExecutionHierarchySummary } from "@aria/access-client";
-import { createProjectEnvironmentListItem } from "@aria/ui";
+import {
+  buildAccessClientTargetRoster,
+  buildClientExecutionHierarchySummary,
+} from "@aria/access-client";
+import { createProjectEnvironmentListItem, createProjectServerRoster } from "@aria/ui";
 
 describe("client execution hierarchy seams", () => {
   test("@aria/access-client summarizes server, workspace, and environment hierarchy for clients", () => {
@@ -59,6 +62,45 @@ describe("client execution hierarchy seams", () => {
       mode: "local",
       kind: "main",
       locator: "main",
+    });
+  });
+
+  test("@aria/access-client and @aria/ui keep active server selection stable for clients", () => {
+    const roster = buildAccessClientTargetRoster(
+      [
+        { serverId: "primary", baseUrl: "https://primary.aria.test/" },
+        { serverId: "secondary", baseUrl: "https://secondary.aria.test/" },
+      ],
+      "missing",
+    );
+
+    expect(roster.selectedServerId).toBe("primary");
+    expect(roster.selectedTarget?.serverId).toBe("primary");
+    expect(createProjectServerRoster(roster.targets)).toEqual({
+      selectedServerId: "primary",
+      items: [
+        {
+          id: "primary",
+          label: "primary",
+          connectionLabel: "https://primary.aria.test",
+          selectionLabel: "Selected",
+          isSelected: true,
+        },
+        {
+          id: "secondary",
+          label: "secondary",
+          connectionLabel: "https://secondary.aria.test",
+          selectionLabel: "Available",
+          isSelected: false,
+        },
+      ],
+      selectedItem: {
+        id: "primary",
+        label: "primary",
+        connectionLabel: "https://primary.aria.test",
+        selectionLabel: "Selected",
+        isSelected: true,
+      },
     });
   });
 });

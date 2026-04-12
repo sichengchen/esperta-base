@@ -39,6 +39,29 @@ export interface ProjectEnvironmentListItem {
   locator: string;
 }
 
+export interface ProjectServerSummary {
+  serverId: string;
+  label: string;
+  httpUrl: string;
+  wsUrl: string;
+  isSelected: boolean;
+  selectionLabel: string;
+}
+
+export interface ProjectServerListItem {
+  id: string;
+  label: string;
+  connectionLabel: string;
+  selectionLabel: string;
+  isSelected: boolean;
+}
+
+export interface ProjectServerRoster {
+  selectedServerId: string | null;
+  items: ProjectServerListItem[];
+  selectedItem: ProjectServerListItem | null;
+}
+
 function formatStatusLabel(status: TaskStatus | ThreadStatus): string {
   return status
     .split(/[-_]/g)
@@ -79,5 +102,25 @@ export function createProjectEnvironmentListItem(
     mode: environment.mode,
     kind: environment.kind,
     locator: environment.locator,
+  };
+}
+
+export function createProjectServerListItem(server: ProjectServerSummary): ProjectServerListItem {
+  return {
+    id: server.serverId,
+    label: server.label,
+    connectionLabel: server.httpUrl,
+    selectionLabel: server.selectionLabel,
+    isSelected: server.isSelected,
+  };
+}
+
+export function createProjectServerRoster(servers: ReadonlyArray<ProjectServerSummary>): ProjectServerRoster {
+  const items = servers.map((server) => createProjectServerListItem(server));
+
+  return {
+    selectedServerId: servers.find((server) => server.isSelected)?.serverId ?? null,
+    items,
+    selectedItem: items.find((item) => item.isSelected) ?? null,
   };
 }

@@ -4,6 +4,7 @@ import {
   ariaDesktopNavigation,
   ariaDesktopSpaces,
   createAriaDesktopBootstrap,
+  type AriaDesktopServerInput,
   type AriaDesktopBootstrap,
 } from "@aria/desktop";
 import type { AccessClientTarget } from "@aria/access-client";
@@ -17,6 +18,7 @@ export const ariaDesktopHost = {
   shellPackage: "@aria/desktop",
   sharedPackages: ariaDesktopApp.sharedPackages,
   capabilities: ariaDesktopApp.capabilities,
+  serverSwitcher: ariaDesktopApp.serverSwitcher,
   navigation: ariaDesktopNavigation,
   spaces: ariaDesktopSpaces,
   contextPanels: ariaDesktopContextPanels,
@@ -29,18 +31,27 @@ export interface AriaDesktopHostBootstrap {
 }
 
 export function createAriaDesktopHostBootstrap(
-  target: AccessClientTarget,
-  initialThread?: {
-    project: Pick<ProjectRecord, "name">;
-    thread: Pick<
-      ThreadRecord,
-      "threadId" | "title" | "status" | "threadType" | "environmentId" | "agentId"
-    >;
+  options: {
+    target: AccessClientTarget;
+    initialThread?: {
+      project: Pick<ProjectRecord, "name">;
+      thread: Pick<
+        ThreadRecord,
+        "threadId" | "title" | "status" | "threadType" | "environmentId" | "agentId"
+      >;
+    };
+    servers?: AriaDesktopServerInput[];
+    activeServerId?: string;
   },
 ): AriaDesktopHostBootstrap {
   return {
     host: ariaDesktopHost,
     shell: ariaDesktopApp,
-    bootstrap: createAriaDesktopBootstrap(target, initialThread),
+    bootstrap: createAriaDesktopBootstrap(
+      options.target,
+      options.initialThread,
+      options.servers,
+      options.activeServerId,
+    ),
   };
 }

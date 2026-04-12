@@ -21,6 +21,22 @@ export interface AriaMobileApplicationShellProps {
   navigation?: AriaMobileNavigation;
 }
 
+function renderServerSwitcher(shell: AriaMobileAppShell): ReactElement {
+  return (
+    <section data-slot="server-switcher" data-placement={shell.app.serverSwitcher.placement}>
+      <h2>{shell.app.serverSwitcher.label}</h2>
+      <p>Active: {shell.activeServerLabel}</p>
+      <select aria-label="Server switcher" defaultValue={shell.activeServerId}>
+        {shell.serverSwitcher.availableServers.map((server) => (
+          <option key={server.id} value={server.id}>
+            {server.label}
+          </option>
+        ))}
+      </select>
+    </section>
+  );
+}
+
 function renderThreadSignals(shell: AriaMobileShell): ReactElement {
   const activeThread = shell.activeThreadContext;
 
@@ -77,6 +93,7 @@ export function AriaMobileApplicationShell(
         <h1>{ariaMobileApplication.displayName}</h1>
         <p>{ariaMobileApplication.startup.landingDescription}</p>
         <small>Remote-first stacked shell with approvals, reconnect, and project review.</small>
+        {renderServerSwitcher(props.shell)}
       </header>
 
       <nav aria-label="Primary tabs" data-tabs={ariaMobileTabs.length}>
@@ -153,11 +170,17 @@ export interface AriaMobileApplicationShellBootstrap {
   bootstrap: AriaMobileApplicationBootstrap;
 }
 
+interface AriaMobileApplicationShellBootstrapOptions {
+  target: AccessClientTarget;
+  initialThread?: CreateAriaMobileShellOptions["initialThread"];
+  servers?: CreateAriaMobileShellOptions["servers"];
+  activeServerId?: CreateAriaMobileShellOptions["activeServerId"];
+}
+
 export function createAriaMobileApplicationShellBootstrap(
-  target: AccessClientTarget,
-  initialThread?: Parameters<typeof createAriaMobileApplicationBootstrap>[1],
+  options: AriaMobileApplicationShellBootstrapOptions,
 ): AriaMobileApplicationShellBootstrap {
-  const bootstrap = createAriaMobileApplicationBootstrap(target, initialThread);
+  const bootstrap = createAriaMobileApplicationBootstrap(options);
 
   return {
     application: ariaMobileApplication,

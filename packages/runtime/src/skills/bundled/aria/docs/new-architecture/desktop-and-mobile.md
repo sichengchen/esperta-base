@@ -315,7 +315,7 @@ Current repo migration note: the thin seam wave for `@aria/access-client`, `@ari
 
 ## Current Repo Migration Note
 
-The target-state package names on this page are ahead of the current implementation. The current client shared-seam wave for `@aria/access-client`, `@aria/ui`, `apps/aria-desktop`, and `apps/aria-mobile` is tracked in [../development/phase-6-client-app-seams-ledger.md](../development/phase-6-client-app-seams-ledger.md), the follow-on client shell-package wave for `@aria/desktop` and `@aria/mobile` is tracked in [../development/phase-8-client-shell-seams-ledger.md](../development/phase-8-client-shell-seams-ledger.md), the cross-phase owner classification is tracked in [../development/phase-9-architecture-truth-table.md](../development/phase-9-architecture-truth-table.md), and the server/runtime/project compatibility surfaces remain active behind `@aria/runtime`, `@aria/gateway`, `@aria/projects`, and the current console/CLI flows.
+The client seams on this page now exist on `new-aria` as real thin shells and shared packages. The shared client seam wave is tracked in [../development/phase-6-client-app-seams-ledger.md](../development/phase-6-client-app-seams-ledger.md), the shell-package wave in [../development/phase-8-client-shell-seams-ledger.md](../development/phase-8-client-shell-seams-ledger.md), and the owner classification in [../development/phase-9-architecture-truth-table.md](../development/phase-9-architecture-truth-table.md). The remaining legacy pieces are mostly compatibility wrappers behind `@aria/runtime`, `@aria/gateway`, and older operator-facing console/CLI flows.
 
 ## Toolchain References
 

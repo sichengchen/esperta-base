@@ -18,7 +18,7 @@ export { bashTool } from "../../runtime/src/tools/bash.js";
 export { webFetchTool, createWebFetchTool } from "./web-fetch.js";
 export { webSearchTool } from "./web-search.js";
 export { reactionTool } from "./reaction.js";
-export { createSetEnvSecretTool, createSetEnvVariableTool } from "../../runtime/src/tools/set-api-key.js";
+export { createSetEnvSecretTool, createSetEnvVariableTool, validateEnvVarName } from "./set-api-key.js";
 export { createMemoryWriteTool } from "./memory-write.js";
 export { createMemorySearchTool } from "./memory-search.js";
 export { createMemoryReadTool } from "./memory-read.js";

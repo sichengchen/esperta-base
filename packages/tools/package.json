@@ -8,6 +8,7 @@
   "types": "./src/index.ts",
   "exports": {
     ".": "./src/index.ts",
+    "./set-api-key": "./src/set-api-key.ts",
     "./memory-delete": "./src/memory-delete.ts",
     "./memory-read": "./src/memory-read.ts",
     "./memory-search": "./src/memory-search.ts",

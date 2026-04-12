@@ -8,7 +8,7 @@ import { MAX_REDIRECTS, SecurityModeManager, ToolPolicyManager, buildToolCapabil
 import { buildContextFilesPrompt, parseContextReferences, preprocessContextReferences, PromptEngine } from "../packages/prompt/src/index.js";
 import { ConnectorTypeSchema } from "../packages/protocol/src/index.js";
 import { OperationalStore } from "../packages/store/src/index.js";
-import { askUserTool, buildDynamicToolsets, createMemoryDeleteTool, createMemoryReadTool, createMemorySearchTool, createMemoryWriteTool, createNotifyTool, createSessionToolEnvironment, createWebFetchTool, editTool, formatToolsSection, getBuiltinTools, mergeAllowedTools, reactionTool, readTool, webSearchTool, writeTool } from "../packages/tools/src/index.js";
+import { askUserTool, buildDynamicToolsets, createMemoryDeleteTool, createMemoryReadTool, createMemorySearchTool, createMemoryWriteTool, createNotifyTool, createSessionToolEnvironment, createSetEnvSecretTool, createSetEnvVariableTool, createWebFetchTool, editTool, formatToolsSection, getBuiltinTools, mergeAllowedTools, reactionTool, readTool, validateEnvVarName, webSearchTool, writeTool } from "../packages/tools/src/index.js";
 
 const tempDirs: string[] = [];
 
@@ -296,6 +296,19 @@ describe("phase-1 extraction package verification", () => {
     await expect(search.execute({ query: "concise" } as any)).resolves.toMatchObject({ content: expect.stringContaining("likes concise output") });
     await expect(read.execute({ key: "pref" } as any)).resolves.toMatchObject({ content: "likes concise output" });
     await expect(del.execute({ key: "pref" } as any)).resolves.toMatchObject({ content: "Deleted memory: pref" });
+  });
+
+  test("@aria/tools exposes package-owned env-setting helpers", async () => {
+    expect(validateEnvVarName("ARIA_LOG_LEVEL")).toBeNull();
+    expect(validateEnvVarName("PATH")).not.toBeNull();
+    const config = {
+      loadSecrets: async () => ({ apiKeys: {} }),
+      saveSecrets: async () => {},
+      getConfigFile: () => ({ runtime: { env: {} } }),
+      saveConfig: async () => {},
+    } as any;
+    await expect(createSetEnvSecretTool(config).execute({ name: "TEST_KEY", value: "secret" } as any)).resolves.toMatchObject({ isError: false });
+    await expect(createSetEnvVariableTool(config).execute({ name: "ARIA_LOG_LEVEL", value: "debug" } as any)).resolves.toMatchObject({ isError: false });
   });
 
   test("@aria/tools exposes package-owned notify and ask-user helpers", async () => {

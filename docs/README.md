@@ -87,6 +87,7 @@ This tree is organized by reader intent, not by the old code layout.
 - [development/package-extraction-ledger.md](./development/package-extraction-ledger.md)
 - [development/phase-2-extraction-ledger.md](./development/phase-2-extraction-ledger.md)
 - [development/phase-4-server-package-seams-ledger.md](./development/phase-4-server-package-seams-ledger.md)
+- [development/phase-5-server-app-seam-ledger.md](./development/phase-5-server-app-seam-ledger.md)
 
 ## Documentation Rule
 

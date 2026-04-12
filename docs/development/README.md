@@ -9,3 +9,4 @@ This section covers local setup, testing, release flow, and migration discipline
 - [package-extraction-ledger.md](./package-extraction-ledger.md)
 - [phase-2-extraction-ledger.md](./phase-2-extraction-ledger.md)
 - [phase-4-server-package-seams-ledger.md](./phase-4-server-package-seams-ledger.md)
+- [phase-5-server-app-seam-ledger.md](./phase-5-server-app-seam-ledger.md)

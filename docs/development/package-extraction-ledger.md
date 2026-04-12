@@ -81,3 +81,16 @@ This phase seeds the remaining target-state server package names needed for proj
 - `packages/runtime/src/backend-registry.ts` now consumes `@aria/agents-coding` so the server-side adapter seam is exercised by runtime code immediately.
 - `packages/runtime/src/dispatch-runner.ts` is now a shim over `@aria/jobs`, which lets the remote-job execution seam move without changing the current runtime API.
 - Focused tests should cover the new package names directly so the migration slice stays protected during later ownership moves.
+
+## Phase 5 Extracted Ownership
+
+| Target surface | Current source owner | New compatibility owner | Compatibility surface kept at |
+| --- | --- | --- | --- |
+| `@aria/server` | `packages/runtime/src/{engine,index,runtime}.ts`, `packages/gateway/src/server.ts`, and CLI bootstrap wiring in `packages/cli/src/{engine,index}.ts` | `packages/server/src/index.ts` | `@aria/runtime`, `@aria/gateway`, and the current `aria` CLI engine flow |
+| `apps/aria-server` | Root `package.json` scripts plus the current CLI/daemon boot path | `apps/aria-server/*` | Root repo scripts, `dist/index.js`, and the current `aria` binary |
+
+## Phase 5 Notes
+
+- This phase seeds the thin server app/composition-root seam without replacing the current operator-facing CLI during the transition.
+- `@aria/server` should compose the already-seeded server-oriented packages rather than collapsing their ownership boundaries back into one large runtime package.
+- `apps/aria-server` is intentionally a thin wrapper so deployment and packaging can move forward without duplicating daemon/bootstrap logic.

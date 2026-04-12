@@ -63,6 +63,17 @@ Use the [phase 4 server package seams ledger](./phase-4-server-package-seams-led
 - extraction order and review hotspots for the server-oriented package wave
 - focused verification expectations for project/workspace and dispatch/backend paths
 
+## Phase 5 Server App Seam
+
+Phase 5 keeps the current CLI, daemon, and gateway behavior stable while seeding the target-state server product seam for `@aria/server` and `apps/aria-server`.
+
+Use the [phase 5 server app seam ledger](./phase-5-server-app-seam-ledger.md) as the source of truth for:
+
+- the current CLI/runtime/gateway-owned bootstrap entrypoints behind the server seam
+- the compatibility surfaces that must stay stable while the new package and app names appear
+- the extraction order and review hotspots for the server composition-root wave
+- focused verification expectations for docs, embedded-skill docs, and server-entry compatibility
+
 ## Cutover Criteria
 
 Before legacy repos are archived:

@@ -193,7 +193,7 @@ Recommended behavior:
 
 ## Current Repo Migration Note
 
-The target-state package names on this page are ahead of the current implementation. The migration status for the server-oriented seams `@aria/projects`, `@aria/workspaces`, `@aria/jobs`, and `@aria/agents-coding` is tracked in [../development/phase-4-server-package-seams-ledger.md](../development/phase-4-server-package-seams-ledger.md) while `@aria/projects-engine`, `@aria/runtime`, and `@aria/providers-*` remain the active compatibility surfaces.
+The target-state package names on this page are ahead of the current implementation. The migration status for the server-oriented seams `@aria/projects`, `@aria/workspaces`, `@aria/jobs`, and `@aria/agents-coding` is tracked in [../development/phase-4-server-package-seams-ledger.md](../development/phase-4-server-package-seams-ledger.md), and the thin server product seam for `@aria/server` plus `apps/aria-server` is tracked in [../development/phase-5-server-app-seam-ledger.md](../development/phase-5-server-app-seam-ledger.md), while `@aria/projects-engine`, `@aria/runtime`, and `@aria/providers-*` remain the active compatibility surfaces.
 
 ## Recommended Internal Packages
 

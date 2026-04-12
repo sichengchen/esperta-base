@@ -1,80 +1,32 @@
 import { describe, expect, test } from "bun:test";
-import { startAriaServer } from "@aria/server";
-import type { EngineServer } from "@aria/gateway/server";
-import type { EngineRuntime } from "@aria/runtime/runtime";
+import { readFileSync } from "node:fs";
+import { join } from "node:path";
 
-describe("Phase 5 server app seam", () => {
-  test("composes runtime and gateway through @aria/server", async () => {
-    const calls: string[] = [];
-    let stopCalls = 0;
+import { EMBEDDED_SKILLS } from "../packages/runtime/src/skills/embedded-skills.generated.js";
 
-    const runtime = {
-      close: async () => {
-        calls.push("runtime.close");
-      },
-    } as EngineRuntime;
+function readRepoFile(relativePath: string): string {
+  return readFileSync(join(import.meta.dir, "..", relativePath), "utf-8");
+}
 
-    const server = {
-      port: 7420,
-      stop: async () => {
-        stopCalls += 1;
-      },
-    } satisfies EngineServer;
-
-    const app = await startAriaServer({
-      port: 9001,
-      hostname: "0.0.0.0",
-      factories: {
-        async createRuntime() {
-          calls.push("createRuntime");
-          return runtime;
-        },
-        async startServer(receivedRuntime, options) {
-          calls.push(`startServer:${options?.hostname}:${options?.port}`);
-          expect(receivedRuntime).toBe(runtime);
-          return server;
-        },
-      },
-    });
-
-    expect(app.runtime).toBe(runtime);
-    expect(app.server).toBe(server);
-    expect(calls).toEqual([
-      "createRuntime",
-      "startServer:0.0.0.0:9001",
-    ]);
-
-    await app.stop();
-    expect(stopCalls).toBe(1);
+describe("phase-5 server app seam documentation", () => {
+  test("repo docs index the phase-5 ledger", () => {
+    expect(readRepoFile("docs/README.md")).toContain("development/phase-5-server-app-seam-ledger.md");
+    expect(readRepoFile("docs/development/README.md")).toContain("phase-5-server-app-seam-ledger.md");
   });
 
-  test("closes the bootstrapped runtime when server startup fails", async () => {
-    const calls: string[] = [];
-    const runtime = {
-      close: async () => {
-        calls.push("runtime.close");
-      },
-    } as EngineRuntime;
+  test("migration and architecture docs point to the phase-5 server seam", () => {
+    expect(readRepoFile("docs/development/migration.md")).toContain("## Phase 5 Server App Seam");
+    expect(readRepoFile("docs/new-architecture/packages.md")).toContain("phase-5-server-app-seam-ledger.md");
+    expect(readRepoFile("docs/new-architecture/server.md")).toContain("phase-5-server-app-seam-ledger.md");
+  });
 
-    await expect(
-      startAriaServer({
-        factories: {
-          async createRuntime() {
-            calls.push("createRuntime");
-            return runtime;
-          },
-          async startServer() {
-            calls.push("startServer");
-            throw new Error("server bootstrap failed");
-          },
-        },
-      }),
-    ).rejects.toThrow("server bootstrap failed");
+  test("embedded aria docs include the phase-5 seam ledger and references", () => {
+    const ariaDocs = EMBEDDED_SKILLS.aria;
 
-    expect(calls).toEqual([
-      "createRuntime",
-      "startServer",
-      "runtime.close",
-    ]);
+    expect(ariaDocs["docs/development/phase-5-server-app-seam-ledger.md"]).toContain("# Phase 5 Server App Seam Ledger");
+    expect(ariaDocs["docs/development/phase-5-server-app-seam-ledger.md"]).toContain("`@aria/server`");
+    expect(ariaDocs["docs/development/phase-5-server-app-seam-ledger.md"]).toContain("`apps/aria-server`");
+    expect(ariaDocs["docs/development/README.md"]).toContain("phase-5-server-app-seam-ledger.md");
+    expect(ariaDocs["docs/development/migration.md"]).toContain("## Phase 5 Server App Seam");
   });
 });

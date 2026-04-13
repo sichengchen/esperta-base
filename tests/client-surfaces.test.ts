@@ -406,6 +406,72 @@ describe("client surfaces", () => {
     });
   });
 
+  test("stops a running aria chat session and clears pending interaction state", async () => {
+    const stoppedSessions: string[] = [];
+    const controller = createAriaChatController(
+      {
+        health: {
+          ping: {
+            query: async () => ({ model: "sonnet", agentName: "Esperta Aria" }),
+          },
+        },
+        session: {
+          getLatest: {
+            query: async () => ({ id: "tui:session-existing" }),
+          },
+          create: {
+            mutate: async () => ({ session: { id: "unused" } }),
+          },
+        },
+        chat: {
+          history: {
+            query: async () => ({ messages: [], archived: false }),
+          },
+          stop: {
+            mutate: async ({ sessionId }) => {
+              stoppedSessions.push(sessionId);
+              return { cancelled: true };
+            },
+          },
+          stream: {
+            subscribe(_input, handlers) {
+              handlers.onData({
+                type: "tool_approval_request",
+                id: "tool-1",
+                name: "exec",
+                args: { command: "rm -rf tmp" },
+              });
+              handlers.onData({
+                type: "user_question",
+                id: "question-1",
+                question: "Ship it?",
+                options: ["Yes", "No"],
+              });
+              handlers.onData({ type: "text_delta", delta: "Working" });
+              handlers.onComplete();
+            },
+          },
+        },
+      },
+      { connectorType: "tui", prefix: "tui" },
+    );
+
+    await controller.connect();
+    await controller.sendMessage("run it");
+    const stopped = await controller.stop();
+
+    expect(stoppedSessions).toEqual(["tui:session-existing"]);
+    expect(stopped.isStreaming).toBe(false);
+    expect(stopped.streamingText).toBe("");
+    expect(stopped.pendingApproval).toBeNull();
+    expect(stopped.pendingQuestion).toBeNull();
+    expect(stopped.messages.at(-1)).toEqual({
+      role: "tool",
+      content: "Stopped by user",
+      toolName: "system",
+    });
+  });
+
   test("lists and opens recent aria chat sessions", async () => {
     const controller = createAriaChatController(
       {

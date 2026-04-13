@@ -177,6 +177,20 @@ export async function sendAriaMobileAppShellMessage(
   };
 }
 
+export async function stopAriaMobileAppShell(
+  shell: AriaMobileAppShell,
+): Promise<AriaMobileAppShell> {
+  await shell.ariaThread.controller.stop();
+
+  return {
+    ...shell,
+    ariaThread: {
+      ...shell.ariaThread,
+      state: shell.ariaThread.controller.getState(),
+    },
+  };
+}
+
 export const ariaMobileAppModel = {
   app: ariaMobileApp,
   navigation: ariaMobileNavigation,

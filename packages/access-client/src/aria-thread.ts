@@ -101,6 +101,9 @@ export interface AriaChatClient {
     history?: {
       query(input: { sessionId: string }): Promise<{ messages: unknown[]; archived: boolean }>;
     };
+    stop?: {
+      mutate(input: { sessionId: string }): Promise<{ cancelled: boolean }>;
+    };
     stream: {
       subscribe(
         input: { sessionId: string; message: string },
@@ -137,6 +140,7 @@ export interface AriaChatController {
   getState(): AriaChatState;
   connect(): Promise<AriaChatState>;
   sendMessage(message: string): Promise<AriaChatState>;
+  stop(): Promise<AriaChatState>;
   listSessions(): Promise<AriaChatSessionSummary[]>;
   listArchivedSessions(limit?: number): Promise<AriaChatSessionSummary[]>;
   searchSessions(query: string, limit?: number): Promise<AriaChatSessionSummary[]>;
@@ -416,6 +420,25 @@ export function createAriaChatController(
             },
           },
         );
+      });
+    },
+    async stop() {
+      if (!state.sessionId) {
+        return state;
+      }
+
+      await client.chat.stop?.mutate({ sessionId: state.sessionId });
+      appendMessage({
+        role: "tool",
+        content: "Stopped by user",
+        toolName: "system",
+      });
+      return setState({
+        isStreaming: false,
+        streamingText: "",
+        pendingApproval: null,
+        pendingQuestion: null,
+        lastError: null,
       });
     },
     async listSessions() {

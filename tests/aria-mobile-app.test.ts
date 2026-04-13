@@ -16,6 +16,7 @@ import {
   createAriaMobileAppShell,
   createAriaMobileHostBootstrap,
   sendAriaMobileAppShellMessage,
+  stopAriaMobileAppShell,
 } from "../apps/aria-mobile/src/index.js";
 
 describe("Aria mobile app surface", () => {
@@ -411,5 +412,45 @@ describe("Aria mobile app surface", () => {
     expect(serialized).toContain("exec");
     expect(serialized).toContain("Pending question:");
     expect(serialized).toContain("Ship it?");
+  });
+
+  test("can stop an aria thread through the mobile app shell", async () => {
+    const stoppedState = {
+      connected: true,
+      sessionId: "mobile:session-1",
+      sessionStatus: "resumed" as const,
+      modelName: "sonnet",
+      agentName: "Esperta Aria",
+      messages: [
+        {
+          role: "tool" as const,
+          content: "Stopped by user",
+          toolName: "system",
+        },
+      ],
+      streamingText: "",
+      isStreaming: false,
+      pendingApproval: null,
+      pendingQuestion: null,
+      lastError: null,
+    };
+    const controller = {
+      getState: () => stoppedState,
+      connect: async () => stoppedState,
+      sendMessage: async () => stoppedState,
+      stop: async () => stoppedState,
+    };
+
+    const shell = createAriaMobileAppShell({
+      target: { serverId: "mobile", baseUrl: "https://aria.example.test/" },
+      ariaThreadController: controller as any,
+    });
+    const stopped = await stopAriaMobileAppShell(shell);
+
+    expect(stopped.ariaThread.state.messages.at(-1)).toEqual({
+      role: "tool",
+      content: "Stopped by user",
+      toolName: "system",
+    });
   });
 });

@@ -13,6 +13,7 @@ import {
   createAriaDesktopApplicationRoot,
   createAriaDesktopApplicationBootstrap,
   sendAriaDesktopAppShellMessage,
+  stopAriaDesktopAppShell,
   type AriaDesktopAppShellModel,
 } from "../apps/aria-desktop/src/index.js";
 
@@ -417,5 +418,45 @@ describe("aria-desktop app assembly", () => {
     const text = collectTextContent(AriaDesktopAppShell({ model })).join(" ").replace(/\s+/g, " ");
     expect(text).toContain("Pending approval: exec");
     expect(text).toContain("Pending question: Ship it?");
+  });
+
+  test("can stop an aria thread through the desktop shell model", async () => {
+    const stoppedState = {
+      connected: true,
+      sessionId: "desktop:session-1",
+      sessionStatus: "resumed" as const,
+      modelName: "sonnet",
+      agentName: "Esperta Aria",
+      messages: [
+        {
+          role: "tool" as const,
+          content: "Stopped by user",
+          toolName: "system",
+        },
+      ],
+      streamingText: "",
+      isStreaming: false,
+      pendingApproval: null,
+      pendingQuestion: null,
+      lastError: null,
+    };
+    const controller = {
+      getState: () => stoppedState,
+      connect: async () => stoppedState,
+      sendMessage: async () => stoppedState,
+      stop: async () => stoppedState,
+    };
+
+    const model = createAriaDesktopAppShellModel({
+      target: { serverId: "desktop", baseUrl: "http://127.0.0.1:7420/" },
+      ariaThreadController: controller as any,
+    });
+    const stopped = await stopAriaDesktopAppShell(model);
+
+    expect(stopped.ariaThread.state.messages.at(-1)).toEqual({
+      role: "tool",
+      content: "Stopped by user",
+      toolName: "system",
+    });
   });
 });

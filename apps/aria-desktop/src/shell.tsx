@@ -347,3 +347,17 @@ export async function sendAriaDesktopAppShellMessage(
     },
   };
 }
+
+export async function stopAriaDesktopAppShell(
+  model: AriaDesktopAppShellModel,
+): Promise<AriaDesktopAppShellModel> {
+  await model.ariaThread.controller.stop();
+
+  return {
+    ...model,
+    ariaThread: {
+      ...model.ariaThread,
+      state: model.ariaThread.controller.getState(),
+    },
+  };
+}

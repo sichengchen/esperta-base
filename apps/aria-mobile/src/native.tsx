@@ -2,7 +2,7 @@ import { startTransition, useEffect, useState } from "react";
 import { ScrollView, StyleSheet, Text, View } from "react-native";
 import {
   createAriaMobileAppShell,
-  createConnectedAriaMobileAppShell,
+  startAriaMobileNativeHostShell,
   type AriaMobileAppShell,
 } from "./app.js";
 import { createAriaMobileNativeHostModel } from "./native-model.js";
@@ -23,7 +23,7 @@ export function AriaMobileNativeHost() {
   useEffect(() => {
     let cancelled = false;
 
-    void createConnectedAriaMobileAppShell({ target }).then((connected) => {
+    void startAriaMobileNativeHostShell({ target }).then((connected) => {
       if (!cancelled) {
         startTransition(() => {
           setShell(connected);

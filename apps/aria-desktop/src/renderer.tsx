@@ -1,6 +1,12 @@
 import { createElement } from "react";
 import { createRoot, type Root } from "react-dom/client";
-import { AriaDesktopApplicationRoot, createConnectedAriaDesktopAppShellModel } from "./index.js";
+import {
+  AriaDesktopApplicationRoot,
+  connectAriaDesktopAppShellModel,
+  createAriaDesktopAppShellModel,
+  loadAriaDesktopAppShellRecentSessions,
+  type CreateAriaDesktopAppShellModelOptions,
+} from "./index.js";
 
 export interface AriaDesktopRendererTarget {
   serverId: string;
@@ -9,7 +15,14 @@ export interface AriaDesktopRendererTarget {
 
 export interface AriaDesktopRendererMount {
   root: Root;
-  model: Awaited<ReturnType<typeof createConnectedAriaDesktopAppShellModel>>;
+  model: Awaited<ReturnType<typeof startAriaDesktopRendererModel>>;
+}
+
+export async function startAriaDesktopRendererModel(
+  options: CreateAriaDesktopAppShellModelOptions,
+) {
+  const connected = await connectAriaDesktopAppShellModel(createAriaDesktopAppShellModel(options));
+  return loadAriaDesktopAppShellRecentSessions(connected);
 }
 
 export function resolveAriaDesktopRendererTarget(
@@ -25,7 +38,7 @@ export async function mountAriaDesktopRenderer(
   container: Element,
   config?: Partial<AriaDesktopRendererTarget>,
 ): Promise<AriaDesktopRendererMount> {
-  const model = await createConnectedAriaDesktopAppShellModel({
+  const model = await startAriaDesktopRendererModel({
     target: resolveAriaDesktopRendererTarget(config),
   });
   const root = createRoot(container);

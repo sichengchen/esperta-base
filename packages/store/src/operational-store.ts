@@ -2,13 +2,34 @@ import { mkdir } from "node:fs/promises";
 import { dirname, join } from "node:path";
 import { Database } from "bun:sqlite";
 import type { Message } from "@mariozechner/pi-ai";
-import type { Session } from "../../protocol/src/types.js";
+import type { Session } from "@aria/protocol";
+import { ensureAriaDomainModelSchema } from "./domain-model.js";
 
-export type RunStatus = "running" | "completed" | "failed" | "cancelled" | "interrupted";
-export type ToolCallStatus = "running" | "completed" | "failed" | "cancelled" | "interrupted";
-export type ApprovalStatus = "pending" | "approved" | "denied" | "allow_session" | "interrupted";
+export type RunStatus =
+  | "running"
+  | "completed"
+  | "failed"
+  | "cancelled"
+  | "interrupted";
+export type ToolCallStatus =
+  | "running"
+  | "completed"
+  | "failed"
+  | "cancelled"
+  | "interrupted";
+export type ApprovalStatus =
+  | "pending"
+  | "approved"
+  | "denied"
+  | "allow_session"
+  | "interrupted";
 export type AutomationTaskType = "heartbeat" | "cron" | "webhook";
-export type AutomationRunStatus = "running" | "success" | "error" | "cancelled" | "interrupted";
+export type AutomationRunStatus =
+  | "running"
+  | "success"
+  | "error"
+  | "cancelled"
+  | "interrupted";
 export type AutomationDeliveryStatus = "not_requested" | "delivered" | "failed";
 
 export interface RunRecord {
@@ -258,7 +279,9 @@ function ensureTimestamp(value: unknown): number {
   return typeof value === "number" ? value : Date.now();
 }
 
-function normalizeSessionRow(row: Record<string, unknown> | null | undefined): Session | undefined {
+function normalizeSessionRow(
+  row: Record<string, unknown> | null | undefined,
+): Session | undefined {
   if (!row) return undefined;
   return {
     id: String(row.session_id),
@@ -283,10 +306,23 @@ export class OperationalStore {
     this.db.exec("PRAGMA journal_mode=WAL");
     this.db.exec("PRAGMA foreign_keys=ON");
     this.db.exec(SCHEMA_SQL);
+    ensureAriaDomainModelSchema(this.db);
     this.ensureColumn("sessions", "destroyed_at", "INTEGER");
-    this.ensureColumn("automation_runs", "attempt_number", "INTEGER NOT NULL DEFAULT 1");
-    this.ensureColumn("automation_runs", "max_attempts", "INTEGER NOT NULL DEFAULT 1");
-    this.ensureColumn("automation_runs", "delivery_status", "TEXT NOT NULL DEFAULT 'not_requested'");
+    this.ensureColumn(
+      "automation_runs",
+      "attempt_number",
+      "INTEGER NOT NULL DEFAULT 1",
+    );
+    this.ensureColumn(
+      "automation_runs",
+      "max_attempts",
+      "INTEGER NOT NULL DEFAULT 1",
+    );
+    this.ensureColumn(
+      "automation_runs",
+      "delivery_status",
+      "TEXT NOT NULL DEFAULT 'not_requested'",
+    );
     this.ensureColumn("automation_runs", "delivery_attempted_at", "INTEGER");
     this.ensureColumn("automation_runs", "delivery_error", "TEXT");
     this.markInterruptedState();
@@ -309,22 +345,26 @@ export class OperationalStore {
     const db = this.getDb();
     const now = Date.now();
 
-    db.prepare(`
+    db.prepare(
+      `
       UPDATE runs
       SET status = 'interrupted',
           completed_at = COALESCE(completed_at, ?),
           error_message = COALESCE(error_message, 'Runtime restarted before run completion')
       WHERE status = 'running'
-    `).run(now);
+    `,
+    ).run(now);
 
-    db.prepare(`
+    db.prepare(
+      `
       UPDATE tool_calls
       SET status = 'interrupted',
           ended_at = COALESCE(ended_at, ?),
           is_error = 1,
           result_json = COALESCE(result_json, ?)
       WHERE status = 'running'
-    `).run(
+    `,
+    ).run(
       now,
       JSON.stringify({
         content: "Runtime restarted before tool completion",
@@ -332,50 +372,65 @@ export class OperationalStore {
       }),
     );
 
-    db.prepare(`
+    db.prepare(
+      `
       UPDATE approvals
       SET status = 'interrupted',
           resolved_at = COALESCE(resolved_at, ?),
           resolution = COALESCE(resolution, 'interrupted')
       WHERE status = 'pending'
-    `).run(now);
+    `,
+    ).run(now);
 
-    db.prepare(`
+    db.prepare(
+      `
       UPDATE automation_runs
       SET status = 'interrupted',
           completed_at = COALESCE(completed_at, ?),
           error_message = COALESCE(error_message, 'Runtime restarted before automation run completion')
       WHERE status = 'running'
-    `).run(now);
+    `,
+    ).run(now);
   }
 
   pruneAuthState(now = Date.now()): void {
     const db = this.getDb();
-    db.prepare(`
+    db.prepare(
+      `
       DELETE FROM auth_session_tokens
       WHERE ttl_ms > 0
         AND paired_at + ttl_ms <= ?
-    `).run(now);
-    db.prepare(`
+    `,
+    ).run(now);
+    db.prepare(
+      `
       DELETE FROM auth_pairing_codes
       WHERE consumed_at IS NOT NULL
          OR expires_at <= ?
-    `).run(now);
+    `,
+    ).run(now);
   }
 
-  private ensureColumn(tableName: string, columnName: string, columnDefinition: string): void {
+  private ensureColumn(
+    tableName: string,
+    columnName: string,
+    columnDefinition: string,
+  ): void {
     const columns = this.getDb()
       .prepare(`PRAGMA table_info(${tableName})`)
       .all() as Array<{ name: string }>;
     if (columns.some((column) => column.name === columnName)) {
       return;
     }
-    this.getDb().exec(`ALTER TABLE ${tableName} ADD COLUMN ${columnName} ${columnDefinition}`);
+    this.getDb().exec(
+      `ALTER TABLE ${tableName} ADD COLUMN ${columnName} ${columnDefinition}`,
+    );
   }
 
   upsertSession(session: Session): void {
     const db = this.getDb();
-    db.prepare(`
+    db.prepare(
+      `
       INSERT INTO sessions (
         session_id, connector_type, connector_id, created_at, last_active_at, destroyed_at
       ) VALUES (?, ?, ?, ?, ?, NULL)
@@ -385,7 +440,8 @@ export class OperationalStore {
         created_at = excluded.created_at,
         last_active_at = excluded.last_active_at,
         destroyed_at = NULL
-    `).run(
+    `,
+    ).run(
       session.id,
       session.connectorType,
       session.connectorId,
@@ -396,12 +452,14 @@ export class OperationalStore {
 
   getSession(sessionId: string): Session | undefined {
     const row = this.getDb()
-      .prepare(`
+      .prepare(
+        `
         SELECT session_id, connector_type, connector_id, created_at, last_active_at
         FROM sessions
         WHERE session_id = ?
           AND destroyed_at IS NULL
-      `)
+      `,
+      )
       .get(sessionId) as Record<string, unknown> | undefined;
 
     return normalizeSessionRow(row);
@@ -409,12 +467,14 @@ export class OperationalStore {
 
   listSessions(): Session[] {
     const rows = this.getDb()
-      .prepare(`
+      .prepare(
+        `
         SELECT session_id, connector_type, connector_id, created_at, last_active_at
         FROM sessions
         WHERE destroyed_at IS NULL
         ORDER BY last_active_at DESC, created_at DESC
-      `)
+      `,
+      )
       .all() as Array<Record<string, unknown>>;
 
     return rows.map((row) => normalizeSessionRow(row)!).filter(Boolean);
@@ -422,13 +482,15 @@ export class OperationalStore {
 
   listByPrefix(prefix: string): Session[] {
     const rows = this.getDb()
-      .prepare(`
+      .prepare(
+        `
         SELECT session_id, connector_type, connector_id, created_at, last_active_at
         FROM sessions
         WHERE session_id LIKE ?
           AND destroyed_at IS NULL
         ORDER BY last_active_at DESC, created_at DESC
-      `)
+      `,
+      )
       .all(`${prefix}:%`) as Array<Record<string, unknown>>;
 
     return rows.map((row) => normalizeSessionRow(row)!).filter(Boolean);
@@ -436,14 +498,16 @@ export class OperationalStore {
 
   getLatest(prefix: string): Session | undefined {
     const row = this.getDb()
-      .prepare(`
+      .prepare(
+        `
         SELECT session_id, connector_type, connector_id, created_at, last_active_at
         FROM sessions
         WHERE session_id LIKE ?
           AND destroyed_at IS NULL
         ORDER BY last_active_at DESC, created_at DESC
         LIMIT 1
-      `)
+      `,
+      )
       .get(`${prefix}:%`) as Record<string, unknown> | undefined;
 
     return normalizeSessionRow(row);
@@ -451,19 +515,23 @@ export class OperationalStore {
 
   destroySession(sessionId: string): boolean {
     const result = this.getDb()
-      .prepare(`
+      .prepare(
+        `
         UPDATE sessions
         SET destroyed_at = COALESCE(destroyed_at, ?)
         WHERE session_id = ?
           AND destroyed_at IS NULL
-      `)
+      `,
+      )
       .run(Date.now(), sessionId);
     return result.changes > 0;
   }
 
   syncSessionMessages(sessionId: string, messages: readonly Message[]): void {
     const db = this.getDb();
-    const deleteMessages = db.prepare("DELETE FROM messages WHERE session_id = ?");
+    const deleteMessages = db.prepare(
+      "DELETE FROM messages WHERE session_id = ?",
+    );
     const insertMessage = db.prepare(`
       INSERT INTO messages (
         session_id, message_index, role, timestamp, payload_json
@@ -488,12 +556,14 @@ export class OperationalStore {
 
   getSessionMessages(sessionId: string): Message[] {
     const rows = this.getDb()
-      .prepare(`
+      .prepare(
+        `
         SELECT payload_json
         FROM messages
         WHERE session_id = ?
         ORDER BY message_index ASC
-      `)
+      `,
+      )
       .all(sessionId) as Array<{ payload_json: string }>;
 
     return rows.map((row) => JSON.parse(row.payload_json) as Message);
@@ -501,12 +571,14 @@ export class OperationalStore {
 
   createRun(run: RunRecord): void {
     this.getDb()
-      .prepare(`
+      .prepare(
+        `
         INSERT INTO runs (
           run_id, session_id, trigger, status, input_text, started_at,
           completed_at, stop_reason, error_message, parent_run_id
         ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
-      `)
+      `,
+      )
       .run(
         run.runId,
         run.sessionId,
@@ -531,7 +603,8 @@ export class OperationalStore {
     },
   ): void {
     this.getDb()
-      .prepare(`
+      .prepare(
+        `
         UPDATE runs
         SET status = ?,
             completed_at = ?,
@@ -539,7 +612,8 @@ export class OperationalStore {
             error_message = ?
         WHERE run_id = ?
           AND status = 'running'
-      `)
+      `,
+      )
       .run(
         updates.status,
         updates.completedAt ?? Date.now(),
@@ -558,7 +632,8 @@ export class OperationalStore {
     startedAt?: number;
   }): void {
     this.getDb()
-      .prepare(`
+      .prepare(
+        `
         INSERT INTO tool_calls (
           tool_call_id, run_id, session_id, tool_name, status, args_json, started_at
         ) VALUES (?, ?, ?, ?, ?, ?, ?)
@@ -569,7 +644,8 @@ export class OperationalStore {
           status = excluded.status,
           args_json = excluded.args_json,
           started_at = excluded.started_at
-      `)
+      `,
+      )
       .run(
         input.toolCallId,
         input.runId,
@@ -588,14 +664,16 @@ export class OperationalStore {
     endedAt?: number;
   }): void {
     this.getDb()
-      .prepare(`
+      .prepare(
+        `
         UPDATE tool_calls
         SET status = ?,
             ended_at = ?,
             result_json = ?,
             is_error = ?
         WHERE tool_call_id = ?
-      `)
+      `,
+      )
       .run(
         input.status,
         input.endedAt ?? Date.now(),
@@ -615,7 +693,8 @@ export class OperationalStore {
     createdAt?: number;
   }): void {
     this.getDb()
-      .prepare(`
+      .prepare(
+        `
         INSERT INTO approvals (
           approval_id, run_id, session_id, tool_call_id, tool_name,
           args_json, status, created_at
@@ -630,7 +709,8 @@ export class OperationalStore {
           created_at = excluded.created_at,
           resolved_at = NULL,
           resolution = NULL
-      `)
+      `,
+      )
       .run(
         input.approvalId,
         input.runId,
@@ -649,14 +729,16 @@ export class OperationalStore {
     resolvedAt = Date.now(),
   ): void {
     this.getDb()
-      .prepare(`
+      .prepare(
+        `
         UPDATE approvals
         SET status = ?,
             resolved_at = ?,
             resolution = ?
         WHERE approval_id = ?
           AND status = 'pending'
-      `)
+      `,
+      )
       .run(status, resolvedAt, status, approvalId);
   }
 
@@ -678,16 +760,19 @@ export class OperationalStore {
       params.push(input.status);
     }
 
-    const whereClause = filters.length > 0 ? `WHERE ${filters.join(" AND ")}` : "";
+    const whereClause =
+      filters.length > 0 ? `WHERE ${filters.join(" AND ")}` : "";
     const rows = this.getDb()
-      .prepare(`
+      .prepare(
+        `
         SELECT approval_id, run_id, session_id, tool_call_id, tool_name,
                args_json, status, created_at, resolved_at, resolution
         FROM approvals
         ${whereClause}
         ORDER BY created_at DESC
         LIMIT ?
-      `)
+      `,
+      )
       .all(...params, limit) as Array<Record<string, unknown>>;
 
     return rows.map((row) => ({
@@ -704,13 +789,18 @@ export class OperationalStore {
     }));
   }
 
-  getSessionSummary(sessionId: string, summaryKind: string): SessionSummaryRecord | undefined {
+  getSessionSummary(
+    sessionId: string,
+    summaryKind: string,
+  ): SessionSummaryRecord | undefined {
     const row = this.getDb()
-      .prepare(`
+      .prepare(
+        `
         SELECT session_id, summary_kind, message_count, summary_text, updated_at
         FROM session_summaries
         WHERE session_id = ? AND summary_kind = ?
-      `)
+      `,
+      )
       .get(sessionId, summaryKind) as Record<string, unknown> | undefined;
 
     if (!row) return undefined;
@@ -731,7 +821,8 @@ export class OperationalStore {
     updatedAt?: number;
   }): void {
     this.getDb()
-      .prepare(`
+      .prepare(
+        `
         INSERT INTO session_summaries (
           session_id, summary_kind, message_count, summary_text, updated_at
         ) VALUES (?, ?, ?, ?, ?)
@@ -739,7 +830,8 @@ export class OperationalStore {
           message_count = excluded.message_count,
           summary_text = excluded.summary_text,
           updated_at = excluded.updated_at
-      `)
+      `,
+      )
       .run(
         input.sessionId,
         input.summaryKind,
@@ -751,11 +843,13 @@ export class OperationalStore {
 
   getPromptCache(cacheKey: string): PromptCacheRecord | undefined {
     const row = this.getDb()
-      .prepare(`
+      .prepare(
+        `
         SELECT cache_key, scope, content, metadata_json, updated_at
         FROM prompt_cache
         WHERE cache_key = ?
-      `)
+      `,
+      )
       .get(cacheKey) as Record<string, unknown> | undefined;
 
     if (!row) return undefined;
@@ -763,9 +857,10 @@ export class OperationalStore {
       cacheKey: String(row.cache_key),
       scope: String(row.scope),
       content: String(row.content),
-      metadata: typeof row.metadata_json === "string" && row.metadata_json.length > 0
-        ? JSON.parse(row.metadata_json)
-        : undefined,
+      metadata:
+        typeof row.metadata_json === "string" && row.metadata_json.length > 0
+          ? JSON.parse(row.metadata_json)
+          : undefined,
       updatedAt: Number(row.updated_at),
     };
   }
@@ -778,7 +873,8 @@ export class OperationalStore {
     updatedAt?: number;
   }): void {
     this.getDb()
-      .prepare(`
+      .prepare(
+        `
         INSERT INTO prompt_cache (
           cache_key, scope, content, metadata_json, updated_at
         ) VALUES (?, ?, ?, ?, ?)
@@ -787,7 +883,8 @@ export class OperationalStore {
           content = excluded.content,
           metadata_json = excluded.metadata_json,
           updated_at = excluded.updated_at
-      `)
+      `,
+      )
       .run(
         input.cacheKey,
         input.scope,
@@ -805,7 +902,8 @@ export class OperationalStore {
     ttlMs: number;
   }): void {
     this.getDb()
-      .prepare(`
+      .prepare(
+        `
         INSERT INTO auth_session_tokens (
           token_hash, connector_id, connector_type, paired_at, ttl_ms
         ) VALUES (?, ?, ?, ?, ?)
@@ -814,7 +912,8 @@ export class OperationalStore {
           connector_type = excluded.connector_type,
           paired_at = excluded.paired_at,
           ttl_ms = excluded.ttl_ms
-      `)
+      `,
+      )
       .run(
         input.tokenHash,
         input.connectorId,
@@ -824,13 +923,18 @@ export class OperationalStore {
       );
   }
 
-  getAuthSessionToken(tokenHash: string, now = Date.now()): AuthSessionTokenRecord | undefined {
+  getAuthSessionToken(
+    tokenHash: string,
+    now = Date.now(),
+  ): AuthSessionTokenRecord | undefined {
     const row = this.getDb()
-      .prepare(`
+      .prepare(
+        `
         SELECT token_hash, connector_id, connector_type, paired_at, ttl_ms
         FROM auth_session_tokens
         WHERE token_hash = ?
-      `)
+      `,
+      )
       .get(tokenHash) as Record<string, unknown> | undefined;
 
     if (!row) return undefined;
@@ -867,22 +971,29 @@ export class OperationalStore {
     const db = this.getDb();
     const tx = db.transaction(() => {
       db.prepare("DELETE FROM auth_pairing_codes").run();
-      db.prepare(`
+      db.prepare(
+        `
         INSERT INTO auth_pairing_codes (
           code_hash, created_at, expires_at, consumed_at
         ) VALUES (?, ?, ?, NULL)
-      `).run(input.codeHash, createdAt, input.expiresAt);
+      `,
+      ).run(input.codeHash, createdAt, input.expiresAt);
     });
     tx();
   }
 
-  consumePairingCode(codeHash: string, now = Date.now()): "ok" | "expired" | "missing" {
+  consumePairingCode(
+    codeHash: string,
+    now = Date.now(),
+  ): "ok" | "expired" | "missing" {
     const row = this.getDb()
-      .prepare(`
+      .prepare(
+        `
         SELECT code_hash, expires_at, consumed_at
         FROM auth_pairing_codes
         WHERE code_hash = ?
-      `)
+      `,
+      )
       .get(codeHash) as Record<string, unknown> | undefined;
 
     if (!row) {
@@ -890,34 +1001,45 @@ export class OperationalStore {
     }
 
     if (row.consumed_at != null) {
-      this.getDb().prepare("DELETE FROM auth_pairing_codes WHERE code_hash = ?").run(codeHash);
+      this.getDb()
+        .prepare("DELETE FROM auth_pairing_codes WHERE code_hash = ?")
+        .run(codeHash);
       return "missing";
     }
 
     if (Number(row.expires_at) <= now) {
-      this.getDb().prepare("DELETE FROM auth_pairing_codes WHERE code_hash = ?").run(codeHash);
+      this.getDb()
+        .prepare("DELETE FROM auth_pairing_codes WHERE code_hash = ?")
+        .run(codeHash);
       return "expired";
     }
 
     this.getDb()
-      .prepare(`
+      .prepare(
+        `
         UPDATE auth_pairing_codes
         SET consumed_at = ?
         WHERE code_hash = ?
           AND consumed_at IS NULL
-      `)
+      `,
+      )
       .run(now, codeHash);
     this.pruneAuthState(now);
     return "ok";
   }
 
-  getSessionMcpServerEnabled(sessionId: string, serverName: string): boolean | undefined {
+  getSessionMcpServerEnabled(
+    sessionId: string,
+    serverName: string,
+  ): boolean | undefined {
     const row = this.getDb()
-      .prepare(`
+      .prepare(
+        `
         SELECT enabled
         FROM session_mcp_servers
         WHERE session_id = ? AND server_name = ?
-      `)
+      `,
+      )
       .get(sessionId, serverName) as { enabled: number } | undefined;
 
     if (!row) return undefined;
@@ -926,11 +1048,13 @@ export class OperationalStore {
 
   listSessionMcpServers(sessionId: string): Record<string, boolean> {
     const rows = this.getDb()
-      .prepare(`
+      .prepare(
+        `
         SELECT server_name, enabled
         FROM session_mcp_servers
         WHERE session_id = ?
-      `)
+      `,
+      )
       .all(sessionId) as Array<{ server_name: string; enabled: number }>;
 
     const result: Record<string, boolean> = {};
@@ -947,14 +1071,16 @@ export class OperationalStore {
     updatedAt = Date.now(),
   ): void {
     this.getDb()
-      .prepare(`
+      .prepare(
+        `
         INSERT INTO session_mcp_servers (
           session_id, server_name, enabled, updated_at
         ) VALUES (?, ?, ?, ?)
         ON CONFLICT(session_id, server_name) DO UPDATE SET
           enabled = excluded.enabled,
           updated_at = excluded.updated_at
-      `)
+      `,
+      )
       .run(sessionId, serverName, enabled ? 1 : 0, updatedAt);
   }
 
@@ -976,7 +1102,8 @@ export class OperationalStore {
     const createdAt = input.createdAt ?? Date.now();
     const updatedAt = input.updatedAt ?? createdAt;
     this.getDb()
-      .prepare(`
+      .prepare(
+        `
         INSERT INTO automation_tasks (
           task_id, task_type, name, slug, enabled, paused, config_json,
           created_at, updated_at, last_run_at, next_run_at, last_status, last_summary
@@ -994,7 +1121,8 @@ export class OperationalStore {
           next_run_at = excluded.next_run_at,
           last_status = excluded.last_status,
           last_summary = excluded.last_summary
-      `)
+      `,
+      )
       .run(
         input.taskId,
         input.taskType,
@@ -1013,24 +1141,30 @@ export class OperationalStore {
   }
 
   listAutomationTasks(taskType?: AutomationTaskType): AutomationTaskRecord[] {
-    const rows = (taskType
-      ? this.getDb()
-        .prepare(`
+    const rows = (
+      taskType
+        ? this.getDb()
+            .prepare(
+              `
           SELECT task_id, task_type, name, slug, enabled, paused, config_json,
                  created_at, updated_at, last_run_at, next_run_at, last_status, last_summary
           FROM automation_tasks
           WHERE task_type = ?
           ORDER BY task_type ASC, name ASC
-        `)
-        .all(taskType)
-      : this.getDb()
-        .prepare(`
+        `,
+            )
+            .all(taskType)
+        : this.getDb()
+            .prepare(
+              `
           SELECT task_id, task_type, name, slug, enabled, paused, config_json,
                  created_at, updated_at, last_run_at, next_run_at, last_status, last_summary
           FROM automation_tasks
           ORDER BY task_type ASC, name ASC
-        `)
-        .all()) as Array<Record<string, unknown>>;
+        `,
+            )
+            .all()
+    ) as Array<Record<string, unknown>>;
 
     return rows.map((row) => ({
       taskId: String(row.task_id),
@@ -1044,17 +1178,27 @@ export class OperationalStore {
       updatedAt: Number(row.updated_at),
       lastRunAt: row.last_run_at != null ? String(row.last_run_at) : null,
       nextRunAt: row.next_run_at != null ? String(row.next_run_at) : null,
-      lastStatus: row.last_status != null ? String(row.last_status) as AutomationRunStatus : null,
+      lastStatus:
+        row.last_status != null
+          ? (String(row.last_status) as AutomationRunStatus)
+          : null,
       lastSummary: row.last_summary != null ? String(row.last_summary) : null,
     }));
   }
 
-  getAutomationTaskByName(taskType: AutomationTaskType, name: string): AutomationTaskRecord | undefined {
-    return this.listAutomationTasks(taskType).find((task) => task.name === name);
+  getAutomationTaskByName(
+    taskType: AutomationTaskType,
+    name: string,
+  ): AutomationTaskRecord | undefined {
+    return this.listAutomationTasks(taskType).find(
+      (task) => task.name === name,
+    );
   }
 
   getAutomationTaskBySlug(slug: string): AutomationTaskRecord | undefined {
-    return this.listAutomationTasks("webhook").find((task) => task.slug === slug);
+    return this.listAutomationTasks("webhook").find(
+      (task) => task.slug === slug,
+    );
   }
 
   deleteAutomationTask(taskId: string): boolean {
@@ -1079,14 +1223,16 @@ export class OperationalStore {
     startedAt?: number;
   }): void {
     this.getDb()
-      .prepare(`
+      .prepare(
+        `
         INSERT INTO automation_runs (
           task_run_id, task_id, task_type, task_name, session_id, run_id, trigger,
           status, prompt_text, response_text, summary, attempt_number, max_attempts,
           started_at, completed_at, delivery_target_json, delivery_status,
           delivery_attempted_at, delivery_error, error_message
         ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, NULL, NULL, ?, ?, ?, NULL, ?, 'not_requested', NULL, NULL, NULL)
-      `)
+      `,
+      )
       .run(
         input.taskRunId,
         input.taskId,
@@ -1113,7 +1259,8 @@ export class OperationalStore {
     errorMessage?: string | null;
   }): void {
     this.getDb()
-      .prepare(`
+      .prepare(
+        `
         UPDATE automation_runs
         SET status = ?,
             response_text = ?,
@@ -1121,7 +1268,8 @@ export class OperationalStore {
             completed_at = ?,
             error_message = ?
         WHERE task_run_id = ?
-      `)
+      `,
+      )
       .run(
         input.status,
         input.responseText ?? null,
@@ -1139,13 +1287,15 @@ export class OperationalStore {
     deliveryError?: string | null;
   }): void {
     this.getDb()
-      .prepare(`
+      .prepare(
+        `
         UPDATE automation_runs
         SET delivery_status = ?,
             delivery_attempted_at = ?,
             delivery_error = ?
         WHERE task_run_id = ?
-      `)
+      `,
+      )
       .run(
         input.deliveryStatus,
         input.deliveryAttemptedAt ?? Date.now(),
@@ -1155,9 +1305,11 @@ export class OperationalStore {
   }
 
   listAutomationRuns(taskId?: string, limit = 20): AutomationRunRecord[] {
-    const rows = (taskId
-      ? this.getDb()
-        .prepare(`
+    const rows = (
+      taskId
+        ? this.getDb()
+            .prepare(
+              `
           SELECT task_run_id, task_id, task_type, task_name, session_id, run_id, trigger,
                  status, prompt_text, response_text, summary, attempt_number, max_attempts,
                  started_at, completed_at, delivery_target_json, delivery_status,
@@ -1166,10 +1318,12 @@ export class OperationalStore {
           WHERE task_id = ?
           ORDER BY started_at DESC
           LIMIT ?
-        `)
-        .all(taskId, limit)
-      : this.getDb()
-        .prepare(`
+        `,
+            )
+            .all(taskId, limit)
+        : this.getDb()
+            .prepare(
+              `
           SELECT task_run_id, task_id, task_type, task_name, session_id, run_id, trigger,
                  status, prompt_text, response_text, summary, attempt_number, max_attempts,
                  started_at, completed_at, delivery_target_json, delivery_status,
@@ -1177,8 +1331,10 @@ export class OperationalStore {
           FROM automation_runs
           ORDER BY started_at DESC
           LIMIT ?
-        `)
-        .all(limit)) as Array<Record<string, unknown>>;
+        `,
+            )
+            .all(limit)
+    ) as Array<Record<string, unknown>>;
 
     return rows.map((row) => ({
       taskRunId: String(row.task_run_id),
@@ -1190,19 +1346,31 @@ export class OperationalStore {
       trigger: String(row.trigger),
       status: String(row.status) as AutomationRunStatus,
       promptText: String(row.prompt_text),
-      responseText: row.response_text != null ? String(row.response_text) : null,
+      responseText:
+        row.response_text != null ? String(row.response_text) : null,
       summary: row.summary != null ? String(row.summary) : null,
       attemptNumber: Number(row.attempt_number ?? 1),
       maxAttempts: Number(row.max_attempts ?? 1),
       startedAt: Number(row.started_at),
       completedAt: row.completed_at != null ? Number(row.completed_at) : null,
-      deliveryTarget: row.delivery_target_json != null
-        ? JSON.parse(String(row.delivery_target_json)) as Record<string, unknown>
-        : null,
-      deliveryStatus: String(row.delivery_status ?? "not_requested") as AutomationDeliveryStatus,
-      deliveryAttemptedAt: row.delivery_attempted_at != null ? Number(row.delivery_attempted_at) : null,
-      deliveryError: row.delivery_error != null ? String(row.delivery_error) : null,
-      errorMessage: row.error_message != null ? String(row.error_message) : null,
+      deliveryTarget:
+        row.delivery_target_json != null
+          ? (JSON.parse(String(row.delivery_target_json)) as Record<
+              string,
+              unknown
+            >)
+          : null,
+      deliveryStatus: String(
+        row.delivery_status ?? "not_requested",
+      ) as AutomationDeliveryStatus,
+      deliveryAttemptedAt:
+        row.delivery_attempted_at != null
+          ? Number(row.delivery_attempted_at)
+          : null,
+      deliveryError:
+        row.delivery_error != null ? String(row.delivery_error) : null,
+      errorMessage:
+        row.error_message != null ? String(row.error_message) : null,
     }));
   }
 }

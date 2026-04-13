@@ -2,6 +2,7 @@ import { mkdir } from "node:fs/promises";
 import { dirname } from "node:path";
 import { Database } from "bun:sqlite";
 import type { SQLQueryBindings } from "bun:sqlite";
+import { ensureAriaDomainModelSchema } from "@aria/store";
 import { PROJECTS_ENGINE_SCHEMA_SQL } from "./schema.js";
 import type {
   DispatchRecord,
@@ -30,7 +31,9 @@ function asOptionalText(value: unknown): string | null {
   return value == null ? null : asText(value);
 }
 
-function normalizeProjectRow(row: SqliteRow | null | undefined): ProjectRecord | undefined {
+function normalizeProjectRow(
+  row: SqliteRow | null | undefined,
+): ProjectRecord | undefined {
   if (!row) return undefined;
   return {
     projectId: asText(row.project_id),
@@ -42,7 +45,9 @@ function normalizeProjectRow(row: SqliteRow | null | undefined): ProjectRecord |
   };
 }
 
-function normalizeRepoRow(row: SqliteRow | null | undefined): RepoRecord | undefined {
+function normalizeRepoRow(
+  row: SqliteRow | null | undefined,
+): RepoRecord | undefined {
   if (!row) return undefined;
   return {
     repoId: asText(row.repo_id),
@@ -55,7 +60,9 @@ function normalizeRepoRow(row: SqliteRow | null | undefined): RepoRecord | undef
   };
 }
 
-function normalizeServerRow(row: SqliteRow | null | undefined): ServerRecord | undefined {
+function normalizeServerRow(
+  row: SqliteRow | null | undefined,
+): ServerRecord | undefined {
   if (!row) return undefined;
   return {
     serverId: asText(row.server_id),
@@ -67,7 +74,9 @@ function normalizeServerRow(row: SqliteRow | null | undefined): ServerRecord | u
   };
 }
 
-function normalizeWorkspaceRow(row: SqliteRow | null | undefined): WorkspaceRecord | undefined {
+function normalizeWorkspaceRow(
+  row: SqliteRow | null | undefined,
+): WorkspaceRecord | undefined {
   if (!row) return undefined;
   return {
     workspaceId: asText(row.workspace_id),
@@ -79,7 +88,9 @@ function normalizeWorkspaceRow(row: SqliteRow | null | undefined): WorkspaceReco
   };
 }
 
-function normalizeEnvironmentRow(row: SqliteRow | null | undefined): EnvironmentRecord | undefined {
+function normalizeEnvironmentRow(
+  row: SqliteRow | null | undefined,
+): EnvironmentRecord | undefined {
   if (!row) return undefined;
   return {
     environmentId: asText(row.environment_id),
@@ -94,7 +105,9 @@ function normalizeEnvironmentRow(row: SqliteRow | null | undefined): Environment
   };
 }
 
-function normalizeTaskRow(row: SqliteRow | null | undefined): TaskRecord | undefined {
+function normalizeTaskRow(
+  row: SqliteRow | null | undefined,
+): TaskRecord | undefined {
   if (!row) return undefined;
   return {
     taskId: asText(row.task_id),
@@ -108,7 +121,9 @@ function normalizeTaskRow(row: SqliteRow | null | undefined): TaskRecord | undef
   };
 }
 
-function normalizeThreadRow(row: SqliteRow | null | undefined): ThreadRecord | undefined {
+function normalizeThreadRow(
+  row: SqliteRow | null | undefined,
+): ThreadRecord | undefined {
   if (!row) return undefined;
   return {
     threadId: asText(row.thread_id),
@@ -127,7 +142,9 @@ function normalizeThreadRow(row: SqliteRow | null | undefined): ThreadRecord | u
   };
 }
 
-function normalizeThreadEnvironmentBindingRow(row: SqliteRow | null | undefined): ThreadEnvironmentBindingRecord | undefined {
+function normalizeThreadEnvironmentBindingRow(
+  row: SqliteRow | null | undefined,
+): ThreadEnvironmentBindingRecord | undefined {
   if (!row) return undefined;
   return {
     bindingId: asText(row.binding_id),
@@ -142,8 +159,14 @@ function normalizeThreadEnvironmentBindingRow(row: SqliteRow | null | undefined)
   };
 }
 
-function hasColumn(db: Database, tableName: string, columnName: string): boolean {
-  const rows = db.prepare(`PRAGMA table_info(${tableName})`).all() as Array<{ name?: string }>;
+function hasColumn(
+  db: Database,
+  tableName: string,
+  columnName: string,
+): boolean {
+  const rows = db.prepare(`PRAGMA table_info(${tableName})`).all() as Array<{
+    name?: string;
+  }>;
   return rows.some((row) => row.name === columnName);
 }
 
@@ -158,12 +181,16 @@ function ensureProjectsStoreSchema(db: Database): void {
 
   for (const [columnName, columnType] of threadColumns) {
     if (!hasColumn(db, "projects_threads", columnName)) {
-      db.exec(`ALTER TABLE projects_threads ADD COLUMN ${columnName} ${columnType}`);
+      db.exec(
+        `ALTER TABLE projects_threads ADD COLUMN ${columnName} ${columnType}`,
+      );
     }
   }
 }
 
-function normalizeJobRow(row: SqliteRow | null | undefined): JobRecord | undefined {
+function normalizeJobRow(
+  row: SqliteRow | null | undefined,
+): JobRecord | undefined {
   if (!row) return undefined;
   return {
     jobId: asText(row.job_id),
@@ -174,7 +201,9 @@ function normalizeJobRow(row: SqliteRow | null | undefined): JobRecord | undefin
   };
 }
 
-function normalizeExternalRefRow(row: SqliteRow | null | undefined): ExternalRefRecord | undefined {
+function normalizeExternalRefRow(
+  row: SqliteRow | null | undefined,
+): ExternalRefRecord | undefined {
   if (!row) return undefined;
   return {
     externalRefId: asText(row.external_ref_id),
@@ -190,7 +219,9 @@ function normalizeExternalRefRow(row: SqliteRow | null | undefined): ExternalRef
   };
 }
 
-function normalizeDispatchRow(row: SqliteRow | null | undefined): DispatchRecord | undefined {
+function normalizeDispatchRow(
+  row: SqliteRow | null | undefined,
+): DispatchRecord | undefined {
   if (!row) return undefined;
   return {
     dispatchId: asText(row.dispatch_id),
@@ -212,7 +243,9 @@ function normalizeDispatchRow(row: SqliteRow | null | undefined): DispatchRecord
   };
 }
 
-function normalizeWorktreeRow(row: SqliteRow | null | undefined): WorktreeRecord | undefined {
+function normalizeWorktreeRow(
+  row: SqliteRow | null | undefined,
+): WorktreeRecord | undefined {
   if (!row) return undefined;
   return {
     worktreeId: asText(row.worktree_id),
@@ -229,7 +262,9 @@ function normalizeWorktreeRow(row: SqliteRow | null | undefined): WorktreeRecord
   };
 }
 
-function normalizeReviewRow(row: SqliteRow | null | undefined): ReviewRecord | undefined {
+function normalizeReviewRow(
+  row: SqliteRow | null | undefined,
+): ReviewRecord | undefined {
   if (!row) return undefined;
   return {
     reviewId: asText(row.review_id),
@@ -244,7 +279,9 @@ function normalizeReviewRow(row: SqliteRow | null | undefined): ReviewRecord | u
   };
 }
 
-function normalizePublishRunRow(row: SqliteRow | null | undefined): PublishRunRecord | undefined {
+function normalizePublishRunRow(
+  row: SqliteRow | null | undefined,
+): PublishRunRecord | undefined {
   if (!row) return undefined;
   return {
     publishRunId: asText(row.publish_run_id),
@@ -279,6 +316,7 @@ export class ProjectsEngineStore {
     this.db.exec("PRAGMA foreign_keys=ON");
     this.db.exec(PROJECTS_ENGINE_SCHEMA_SQL);
     ensureProjectsStoreSchema(this.db);
+    ensureAriaDomainModelSchema(this.db);
   }
 
   close(): void {
@@ -294,15 +332,21 @@ export class ProjectsEngineStore {
   }
 
   private all<T>(sql: string, ...params: SQLQueryBindings[]): T[] {
-    return this.getDb().prepare(sql).all(...params) as T[];
+    return this.getDb()
+      .prepare(sql)
+      .all(...params) as T[];
   }
 
   private get<T>(sql: string, ...params: SQLQueryBindings[]): T | undefined {
-    return this.getDb().prepare(sql).get(...params) as T | undefined;
+    return this.getDb()
+      .prepare(sql)
+      .get(...params) as T | undefined;
   }
 
   private run(sql: string, ...params: SQLQueryBindings[]): void {
-    this.getDb().prepare(sql).run(...params);
+    this.getDb()
+      .prepare(sql)
+      .run(...params);
   }
 
   upsertProject(project: ProjectRecord): void {
@@ -440,7 +484,9 @@ export class ProjectsEngineStore {
           `,
         );
 
-    return rows.map((row) => normalizeWorkspaceRow(row)).filter((row): row is WorkspaceRecord => Boolean(row));
+    return rows
+      .map((row) => normalizeWorkspaceRow(row))
+      .filter((row): row is WorkspaceRecord => Boolean(row));
   }
 
   getWorkspace(workspaceId: string): WorkspaceRecord | undefined {
@@ -484,7 +530,10 @@ export class ProjectsEngineStore {
     );
   }
 
-  listEnvironments(projectId?: string, workspaceId?: string): EnvironmentRecord[] {
+  listEnvironments(
+    projectId?: string,
+    workspaceId?: string,
+  ): EnvironmentRecord[] {
     let rows: SqliteRow[];
     if (projectId && workspaceId) {
       rows = this.all<SqliteRow>(
@@ -527,7 +576,9 @@ export class ProjectsEngineStore {
       );
     }
 
-    return rows.map((row) => normalizeEnvironmentRow(row)).filter((row): row is EnvironmentRecord => Boolean(row));
+    return rows
+      .map((row) => normalizeEnvironmentRow(row))
+      .filter((row): row is EnvironmentRecord => Boolean(row));
   }
 
   getEnvironment(environmentId: string): EnvironmentRecord | undefined {
@@ -586,7 +637,9 @@ export class ProjectsEngineStore {
           `,
         );
 
-    return rows.map((row) => normalizeRepoRow(row)).filter((row): row is RepoRecord => Boolean(row));
+    return rows
+      .map((row) => normalizeRepoRow(row))
+      .filter((row): row is RepoRecord => Boolean(row));
   }
 
   getRepo(repoId: string): RepoRecord | undefined {
@@ -671,7 +724,9 @@ export class ProjectsEngineStore {
       );
     }
 
-    return rows.map((row) => normalizeTaskRow(row)).filter((row): row is TaskRecord => Boolean(row));
+    return rows
+      .map((row) => normalizeTaskRow(row))
+      .filter((row): row is TaskRecord => Boolean(row));
   }
 
   getTask(taskId: string): TaskRecord | undefined {
@@ -771,7 +826,9 @@ export class ProjectsEngineStore {
       );
     }
 
-    return rows.map((row) => normalizeThreadRow(row)).filter((row): row is ThreadRecord => Boolean(row));
+    return rows
+      .map((row) => normalizeThreadRow(row))
+      .filter((row): row is ThreadRecord => Boolean(row));
   }
 
   getThread(threadId: string): ThreadRecord | undefined {
@@ -788,7 +845,9 @@ export class ProjectsEngineStore {
     );
   }
 
-  upsertThreadEnvironmentBinding(binding: ThreadEnvironmentBindingRecord): void {
+  upsertThreadEnvironmentBinding(
+    binding: ThreadEnvironmentBindingRecord,
+  ): void {
     if (binding.isActive) {
       this.run(
         `
@@ -843,7 +902,9 @@ export class ProjectsEngineStore {
     );
   }
 
-  listThreadEnvironmentBindings(threadId?: string): ThreadEnvironmentBindingRecord[] {
+  listThreadEnvironmentBindings(
+    threadId?: string,
+  ): ThreadEnvironmentBindingRecord[] {
     const rows = threadId
       ? this.all<SqliteRow>(
           `
@@ -851,7 +912,7 @@ export class ProjectsEngineStore {
                  detached_at, is_active, reason
           FROM projects_thread_environment_bindings
           WHERE thread_id = ?
-          ORDER BY attached_at DESC
+          ORDER BY attached_at DESC, is_active DESC, binding_id DESC
           `,
           threadId,
         )
@@ -860,7 +921,7 @@ export class ProjectsEngineStore {
           SELECT binding_id, thread_id, project_id, workspace_id, environment_id, attached_at,
                  detached_at, is_active, reason
           FROM projects_thread_environment_bindings
-          ORDER BY attached_at DESC
+          ORDER BY attached_at DESC, is_active DESC, binding_id DESC
           `,
         );
 
@@ -869,7 +930,9 @@ export class ProjectsEngineStore {
       .filter((row): row is ThreadEnvironmentBindingRecord => Boolean(row));
   }
 
-  getActiveThreadEnvironmentBinding(threadId: string): ThreadEnvironmentBindingRecord | undefined {
+  getActiveThreadEnvironmentBinding(
+    threadId: string,
+  ): ThreadEnvironmentBindingRecord | undefined {
     return normalizeThreadEnvironmentBindingRow(
       this.get<SqliteRow>(
         `
@@ -877,7 +940,7 @@ export class ProjectsEngineStore {
                detached_at, is_active, reason
         FROM projects_thread_environment_bindings
         WHERE thread_id = ? AND is_active = 1
-        ORDER BY attached_at DESC
+        ORDER BY attached_at DESC, binding_id DESC
         LIMIT 1
         `,
         threadId,
@@ -924,7 +987,9 @@ export class ProjectsEngineStore {
           `,
         );
 
-    return rows.map((row) => normalizeJobRow(row)).filter((row): row is JobRecord => Boolean(row));
+    return rows
+      .map((row) => normalizeJobRow(row))
+      .filter((row): row is JobRecord => Boolean(row));
   }
 
   upsertExternalRef(externalRef: ExternalRefRecord): void {
@@ -958,7 +1023,10 @@ export class ProjectsEngineStore {
     );
   }
 
-  listExternalRefs(ownerType?: ExternalRefRecord["ownerType"], ownerId?: string): ExternalRefRecord[] {
+  listExternalRefs(
+    ownerType?: ExternalRefRecord["ownerType"],
+    ownerId?: string,
+  ): ExternalRefRecord[] {
     let rows: SqliteRow[];
     if (ownerType && ownerId) {
       rows = this.all<SqliteRow>(
@@ -1010,7 +1078,11 @@ export class ProjectsEngineStore {
       .filter((row): row is ExternalRefRecord => Boolean(row));
   }
 
-  findExternalRefsByExternal(system: ExternalRefRecord["system"], externalId: string, externalKey?: string): ExternalRefRecord[] {
+  findExternalRefsByExternal(
+    system: ExternalRefRecord["system"],
+    externalId: string,
+    externalKey?: string,
+  ): ExternalRefRecord[] {
     const rows = externalKey
       ? this.all<SqliteRow>(
           `
@@ -1136,7 +1208,9 @@ export class ProjectsEngineStore {
       );
     }
 
-    return rows.map((row) => normalizeDispatchRow(row)).filter((row): row is DispatchRecord => Boolean(row));
+    return rows
+      .map((row) => normalizeDispatchRow(row))
+      .filter((row): row is DispatchRecord => Boolean(row));
   }
 
   getDispatch(dispatchId: string): DispatchRecord | undefined {
@@ -1234,7 +1308,9 @@ export class ProjectsEngineStore {
       );
     }
 
-    return rows.map((row) => normalizeWorktreeRow(row)).filter((row): row is WorktreeRecord => Boolean(row));
+    return rows
+      .map((row) => normalizeWorktreeRow(row))
+      .filter((row): row is WorktreeRecord => Boolean(row));
   }
 
   getWorktree(worktreeId: string): WorktreeRecord | undefined {
@@ -1322,7 +1398,9 @@ export class ProjectsEngineStore {
       );
     }
 
-    return rows.map((row) => normalizeReviewRow(row)).filter((row): row is ReviewRecord => Boolean(row));
+    return rows
+      .map((row) => normalizeReviewRow(row))
+      .filter((row): row is ReviewRecord => Boolean(row));
   }
 
   getReview(reviewId: string): ReviewRecord | undefined {
@@ -1420,7 +1498,9 @@ export class ProjectsEngineStore {
       );
     }
 
-    return rows.map((row) => normalizePublishRunRow(row)).filter((row): row is PublishRunRecord => Boolean(row));
+    return rows
+      .map((row) => normalizePublishRunRow(row))
+      .filter((row): row is PublishRunRecord => Boolean(row));
   }
 
   getPublishRun(publishRunId: string): PublishRunRecord | undefined {
@@ -1436,5 +1516,4 @@ export class ProjectsEngineStore {
       ),
     );
   }
-
 }

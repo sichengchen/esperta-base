@@ -8,6 +8,8 @@
   "types": "./src/index.ts",
   "exports": {
     ".": "./src/index.ts",
+    "./domain-model": "./src/domain-model.ts",
+    "./migration": "./src/migration.ts",
     "./operational-store": "./src/operational-store.ts"
   }
 }

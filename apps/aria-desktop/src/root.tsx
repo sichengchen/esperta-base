@@ -10,6 +10,7 @@ export interface AriaDesktopApplicationRootProps {
   model: AriaDesktopAppShellModel;
   onSwitchServer?(serverId: string): void;
   onOpenAriaSession?(sessionId: string): void;
+  onSearchAriaSessions?(query: string): void;
   onSendAriaMessage?(message: string): void;
   onStopAriaSession?(): void;
   onApproveToolCall?(toolCallId: string, approved: boolean): void;
@@ -23,6 +24,7 @@ export function AriaDesktopApplicationRoot(props: AriaDesktopApplicationRootProp
       model={props.model}
       onSwitchServer={props.onSwitchServer}
       onOpenAriaSession={props.onOpenAriaSession}
+      onSearchAriaSessions={props.onSearchAriaSessions}
       onSendAriaMessage={props.onSendAriaMessage}
       onStopAriaSession={props.onStopAriaSession}
       onApproveToolCall={props.onApproveToolCall}

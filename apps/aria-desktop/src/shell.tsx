@@ -167,6 +167,7 @@ export interface AriaDesktopAppShellProps {
   model: AriaDesktopAppShellModel;
   onSwitchServer?(serverId: string): void;
   onOpenAriaSession?(sessionId: string): void;
+  onSearchAriaSessions?(query: string): void;
   onSendAriaMessage?(message: string): void;
   onStopAriaSession?(): void;
   onApproveToolCall?(toolCallId: string, approved: boolean): void;
@@ -379,6 +380,19 @@ export function AriaDesktopAppShell(props: AriaDesktopAppShellProps): ReactEleme
                   : ""}
               </p>
               <p>Recent Aria sessions: {model.ariaRecentSessions.length}</p>
+              <form
+                onSubmit={(event) => {
+                  event.preventDefault();
+                  const form = event.currentTarget;
+                  const field = form.elements.namedItem("aria-session-search");
+                  if (field instanceof HTMLInputElement) {
+                    props.onSearchAriaSessions?.(field.value);
+                  }
+                }}
+              >
+                <input name="aria-session-search" defaultValue="recent session" />
+                <button type="submit">Search Sessions</button>
+              </form>
               {model.ariaRecentSessions.length > 0 ? (
                 <ul>
                   {model.ariaRecentSessions.map((session) => (

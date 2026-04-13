@@ -358,6 +358,9 @@ describe("aria-desktop host scaffold", () => {
     const sent = await controller.sendMessage("hi");
     expect(sent.ariaThread.state.messages.at(-1)?.content).toBe("sent");
 
+    const searched = await controller.searchSessions("archived");
+    expect(searched.ariaRecentSessions).toEqual([]);
+
     const stopped = await controller.stop();
     expect(stopped.ariaThread.state.messages.at(-1)?.content).toBe("Stopped by user");
 

@@ -1,4 +1,12 @@
-import { afterAll, beforeAll, beforeEach, describe, expect, mock, test } from "bun:test";
+import {
+  afterAll,
+  beforeAll,
+  beforeEach,
+  describe,
+  expect,
+  mock,
+  test,
+} from "bun:test";
 import { mkdtemp, rm } from "node:fs/promises";
 import { tmpdir } from "node:os";
 import { join } from "node:path";
@@ -130,7 +138,7 @@ function resetState() {
 }
 
 beforeAll(async () => {
-  runtimeHome = await mkdtemp(join(tmpdir(), "aria-phase2-cli-compat-"));
+  runtimeHome = await mkdtemp(join(tmpdir(), "aria-cli-compat-"));
   process.env.ARIA_HOME = runtimeHome;
   mock.module("../packages/cli/src/engine.js", () => ({
     ensureEngine: async () => {},
@@ -159,7 +167,7 @@ beforeEach(() => {
   };
 });
 
-describe("Phase 2 extraction CLI compatibility", () => {
+describe("cli command compatibility", () => {
   test("memory list keeps the current overview output shape", async () => {
     state.memoryOverview = {
       curatedLength: 128,
@@ -185,7 +193,8 @@ describe("Phase 2 extraction CLI compatibility", () => {
 
   test("memory read preserves routed layer/key queries", async () => {
     state.memoryRead = {
-      content: "Phase 2 keeps runtime CLI behavior stable while package ownership moves.",
+      content:
+        "Package ownership moves without changing the operator-facing memory command.",
     };
 
     await memoryCommand(["read", "project", "phase-2-ledger"]);
@@ -195,7 +204,7 @@ describe("Phase 2 extraction CLI compatibility", () => {
       key: "phase-2-ledger",
     });
     expect(capturedLogs).toEqual([
-      "Phase 2 keeps runtime CLI behavior stable while package ownership moves.",
+      "Package ownership moves without changing the operator-facing memory command.",
     ]);
   });
 
@@ -205,16 +214,20 @@ describe("Phase 2 extraction CLI compatibility", () => {
         sourceType: "project",
         source: "phase-2-ledger",
         score: 0.8754,
-        content: "Phase 2 extracts memory, automation, connectors, and console surfaces.",
+        content:
+          "Package boundaries stay stable while current CLI behavior remains intact.",
       },
     ];
 
-    await memoryCommand(["search", "phase 2"]);
+    await memoryCommand(["search", "package boundaries"]);
 
-    expect(state.lastSearchInput).toEqual({ query: "phase 2", limit: 10 });
+    expect(state.lastSearchInput).toEqual({
+      query: "package boundaries",
+      limit: 10,
+    });
     expect(capturedLogs).toEqual([
       "[project] phase-2-ledger score=0.875",
-      "  Phase 2 extracts memory, automation, connectors, and console surfaces.",
+      "  Package boundaries stay stable while current CLI behavior remains intact.",
     ]);
   });
 
@@ -250,7 +263,9 @@ describe("Phase 2 extraction CLI compatibility", () => {
     expect(capturedLogs[0]).toBe("[heartbeat] heartbeat (active)");
     expect(capturedLogs[1]).toContain("id=cron:heartbeat");
     expect(capturedLogs[1]).toContain("last_status=success | Heartbeat OK");
-    expect(capturedLogs[2]).toBe("[webhook] Deploy Notify (disabled) slug=deploy-notify");
+    expect(capturedLogs[2]).toBe(
+      "[webhook] Deploy Notify (disabled) slug=deploy-notify",
+    );
     expect(capturedLogs[3]).toContain("id=webhook:deploy-notify");
     expect(capturedLogs[3]).toContain("next=n/a last=n/a last_status=n/a");
   });
@@ -284,7 +299,10 @@ describe("Phase 2 extraction CLI compatibility", () => {
 
     await automationCommand(["runs", "deploy-notify"]);
 
-    expect(state.lastRunsInput).toEqual({ taskId: "webhook:deploy-notify", limit: 20 });
+    expect(state.lastRunsInput).toEqual({
+      taskId: "webhook:deploy-notify",
+      limit: 20,
+    });
     expect(capturedLogs[0]).toBe("[webhook] Deploy Notify success");
     expect(capturedLogs[1]).toContain("task=webhook:deploy-notify");
     expect(capturedLogs[1]).toContain("run=run-42");

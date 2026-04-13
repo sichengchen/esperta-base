@@ -3,10 +3,23 @@ import { mkdtemp, rm } from "node:fs/promises";
 import { tmpdir } from "node:os";
 import { join } from "node:path";
 
-import { createClaudeCodeRuntimeBackendAdapter, createCodexRuntimeBackendAdapter, createOpenCodeRuntimeBackendAdapter } from "@aria/agents-coding";
+import {
+  createClaudeCodeRuntimeBackendAdapter,
+  createCodexRuntimeBackendAdapter,
+  createOpenCodeRuntimeBackendAdapter,
+} from "@aria/agents-coding";
 import { ProjectsDispatchService } from "@aria/jobs";
-import { ProjectsEngineRepository, ProjectsEngineStore, ProjectsPlanningService } from "@aria/projects";
-import { ProjectsRepoService, ProjectsWorktreeService, buildBranchName, sanitizeWorktreeSegment } from "@aria/workspaces";
+import {
+  ProjectsEngineRepository,
+  ProjectsEngineStore,
+  ProjectsPlanningService,
+} from "@aria/projects";
+import {
+  ProjectsRepoService,
+  ProjectsWorktreeService,
+  buildBranchName,
+  sanitizeWorktreeSegment,
+} from "@aria/workspaces";
 
 const tempDirs: string[] = [];
 
@@ -16,7 +29,9 @@ afterEach(async () => {
   }
 });
 
-async function createRepository(prefix: string): Promise<ProjectsEngineRepository> {
+async function createRepository(
+  prefix: string,
+): Promise<ProjectsEngineRepository> {
   const dir = await mkdtemp(join(tmpdir(), prefix));
   tempDirs.push(dir);
   const store = new ProjectsEngineStore(join(dir, "aria.db"));
@@ -24,8 +39,8 @@ async function createRepository(prefix: string): Promise<ProjectsEngineRepositor
   return new ProjectsEngineRepository(store);
 }
 
-describe("phase-4 package seam verification", () => {
-  test("@aria/projects preserves tracked-work planning through the new package barrel", async () => {
+describe("project package surfaces", () => {
+  test("@aria/projects preserves tracked-work planning through the package seam", async () => {
     const repository = await createRepository("aria-projects-package-");
     const now = Date.now();
 
@@ -90,13 +105,17 @@ describe("phase-4 package seam verification", () => {
     });
 
     const planning = new ProjectsPlanningService(repository);
-    const runnableThreads = planning.listRunnableThreads({ projectId: "project-1" });
+    const runnableThreads = planning.listRunnableThreads({
+      projectId: "project-1",
+    });
 
     expect(runnableThreads).toHaveLength(1);
     expect(runnableThreads[0]?.thread.threadId).toBe("thread-1");
     expect(runnableThreads[0]?.thread.workspaceId).toBe("workspace-active");
     expect(runnableThreads[0]?.thread.environmentId).toBe("env-active");
-    expect(runnableThreads[0]?.thread.environmentBindingId).toBe("binding-active");
+    expect(runnableThreads[0]?.thread.environmentBindingId).toBe(
+      "binding-active",
+    );
     repository.close();
   });
 
@@ -152,7 +171,9 @@ describe("phase-4 package seam verification", () => {
 
     expect(repos.getRepo("repo-1")?.name).toBe("aria");
     expect(sanitizeWorktreeSegment("thread/one")).toBe("thread_one");
-    expect(repository.getWorktree("worktree-1")?.branchName).toBe("aria/thread/thread_one");
+    expect(repository.getWorktree("worktree-1")?.branchName).toBe(
+      "aria/thread/thread_one",
+    );
     expect(repository.getWorktree("worktree-1")?.status).toBe("retained");
     repository.close();
   });
@@ -256,7 +277,9 @@ describe("phase-4 package seam verification", () => {
       completedAt: null,
     });
 
-    const launch = new ProjectsDispatchService(repository).buildLaunchRequest("dispatch-1");
+    const launch = new ProjectsDispatchService(repository).buildLaunchRequest(
+      "dispatch-1",
+    );
 
     expect(launch).toMatchObject({
       dispatchId: "dispatch-1",

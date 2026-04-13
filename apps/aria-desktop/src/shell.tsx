@@ -256,6 +256,13 @@ export function AriaDesktopAppShell(props: AriaDesktopAppShellProps): ReactEleme
                 Pending approval: {model.ariaThread.state.pendingApproval?.toolName ?? "none"} |
                 Pending question: {model.ariaThread.state.pendingQuestion?.question ?? "none"}
               </p>
+              <p>
+                Approval mode: {model.ariaThread.state.approvalMode} | Security mode:{" "}
+                {model.ariaThread.state.securityMode}
+                {model.ariaThread.state.securityModeRemainingTTL !== null
+                  ? ` (${model.ariaThread.state.securityModeRemainingTTL}s)`
+                  : ""}
+              </p>
               <p>Recent Aria sessions: {model.ariaRecentSessions.length}</p>
               {model.ariaRecentSessions.length > 0 ? (
                 <ul>

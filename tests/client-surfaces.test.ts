@@ -212,6 +212,19 @@ describe("client surfaces", () => {
             },
           },
         },
+        tool: {
+          config: {
+            query: async () => ({ mode: "ask" as const }),
+          },
+        },
+        securityMode: {
+          get: {
+            query: async () => ({
+              mode: "default" as const,
+              remainingTTL: null,
+            }),
+          },
+        },
       },
       { connectorType: "tui", prefix: "tui" },
     );
@@ -222,6 +235,8 @@ describe("client surfaces", () => {
     expect(finalState.connected).toBe(true);
     expect(finalState.sessionId).toBe("tui:session-1");
     expect(finalState.sessionStatus).toBe("created");
+    expect(finalState.approvalMode).toBe("ask");
+    expect(finalState.securityMode).toBe("default");
     expect(finalState.modelName).toBe("sonnet");
     expect(finalState.messages).toEqual([
       { role: "user", content: "hi" },
@@ -299,6 +314,19 @@ describe("client surfaces", () => {
             },
           },
         },
+        tool: {
+          config: {
+            query: async () => ({ mode: "never" as const }),
+          },
+        },
+        securityMode: {
+          get: {
+            query: async () => ({
+              mode: "trusted" as const,
+              remainingTTL: 900,
+            }),
+          },
+        },
       },
       { connectorType: "tui", prefix: "tui" },
     );
@@ -309,6 +337,9 @@ describe("client surfaces", () => {
       { role: "user", content: "Previous question", toolName: undefined },
       { role: "assistant", content: "Previous answer", toolName: undefined },
     ]);
+    expect(connected.approvalMode).toBe("never");
+    expect(connected.securityMode).toBe("trusted");
+    expect(connected.securityModeRemainingTTL).toBe(900);
   });
 
   test("tracks pending approvals and questions from stream events and resolves them through controller actions", async () => {

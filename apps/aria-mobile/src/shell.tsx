@@ -128,6 +128,13 @@ export function AriaMobileApplicationShell(props: AriaMobileApplicationShellProp
             Pending approval: {props.shell.ariaThread.state.pendingApproval?.toolName ?? "none"} |
             Pending question: {props.shell.ariaThread.state.pendingQuestion?.question ?? "none"}
           </p>
+          <p>
+            Approval mode: {props.shell.ariaThread.state.approvalMode} | Security mode:{" "}
+            {props.shell.ariaThread.state.securityMode}
+            {props.shell.ariaThread.state.securityModeRemainingTTL !== null
+              ? ` (${props.shell.ariaThread.state.securityModeRemainingTTL}s)`
+              : ""}
+          </p>
           <p>Recent Aria sessions: {props.shell.ariaRecentSessions.length}</p>
           {props.shell.ariaRecentSessions.length > 0 ? (
             <ul>

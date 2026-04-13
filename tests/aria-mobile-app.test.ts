@@ -391,6 +391,9 @@ describe("Aria mobile app surface", () => {
         connected: true,
         sessionId: "mobile:session-1",
         sessionStatus: "resumed",
+        approvalMode: "ask",
+        securityMode: "default",
+        securityModeRemainingTTL: null,
         modelName: "sonnet",
         agentName: "Esperta Aria",
         messages: [],
@@ -418,6 +421,8 @@ describe("Aria mobile app surface", () => {
     expect(serialized).toContain("exec");
     expect(serialized).toContain("Pending question:");
     expect(serialized).toContain("Ship it?");
+    expect(serialized).toContain("Approval mode:");
+    expect(serialized).toContain("Security mode:");
   });
 
   test("can stop an aria thread through the mobile app shell", async () => {

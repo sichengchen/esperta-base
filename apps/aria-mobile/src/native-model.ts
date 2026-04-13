@@ -3,6 +3,11 @@ import type { AriaMobileAppShell } from "./app.js";
 export interface AriaMobileNativeHostModel {
   title: string;
   serverLabel: string;
+  availableServers: Array<{
+    serverId: string;
+    label: string;
+    selected: boolean;
+  }>;
   sessionId: string;
   sessionStatus: string;
   approvalMode: string;
@@ -23,6 +28,11 @@ export function createAriaMobileNativeHostModel(
   return {
     title: "Aria Mobile",
     serverLabel: shell.activeServerLabel,
+    availableServers: shell.serverSwitcher.availableServers.map((server) => ({
+      serverId: server.id,
+      label: server.label,
+      selected: server.id === shell.activeServerId,
+    })),
     sessionId: shell.ariaThread.state.sessionId ?? "disconnected",
     sessionStatus: shell.ariaThread.state.sessionStatus,
     approvalMode: shell.ariaThread.state.approvalMode,

@@ -81,7 +81,7 @@ Tests run through `Vitest` using the shared `vite.config.ts` configuration, but 
 ## Documentation
 
 - Canonical documentation lives in `docs/`.
-- Start with `docs/README.md`, then use the new reader-oriented sections under `docs/product/`, `docs/architecture/`, `docs/operator/`, `docs/security/`, `docs/reference/`, and `docs/development/`.
+- Start with `docs/README.md`, then use `docs/new-architecture/` as the architecture source of truth alongside `docs/product/`, `docs/operator/`, `docs/security/`, `docs/reference/`, and `docs/development/`.
 - `scripts/copy-docs.ts` copies the docs tree into the bundled `aria` skill before `scripts/embed-skills.ts` runs.
 
 ## Checks

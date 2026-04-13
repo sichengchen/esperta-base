@@ -6,7 +6,7 @@ This tree is organized by reader intent, not by the old code layout.
 
 - Product overview: [product/overview.md](./product/overview.md)
 - Getting started as an operator: [operator/getting-started.md](./operator/getting-started.md)
-- System map: [architecture/README.md](./architecture/README.md)
+- System map: [new-architecture/README.md](./new-architecture/README.md)
 - Security model: [security/README.md](./security/README.md)
 - Contributing and shipping: [development/README.md](./development/README.md)
 
@@ -33,13 +33,13 @@ This tree is organized by reader intent, not by the old code layout.
 
 ### Architecture
 
+- Remaining current-state notes while the old architecture docs are retired in favor of `new-architecture/*`.
 - [architecture/README.md](./architecture/README.md)
 - [architecture/monorepo.md](./architecture/monorepo.md)
 - [architecture/runtime.md](./architecture/runtime.md)
 - [architecture/storage-and-recovery.md](./architecture/storage-and-recovery.md)
 - [architecture/prompt-engine.md](./architecture/prompt-engine.md)
 - [architecture/tool-runtime.md](./architecture/tool-runtime.md)
-- [architecture/projects-engine.md](./architecture/projects-engine.md)
 - [architecture/relay.md](./architecture/relay.md)
 - [architecture/handoff.md](./architecture/handoff.md)
 - [architecture/providers.md](./architecture/providers.md)

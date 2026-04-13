@@ -1,8 +1,8 @@
 # Architecture
 
-This section describes how the current repo is built and how the major subsystems divide ownership.
+This section contains remaining current-state implementation notes while the repo continues moving to the target architecture.
 
-For the target-state redesign work, see [../new-architecture/README.md](../new-architecture/README.md).
+`docs/new-architecture/*` is the source of truth for package boundaries, deployment model, and client/server responsibilities.
 
 ## Overall Diagram
 
@@ -62,7 +62,6 @@ flowchart TD
 - [storage-and-recovery.md](./storage-and-recovery.md)
 - [prompt-engine.md](./prompt-engine.md)
 - [tool-runtime.md](./tool-runtime.md)
-- [projects-engine.md](./projects-engine.md)
 - [relay.md](./relay.md)
 - [handoff.md](./handoff.md)
 - [providers.md](./providers.md)

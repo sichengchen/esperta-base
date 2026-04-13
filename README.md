@@ -134,8 +134,9 @@ Recommended entry points:
 
 - [docs/README.md](./docs/README.md)
 - [docs/product/overview.md](./docs/product/overview.md)
-- [docs/architecture/runtime.md](./docs/architecture/runtime.md)
+- [docs/new-architecture/overview.md](./docs/new-architecture/overview.md)
 - [docs/new-architecture/server.md](./docs/new-architecture/server.md)
+- [docs/new-architecture/packages.md](./docs/new-architecture/packages.md)
 - [docs/development/phase-9-architecture-truth-table.md](./docs/development/phase-9-architecture-truth-table.md)
-- [docs/architecture/relay.md](./docs/architecture/relay.md)
+- [docs/new-architecture/relay.md](./docs/new-architecture/relay.md)
 - [docs/operator/getting-started.md](./docs/operator/getting-started.md)

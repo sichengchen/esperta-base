@@ -27,7 +27,10 @@ describe("package shell composition", () => {
       connectors: "server-only",
       projectLocalExecution: "desktop-only",
     });
-    expect(ariaServerApp.sharedPackages).toEqual(["@aria/runtime", "@aria/gateway"]);
+    expect(ariaServerApp.sharedPackages).toEqual([
+      "@aria/runtime",
+      "@aria/gateway",
+    ]);
     expect(bootstrap).toMatchObject({
       app: ariaServerApp,
       runtimeHome: "/tmp/aria-shell-test",
@@ -47,10 +50,14 @@ describe("package shell composition", () => {
       target: { serverId: "desktop", baseUrl: "http://127.0.0.1:7420/" },
       environments: [
         {
+          environmentId: "env-1",
           hostLabel: "This Device",
           environmentLabel: "wt/main",
           mode: "local",
-          target: { serverId: "desktop-local", baseUrl: "http://127.0.0.1:8123/" },
+          target: {
+            serverId: "desktop-local",
+            baseUrl: "http://127.0.0.1:8123/",
+          },
         },
       ],
       projects: [
@@ -157,7 +164,7 @@ describe("package shell composition", () => {
     expect(shell.composerPlacement).toBe("bottom-docked");
     expect(shell.environments).toMatchObject([
       {
-        id: "desktop-local:wt/main",
+        id: "env-1",
         label: "This Device / wt/main",
         mode: "local",
         access: {
@@ -197,6 +204,7 @@ describe("package shell composition", () => {
       projectLabel: "Aria",
       threadTitle: "Inbox",
       threadStatusLabel: "Running",
+      environmentId: "env-1",
       environmentLabel: "This Device / wt/main",
       agentLabel: "Aria Agent",
     });
@@ -208,13 +216,14 @@ describe("package shell composition", () => {
         threadType: "aria",
         threadTypeLabel: "Aria",
         statusLabel: "Running",
+        environmentId: "env-1",
         environmentLabel: "This Device / wt/main",
         agentLabel: "Aria Agent",
       },
       environmentSwitcher: {
         label: "Environment",
         placement: "thread-header",
-        activeEnvironmentLabel: "This Device / wt/main",
+        activeEnvironmentId: "env-1",
       },
       stream: {
         placement: "center-column",

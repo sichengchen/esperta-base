@@ -12,6 +12,7 @@ export interface AriaDesktopApplicationRootProps {
   onOpenAriaSession?(sessionId: string): void;
   onSearchAriaSessions?(query: string): void;
   onSelectProjectThread?(threadId: string): void;
+  onSelectThreadEnvironment?(environmentId: string): void;
   onSendAriaMessage?(message: string): void;
   onStopAriaSession?(): void;
   onApproveToolCall?(toolCallId: string, approved: boolean): void;
@@ -19,7 +20,9 @@ export interface AriaDesktopApplicationRootProps {
   onAnswerQuestion?(questionId: string, answer: string): void;
 }
 
-export function AriaDesktopApplicationRoot(props: AriaDesktopApplicationRootProps): ReactElement {
+export function AriaDesktopApplicationRoot(
+  props: AriaDesktopApplicationRootProps,
+): ReactElement {
   return (
     <AriaDesktopAppShell
       model={props.model}
@@ -27,6 +30,7 @@ export function AriaDesktopApplicationRoot(props: AriaDesktopApplicationRootProp
       onOpenAriaSession={props.onOpenAriaSession}
       onSearchAriaSessions={props.onSearchAriaSessions}
       onSelectProjectThread={props.onSelectProjectThread}
+      onSelectThreadEnvironment={props.onSelectThreadEnvironment}
       onSendAriaMessage={props.onSendAriaMessage}
       onStopAriaSession={props.onStopAriaSession}
       onApproveToolCall={props.onApproveToolCall}

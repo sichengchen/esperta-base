@@ -17,6 +17,7 @@ import {
   createAriaDesktopApplicationBootstrap,
   loadAriaDesktopAppShellRecentSessions,
   openAriaDesktopAppShellSession,
+  selectAriaDesktopAppShellEnvironment,
   selectAriaDesktopAppShellThread,
   searchAriaDesktopAppShellSessions,
   sendAriaDesktopAppShellMessage,
@@ -179,6 +180,7 @@ describe("aria-desktop app assembly", () => {
       },
       environments: [
         {
+          environmentId: "desktop-main",
           hostLabel: "This Device",
           environmentLabel: "wt/main",
           mode: "local",
@@ -250,12 +252,13 @@ describe("aria-desktop app assembly", () => {
           title: "Desktop thread",
           status: "running",
           threadType: "local_project",
-          environmentId: "desktop-main",
+          environmentId: "home-main",
           agentId: "codex",
         },
       },
       environments: [
         {
+          environmentId: "home-main",
           hostLabel: "Home Server",
           environmentLabel: "main",
           mode: "remote",
@@ -654,7 +657,7 @@ describe("aria-desktop app assembly", () => {
     );
   });
 
-  test("wires desktop shell callbacks for switching servers, threads, and sessions", () => {
+  test("wires desktop shell callbacks for switching servers, threads, environments, and sessions", () => {
     const model = createAriaDesktopAppShellModel({
       target: { serverId: "desktop", baseUrl: "http://127.0.0.1:7420/" },
       servers: [
@@ -679,6 +682,18 @@ describe("aria-desktop app assembly", () => {
           agentId: "codex",
         },
       },
+      environments: [
+        {
+          environmentId: "desktop-main",
+          hostLabel: "This Device",
+          environmentLabel: "main",
+          mode: "local",
+          target: {
+            serverId: "desktop-local",
+            baseUrl: "http://127.0.0.1:8123/",
+          },
+        },
+      ],
     });
     const shell = AriaDesktopAppShell({
       model: {
@@ -710,6 +725,7 @@ describe("aria-desktop app assembly", () => {
       },
       onSwitchServer() {},
       onSelectProjectThread() {},
+      onSelectThreadEnvironment() {},
       onOpenAriaSession() {},
     });
 
@@ -755,6 +771,14 @@ describe("aria-desktop app assembly", () => {
     );
     expect(threadButton).toBeDefined();
     expect(typeof threadButton?.props.onClick).toBe("function");
+
+    const environmentSwitcher = findElement(
+      shell,
+      (props) => props["aria-label"] === "Environment switcher",
+    );
+    expect(environmentSwitcher).toBeDefined();
+    expect(environmentSwitcher?.props.value).toBe("desktop-main");
+    expect(typeof environmentSwitcher?.props.onChange).toBe("function");
   });
 
   test("can switch the desktop app shell to another server", async () => {
@@ -897,5 +921,75 @@ describe("aria-desktop app assembly", () => {
       "Second thread",
     );
     expect(selected.shell.activeThreadScreen?.header.projectLabel).toBe("Aria");
+  });
+
+  test("can select a desktop thread environment locally", () => {
+    const model = createAriaDesktopAppShellModel({
+      target: { serverId: "desktop", baseUrl: "http://127.0.0.1:7420/" },
+      projects: [
+        {
+          project: { name: "Aria" },
+          threads: [
+            {
+              threadId: "thread-1",
+              title: "First thread",
+              status: "running",
+              threadType: "local_project",
+              environmentId: "desktop-main",
+              agentId: "codex",
+            },
+          ],
+        },
+      ],
+      environments: [
+        {
+          environmentId: "desktop-main",
+          hostLabel: "This Device",
+          environmentLabel: "main",
+          mode: "local",
+          target: {
+            serverId: "desktop-local",
+            baseUrl: "http://127.0.0.1:8123/",
+          },
+        },
+        {
+          environmentId: "server-review",
+          hostLabel: "Home Server",
+          environmentLabel: "wt/review",
+          mode: "remote",
+          target: {
+            serverId: "home",
+            baseUrl: "https://aria.example.test/",
+          },
+        },
+      ],
+      initialThread: {
+        project: { name: "Aria" },
+        thread: {
+          threadId: "thread-1",
+          title: "First thread",
+          status: "running",
+          threadType: "local_project",
+          environmentId: "desktop-main",
+          agentId: "codex",
+        },
+      },
+    });
+
+    const selected = selectAriaDesktopAppShellEnvironment(
+      model,
+      "server-review",
+    );
+    expect(selected.activeSpaceId).toBe("projects");
+    expect(
+      selected.shell.activeThreadScreen?.environmentSwitcher
+        .activeEnvironmentId,
+    ).toBe("server-review");
+    expect(selected.shell.activeThreadScreen?.header.environmentLabel).toBe(
+      "Home Server / wt/review",
+    );
+    expect(selected.shell.activeThreadScreen?.header.threadType).toBe(
+      "remote_project",
+    );
   });
 });

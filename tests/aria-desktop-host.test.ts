@@ -296,6 +296,28 @@ describe("aria-desktop host scaffold", () => {
     };
     const controller = createAriaDesktopRendererController({
       target: { serverId: "desktop", baseUrl: "http://127.0.0.1:7420/" },
+      environments: [
+        {
+          environmentId: "desktop-main",
+          hostLabel: "This Device",
+          environmentLabel: "main",
+          mode: "local",
+          target: {
+            serverId: "desktop-local",
+            baseUrl: "http://127.0.0.1:8123/",
+          },
+        },
+        {
+          environmentId: "server-review",
+          hostLabel: "Home Server",
+          environmentLabel: "wt/review",
+          mode: "remote",
+          target: {
+            serverId: "home",
+            baseUrl: "https://aria.example.test/",
+          },
+        },
+      ],
       projects: [
         {
           project: { name: "Aria" },
@@ -401,6 +423,19 @@ describe("aria-desktop host scaffold", () => {
     expect(controller.getModel().ariaThread.state.sessionId).toBe(
       "desktop:session-1",
     );
+
+    const switchedEnvironment =
+      await controller.selectEnvironment("server-review");
+    expect(
+      switchedEnvironment.shell.activeThreadScreen?.environmentSwitcher
+        .activeEnvironmentId,
+    ).toBe("server-review");
+    expect(
+      switchedEnvironment.shell.activeThreadScreen?.header.environmentLabel,
+    ).toBe("Home Server / wt/review");
+    expect(
+      switchedEnvironment.shell.activeThreadScreen?.header.threadType,
+    ).toBe("remote_project");
 
     const sent = await controller.sendMessage("hi");
     expect(sent.ariaThread.state.messages.at(-1)?.content).toBe("sent");

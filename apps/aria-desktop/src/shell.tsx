@@ -2,6 +2,7 @@ import {
   ariaDesktopContextPanels,
   ariaDesktopNavigation,
   ariaDesktopSpaces,
+  createAriaDesktopEnvironmentOption,
   createAriaDesktopShell,
   type CreateAriaDesktopShellOptions,
 } from "@aria/desktop";
@@ -12,11 +13,16 @@ import type {
   AriaChatState,
 } from "@aria/access-client";
 import type { ReactElement, ReactNode } from "react";
-import { createAriaDesktopApplicationBootstrap, createAriaDesktopAriaThread } from "./app.js";
+import {
+  createAriaDesktopApplicationBootstrap,
+  createAriaDesktopAriaThread,
+} from "./app.js";
 
 export interface CreateAriaDesktopAppShellModelOptions {
   target: AccessClientTarget;
-  initialThread?: Parameters<typeof createAriaDesktopApplicationBootstrap>[0]["initialThread"];
+  initialThread?: Parameters<
+    typeof createAriaDesktopApplicationBootstrap
+  >[0]["initialThread"];
   servers?: CreateAriaDesktopShellOptions["servers"];
   activeServerId?: CreateAriaDesktopShellOptions["activeServerId"];
   projects?: CreateAriaDesktopShellOptions["projects"];
@@ -25,7 +31,9 @@ export interface CreateAriaDesktopAppShellModelOptions {
   activeSpaceId?: (typeof ariaDesktopSpaces)[number]["id"];
   activeContextPanelId?: (typeof ariaDesktopContextPanels)[number]["id"];
   ariaThreadController?: AriaChatController;
-  createAriaThreadController?: (target: AccessClientTarget) => AriaChatController;
+  createAriaThreadController?: (
+    target: AccessClientTarget,
+  ) => AriaChatController;
   ariaThreadState?: AriaChatState;
 }
 
@@ -35,7 +43,9 @@ export interface AriaDesktopAppShellSourceOptions extends Omit<
 > {}
 
 export interface AriaDesktopAppShellModel {
-  application: ReturnType<typeof createAriaDesktopApplicationBootstrap>["application"];
+  application: ReturnType<
+    typeof createAriaDesktopApplicationBootstrap
+  >["application"];
   bootstrap: ReturnType<typeof createAriaDesktopApplicationBootstrap>;
   shell: ReturnType<typeof createAriaDesktopShell>;
   activeServerId: string;
@@ -62,9 +72,48 @@ function deriveProjectsFromInitialThread(
   ];
 }
 
+function normalizeDesktopEnvironmentInputs(
+  environments?: CreateAriaDesktopShellOptions["environments"],
+) {
+  return (environments ?? []).map((environment) =>
+    "access" in environment
+      ? environment
+      : createAriaDesktopEnvironmentOption(environment),
+  );
+}
+
+function resolveDesktopEnvironmentLabel(
+  environments: CreateAriaDesktopShellOptions["environments"] | undefined,
+  environmentId: string | null | undefined,
+) {
+  if (!environmentId) {
+    return undefined;
+  }
+
+  return (
+    normalizeDesktopEnvironmentInputs(environments).find(
+      (environment) => environment.id === environmentId,
+    )?.label ?? environmentId
+  );
+}
+
+function resolveDesktopEnvironmentMode(
+  environments: CreateAriaDesktopShellOptions["environments"] | undefined,
+  environmentId: string | null | undefined,
+) {
+  if (!environmentId) {
+    return undefined;
+  }
+
+  return normalizeDesktopEnvironmentInputs(environments).find(
+    (environment) => environment.id === environmentId,
+  )?.mode;
+}
+
 function deriveActiveThreadFromInitialThread(
   initialThread?: CreateAriaDesktopAppShellModelOptions["initialThread"],
   serverLabel?: string,
+  environments?: CreateAriaDesktopShellOptions["environments"],
 ): CreateAriaDesktopShellOptions["activeThreadContext"] {
   if (!initialThread) {
     return undefined;
@@ -74,7 +123,10 @@ function deriveActiveThreadFromInitialThread(
     serverLabel,
     projectLabel: initialThread.project.name,
     thread: initialThread.thread,
-    environmentLabel: initialThread.thread.environmentId ?? undefined,
+    environmentLabel: resolveDesktopEnvironmentLabel(
+      environments,
+      initialThread.thread.environmentId,
+    ),
     agentLabel: initialThread.thread.agentId ?? undefined,
   };
 }
@@ -94,19 +146,73 @@ function deriveActiveThreadFromProjectSelection(
   threadId: string,
 ): CreateAriaDesktopShellOptions["activeThreadContext"] {
   for (const project of deriveProjectThreadInputs(model)) {
-    const thread = project.threads.find((candidate) => candidate.threadId === threadId);
+    const thread = project.threads.find(
+      (candidate) => candidate.threadId === threadId,
+    );
     if (thread) {
       return {
         serverLabel: model.activeServerLabel,
         projectLabel: project.project.name,
         thread,
-        environmentLabel: thread.environmentId ?? undefined,
+        environmentLabel: resolveDesktopEnvironmentLabel(
+          model.sourceOptions.environments,
+          thread.environmentId,
+        ),
         agentLabel: thread.agentId ?? undefined,
       };
     }
   }
 
   return model.sourceOptions.activeThreadContext;
+}
+
+function deriveCurrentActiveThreadContext(
+  model: AriaDesktopAppShellModel,
+): CreateAriaDesktopShellOptions["activeThreadContext"] {
+  return (
+    model.sourceOptions.activeThreadContext ??
+    deriveActiveThreadFromInitialThread(
+      model.sourceOptions.initialThread,
+      model.activeServerLabel,
+      model.sourceOptions.environments,
+    )
+  );
+}
+
+function deriveActiveThreadFromEnvironmentSelection(
+  model: AriaDesktopAppShellModel,
+  environmentId: string,
+): CreateAriaDesktopShellOptions["activeThreadContext"] {
+  const activeThreadContext = deriveCurrentActiveThreadContext(model);
+  if (!activeThreadContext) {
+    return undefined;
+  }
+
+  const environmentMode = resolveDesktopEnvironmentMode(
+    model.sourceOptions.environments,
+    environmentId,
+  );
+  const nextThreadType =
+    activeThreadContext.thread.threadType === "local_project" ||
+    activeThreadContext.thread.threadType === "remote_project"
+      ? environmentMode === "remote"
+        ? "remote_project"
+        : "local_project"
+      : activeThreadContext.thread.threadType;
+
+  return {
+    ...activeThreadContext,
+    serverLabel: model.activeServerLabel,
+    thread: {
+      ...activeThreadContext.thread,
+      threadType: nextThreadType,
+      environmentId,
+    },
+    environmentLabel: resolveDesktopEnvironmentLabel(
+      model.sourceOptions.environments,
+      environmentId,
+    ),
+  };
 }
 
 export function createAriaDesktopAppShellModel(
@@ -123,13 +229,16 @@ export function createAriaDesktopAppShellModel(
     initialThread: options.initialThread,
     servers: options.servers,
     activeServerId: options.activeServerId,
-    projects: options.projects ?? deriveProjectsFromInitialThread(options.initialThread),
+    projects:
+      options.projects ??
+      deriveProjectsFromInitialThread(options.initialThread),
     environments: options.environments,
     activeThreadContext:
       options.activeThreadContext ??
       deriveActiveThreadFromInitialThread(
         options.initialThread,
         bootstrap.bootstrap.activeServerLabel,
+        options.environments,
       ),
   });
 
@@ -139,9 +248,11 @@ export function createAriaDesktopAppShellModel(
     shell,
     activeServerId: shell.activeServerId,
     activeServerLabel: shell.activeServerLabel,
-    activeSpaceId: options.activeSpaceId ?? bootstrap.application.startup.defaultSpaceId,
+    activeSpaceId:
+      options.activeSpaceId ?? bootstrap.application.startup.defaultSpaceId,
     activeContextPanelId:
-      options.activeContextPanelId ?? bootstrap.application.startup.defaultContextPanelId,
+      options.activeContextPanelId ??
+      bootstrap.application.startup.defaultContextPanelId,
     ariaThread: createAriaDesktopAriaThread(options.target, {
       controller: options.ariaThreadController,
       controllerFactory: options.createAriaThreadController,
@@ -199,6 +310,7 @@ export interface AriaDesktopAppShellProps {
   onOpenAriaSession?(sessionId: string): void;
   onSearchAriaSessions?(query: string): void;
   onSelectProjectThread?(threadId: string): void;
+  onSelectThreadEnvironment?(environmentId: string): void;
   onSendAriaMessage?(message: string): void;
   onStopAriaSession?(): void;
   onApproveToolCall?(toolCallId: string, approved: boolean): void;
@@ -206,7 +318,11 @@ export interface AriaDesktopAppShellProps {
   onAnswerQuestion?(questionId: string, answer: string): void;
 }
 
-function section(slot: string, title: string, children: ReactNode): ReactElement {
+function section(
+  slot: string,
+  title: string,
+  children: ReactNode,
+): ReactElement {
   return (
     <section data-slot={slot}>
       <h3>{title}</h3>
@@ -215,7 +331,9 @@ function section(slot: string, title: string, children: ReactNode): ReactElement
   );
 }
 
-export function AriaDesktopAppShell(props: AriaDesktopAppShellProps): ReactElement {
+export function AriaDesktopAppShell(
+  props: AriaDesktopAppShellProps,
+): ReactElement {
   const { model } = props;
   const activeThreadScreen = model.shell.activeThreadScreen;
   const composerValue = activeThreadScreen
@@ -223,16 +341,22 @@ export function AriaDesktopAppShell(props: AriaDesktopAppShellProps): ReactEleme
     : "Select a thread to compose";
 
   return (
-    <div data-app-shell={model.application.id} data-frame={model.application.frame.kind}>
+    <div
+      data-app-shell={model.application.id}
+      data-frame={model.application.frame.kind}
+    >
       <header data-slot="top-chrome">
         <h1>{model.application.displayName}</h1>
         <p>{model.application.startup.landingDescription}</p>
         <small>
-          Access: {model.activeServerLabel} ({model.bootstrap.bootstrap.access.httpUrl})
+          Access: {model.activeServerLabel} (
+          {model.bootstrap.bootstrap.access.httpUrl})
         </small>
         <small data-slot="aria-thread-status">
           Aria thread:{" "}
-          {model.ariaThread.state.connected ? model.ariaThread.state.sessionId : "disconnected"}
+          {model.ariaThread.state.connected
+            ? model.ariaThread.state.sessionId
+            : "disconnected"}
           {" | "}
           Model: {model.ariaThread.state.modelName}
           {" | "}
@@ -246,7 +370,9 @@ export function AriaDesktopAppShell(props: AriaDesktopAppShellProps): ReactEleme
           <select
             aria-label="Server switcher"
             defaultValue={model.activeServerId}
-            onChange={(event) => props.onSwitchServer?.(event.currentTarget.value)}
+            onChange={(event) =>
+              props.onSwitchServer?.(event.currentTarget.value)
+            }
           >
             {model.shell.serverSwitcher.availableServers.map((server) => (
               <option key={server.id} value={server.id}>
@@ -256,7 +382,8 @@ export function AriaDesktopAppShell(props: AriaDesktopAppShellProps): ReactEleme
           </select>
         </label>
         <p>
-          Active space: {model.activeSpaceId} | Active panel: {model.activeContextPanelId}
+          Active space: {model.activeSpaceId} | Active panel:{" "}
+          {model.activeContextPanelId}
         </p>
       </header>
 
@@ -290,7 +417,9 @@ export function AriaDesktopAppShell(props: AriaDesktopAppShellProps): ReactEleme
                             <button
                               type="button"
                               data-thread-id={thread.id}
-                              onClick={() => props.onSelectProjectThread?.(thread.id)}
+                              onClick={() =>
+                                props.onSelectProjectThread?.(thread.id)
+                              }
                             >
                               {thread.title}
                             </button>
@@ -313,7 +442,10 @@ export function AriaDesktopAppShell(props: AriaDesktopAppShellProps): ReactEleme
             "active-thread-header",
             activeThreadScreen?.header.title ?? "No active thread",
             <div>
-              <p>{activeThreadScreen?.header.projectLabel ?? "Select a project thread"}</p>
+              <p>
+                {activeThreadScreen?.header.projectLabel ??
+                  "Select a project thread"}
+              </p>
               {activeThreadScreen ? (
                 <p>
                   {activeThreadScreen.header.threadTypeLabel} -{" "}
@@ -324,13 +456,19 @@ export function AriaDesktopAppShell(props: AriaDesktopAppShellProps): ReactEleme
                 {activeThreadScreen?.environmentSwitcher.label ?? "Environment"}
                 <select
                   aria-label="Environment switcher"
-                  defaultValue={activeThreadScreen?.environmentSwitcher.activeEnvironmentLabel}
+                  value={
+                    activeThreadScreen?.environmentSwitcher
+                      .activeEnvironmentId ?? ""
+                  }
+                  onChange={(event) =>
+                    props.onSelectThreadEnvironment?.(event.currentTarget.value)
+                  }
                 >
                   {(
-                    activeThreadScreen?.environmentSwitcher.availableEnvironments ??
-                    model.shell.environments
+                    activeThreadScreen?.environmentSwitcher
+                      .availableEnvironments ?? model.shell.environments
                   ).map((environment) => (
-                    <option key={environment.id} value={environment.label}>
+                    <option key={environment.id} value={environment.id}>
                       {environment.label}
                     </option>
                   ))}
@@ -349,16 +487,19 @@ export function AriaDesktopAppShell(props: AriaDesktopAppShellProps): ReactEleme
                 (live)
               </p>
               <p>
-                Aria chat messages: {model.ariaThread.state.messages.length} | Streaming:{" "}
-                {model.ariaThread.state.isStreaming ? "yes" : "no"}
+                Aria chat messages: {model.ariaThread.state.messages.length} |
+                Streaming: {model.ariaThread.state.isStreaming ? "yes" : "no"}
               </p>
               <p>
                 Latest Aria message:{" "}
-                {model.ariaThread.state.messages.at(-1)?.content ?? "No transcript yet"}
+                {model.ariaThread.state.messages.at(-1)?.content ??
+                  "No transcript yet"}
               </p>
               <p>
-                Pending approval: {model.ariaThread.state.pendingApproval?.toolName ?? "none"} |
-                Pending question: {model.ariaThread.state.pendingQuestion?.question ?? "none"}
+                Pending approval:{" "}
+                {model.ariaThread.state.pendingApproval?.toolName ?? "none"} |
+                Pending question:{" "}
+                {model.ariaThread.state.pendingQuestion?.question ?? "none"}
               </p>
               {model.ariaThread.state.pendingApproval ? (
                 <div>
@@ -398,25 +539,27 @@ export function AriaDesktopAppShell(props: AriaDesktopAppShellProps): ReactEleme
               ) : null}
               {model.ariaThread.state.pendingQuestion ? (
                 <div>
-                  {(model.ariaThread.state.pendingQuestion.options ?? []).map((option) => (
-                    <button
-                      key={option}
-                      type="button"
-                      onClick={() =>
-                        props.onAnswerQuestion?.(
-                          model.ariaThread.state.pendingQuestion!.questionId,
-                          option,
-                        )
-                      }
-                    >
-                      {option}
-                    </button>
-                  ))}
+                  {(model.ariaThread.state.pendingQuestion.options ?? []).map(
+                    (option) => (
+                      <button
+                        key={option}
+                        type="button"
+                        onClick={() =>
+                          props.onAnswerQuestion?.(
+                            model.ariaThread.state.pendingQuestion!.questionId,
+                            option,
+                          )
+                        }
+                      >
+                        {option}
+                      </button>
+                    ),
+                  )}
                 </div>
               ) : null}
               <p>
-                Approval mode: {model.ariaThread.state.approvalMode} | Security mode:{" "}
-                {model.ariaThread.state.securityMode}
+                Approval mode: {model.ariaThread.state.approvalMode} | Security
+                mode: {model.ariaThread.state.securityMode}
                 {model.ariaThread.state.securityModeRemainingTTL !== null
                   ? ` (${model.ariaThread.state.securityModeRemainingTTL}s)`
                   : ""}
@@ -439,14 +582,17 @@ export function AriaDesktopAppShell(props: AriaDesktopAppShellProps): ReactEleme
                 <ul>
                   {model.ariaRecentSessions.map((session) => (
                     <li key={session.sessionId}>
-                      {session.sessionId} - {session.archived ? "archived" : "live"}
+                      {session.sessionId} -{" "}
+                      {session.archived ? "archived" : "live"}
                       {session.preview ? ` - ${session.preview}` : ""}
                       {session.summary ? ` - ${session.summary}` : ""}
                       {props.onOpenAriaSession ? (
                         <button
                           type="button"
                           data-session-id={session.sessionId}
-                          onClick={() => props.onOpenAriaSession?.(session.sessionId)}
+                          onClick={() =>
+                            props.onOpenAriaSession?.(session.sessionId)
+                          }
                         >
                           Open
                         </button>
@@ -528,7 +674,9 @@ export async function connectAriaDesktopAppShellModel(
 export async function createConnectedAriaDesktopAppShellModel(
   options: CreateAriaDesktopAppShellModelOptions,
 ): Promise<AriaDesktopAppShellModel> {
-  return connectAriaDesktopAppShellModel(createAriaDesktopAppShellModel(options));
+  return connectAriaDesktopAppShellModel(
+    createAriaDesktopAppShellModel(options),
+  );
 }
 
 export function createAriaDesktopApplicationShell(
@@ -537,7 +685,9 @@ export function createAriaDesktopApplicationShell(
   return createAriaDesktopAppShellModel(options);
 }
 
-export function createAriaDesktopAppShell(options: CreateAriaDesktopAppShellOptions): {
+export function createAriaDesktopAppShell(
+  options: CreateAriaDesktopAppShellOptions,
+): {
   model: AriaDesktopAppShellModel;
   element: ReactElement;
 } {
@@ -696,7 +846,36 @@ export function selectAriaDesktopAppShellThread(
   model: AriaDesktopAppShellModel,
   threadId: string,
 ): AriaDesktopAppShellModel {
-  const activeThreadContext = deriveActiveThreadFromProjectSelection(model, threadId);
+  const activeThreadContext = deriveActiveThreadFromProjectSelection(
+    model,
+    threadId,
+  );
+  const rebuilt = createAriaDesktopAppShellModel({
+    ...model.sourceOptions,
+    activeSpaceId: "projects",
+    activeThreadContext,
+  });
+
+  return {
+    ...rebuilt,
+    ariaThread: model.ariaThread,
+    ariaRecentSessions: model.ariaRecentSessions,
+    sourceOptions: {
+      ...model.sourceOptions,
+      activeThreadContext,
+      activeSpaceId: "projects",
+    },
+  };
+}
+
+export function selectAriaDesktopAppShellEnvironment(
+  model: AriaDesktopAppShellModel,
+  environmentId: string,
+): AriaDesktopAppShellModel {
+  const activeThreadContext = deriveActiveThreadFromEnvironmentSelection(
+    model,
+    environmentId,
+  );
   const rebuilt = createAriaDesktopAppShellModel({
     ...model.sourceOptions,
     activeSpaceId: "projects",

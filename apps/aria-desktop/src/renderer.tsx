@@ -10,6 +10,7 @@ import {
   createAriaDesktopAppShellModel,
   loadAriaDesktopAppShellRecentSessions,
   openAriaDesktopAppShellSession,
+  selectAriaDesktopAppShellEnvironment,
   selectAriaDesktopAppShellThread,
   searchAriaDesktopAppShellSessions,
   sendAriaDesktopAppShellMessage,
@@ -37,18 +38,29 @@ export interface AriaDesktopRendererController {
   switchServer(serverId: string): Promise<AriaDesktopAppShellModel>;
   openSession(sessionId: string): Promise<AriaDesktopAppShellModel>;
   selectThread(threadId: string): Promise<AriaDesktopAppShellModel>;
+  selectEnvironment(environmentId: string): Promise<AriaDesktopAppShellModel>;
   searchSessions(query: string): Promise<AriaDesktopAppShellModel>;
   sendMessage(message: string): Promise<AriaDesktopAppShellModel>;
   stop(): Promise<AriaDesktopAppShellModel>;
-  approveToolCall(toolCallId: string, approved: boolean): Promise<AriaDesktopAppShellModel>;
-  acceptToolCallForSession(toolCallId: string): Promise<AriaDesktopAppShellModel>;
-  answerQuestion(questionId: string, answer: string): Promise<AriaDesktopAppShellModel>;
+  approveToolCall(
+    toolCallId: string,
+    approved: boolean,
+  ): Promise<AriaDesktopAppShellModel>;
+  acceptToolCallForSession(
+    toolCallId: string,
+  ): Promise<AriaDesktopAppShellModel>;
+  answerQuestion(
+    questionId: string,
+    answer: string,
+  ): Promise<AriaDesktopAppShellModel>;
 }
 
 export async function startAriaDesktopRendererModel(
   options: CreateAriaDesktopAppShellModelOptions,
 ) {
-  const connected = await connectAriaDesktopAppShellModel(createAriaDesktopAppShellModel(options));
+  const connected = await connectAriaDesktopAppShellModel(
+    createAriaDesktopAppShellModel(options),
+  );
   return loadAriaDesktopAppShellRecentSessions(connected);
 }
 
@@ -95,7 +107,16 @@ export function createAriaDesktopRendererController(
       return update(openAriaDesktopAppShellSession(model, sessionId));
     },
     selectThread(threadId: string) {
-      return update(Promise.resolve(selectAriaDesktopAppShellThread(model, threadId)));
+      return update(
+        Promise.resolve(selectAriaDesktopAppShellThread(model, threadId)),
+      );
+    },
+    selectEnvironment(environmentId: string) {
+      return update(
+        Promise.resolve(
+          selectAriaDesktopAppShellEnvironment(model, environmentId),
+        ),
+      );
     },
     searchSessions(query: string) {
       return update(searchAriaDesktopAppShellSessions(model, query));
@@ -107,13 +128,19 @@ export function createAriaDesktopRendererController(
       return update(stopAriaDesktopAppShell(model));
     },
     approveToolCall(toolCallId: string, approved: boolean) {
-      return update(approveAriaDesktopAppShellToolCall(model, toolCallId, approved));
+      return update(
+        approveAriaDesktopAppShellToolCall(model, toolCallId, approved),
+      );
     },
     acceptToolCallForSession(toolCallId: string) {
-      return update(acceptAriaDesktopAppShellToolCallForSession(model, toolCallId));
+      return update(
+        acceptAriaDesktopAppShellToolCallForSession(model, toolCallId),
+      );
     },
     answerQuestion(questionId: string, answer: string) {
-      return update(answerAriaDesktopAppShellQuestion(model, questionId, answer));
+      return update(
+        answerAriaDesktopAppShellQuestion(model, questionId, answer),
+      );
     },
   };
 }
@@ -148,6 +175,9 @@ export async function mountAriaDesktopRenderer(
         onSelectProjectThread: (threadId: string) => {
           void controller.selectThread(threadId);
         },
+        onSelectThreadEnvironment: (environmentId: string) => {
+          void controller.selectEnvironment(environmentId);
+        },
         onSearchAriaSessions: (query: string) => {
           void controller.searchSessions(query);
         },
@@ -174,12 +204,14 @@ export async function mountAriaDesktopRenderer(
   return { root, model, controller };
 }
 
-const rootElement = typeof document !== "undefined" ? document.getElementById("root") : null;
+const rootElement =
+  typeof document !== "undefined" ? document.getElementById("root") : null;
 
 if (rootElement) {
-  void mountAriaDesktopRenderer(rootElement, globalThis.window?.ariaDesktop?.target).catch(
-    (error) => {
-      rootElement.textContent = `Failed to start Aria Desktop: ${error instanceof Error ? error.message : String(error)}`;
-    },
-  );
+  void mountAriaDesktopRenderer(
+    rootElement,
+    globalThis.window?.ariaDesktop?.target,
+  ).catch((error) => {
+    rootElement.textContent = `Failed to start Aria Desktop: ${error instanceof Error ? error.message : String(error)}`;
+  });
 }

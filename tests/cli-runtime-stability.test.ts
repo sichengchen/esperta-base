@@ -107,6 +107,8 @@ describe("cli and runtime stability", () => {
 
     expect(cliIndex).toContain('await import("../../../apps/aria-server/src/index.js");');
     expect(cliIndex).toContain("__server_host");
+    expect(cliIndex).toContain("__engine");
+    expect(cliIndex).not.toContain('await import("@aria/server/engine");');
     expect(cliEngine).toContain('from "@aria/server/daemon";');
     expect(runtimeEngine).toContain('export * from "@aria/server/engine";');
     expect(runtimeDiscovery).toContain('from "@aria/server/discovery";');
@@ -114,6 +116,7 @@ describe("cli and runtime stability", () => {
     expect(serverDaemon).toContain(
       "spawn(process.execPath, [process.argv[1], ARIA_SERVER_DAEMON_COMMAND]",
     );
+    expect(serverEngine).toContain('spawn(process.execPath, [process.argv[1]!, "__server_host"]');
     expect(serverEngine).toContain('import { startAriaServer } from "./app.js";');
     expect(serverEngine).toContain('import { getRuntimeDiscoveryPaths } from "./discovery.js";');
     expect(appIndex).toContain('from "@aria/server"');

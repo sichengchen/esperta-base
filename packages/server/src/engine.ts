@@ -48,7 +48,7 @@ export async function runAriaServerProcess(): Promise<void> {
         clearTimeout(forceTimer);
         if (shouldRestart) {
           const logFd = openSync(LOG_FILE, "a");
-          const child = spawn(process.execPath, [process.argv[1]!, "__engine"], {
+          const child = spawn(process.execPath, [process.argv[1]!, "__server_host"], {
             detached: true,
             stdio: ["ignore", logFd, logFd],
             env: { ...process.env, [HOME_ENV_VAR]: runtimeHome },

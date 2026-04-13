@@ -19,25 +19,31 @@ const EXCLUDED_PREFIXES = [
 async function listFiles(relativeDir: string): Promise<string[]> {
   const absoluteDir = join(ROOT, relativeDir);
   const entries = await readdir(absoluteDir, { withFileTypes: true });
-  const files = await Promise.all(entries.map(async (entry) => {
-    const relativePath = `${relativeDir}/${entry.name}`;
-    if (entry.isDirectory()) {
-      return listFiles(relativePath);
-    }
-    if (!SOURCE_EXTENSIONS.has(extname(entry.name))) {
-      return [];
-    }
-    return [relativePath];
-  }));
+  const files = await Promise.all(
+    entries.map(async (entry) => {
+      const relativePath = `${relativeDir}/${entry.name}`;
+      if (entry.isDirectory()) {
+        return listFiles(relativePath);
+      }
+      if (!SOURCE_EXTENSIONS.has(extname(entry.name))) {
+        return [];
+      }
+      return [relativePath];
+    }),
+  );
   return files.flat();
 }
 
 async function collectSourceFiles(): Promise<string[]> {
-  const files = (await Promise.all(SOURCE_DIRS.map((dir) => listFiles(dir)))).flat();
-  return files.filter((file) => !EXCLUDED_PREFIXES.some((prefix) => file.startsWith(prefix)));
+  const files = (
+    await Promise.all(SOURCE_DIRS.map((dir) => listFiles(dir)))
+  ).flat();
+  return files.filter(
+    (file) => !EXCLUDED_PREFIXES.some((prefix) => file.startsWith(prefix)),
+  );
 }
 
-describe("Phase 14 legacy compatibility audit", () => {
+describe("legacy compatibility imports", () => {
   test("production code no longer imports legacy compatibility package paths directly", async () => {
     const sourceFiles = await collectSourceFiles();
     const offenders: string[] = [];

@@ -402,6 +402,9 @@ describe("aria-desktop app assembly", () => {
         connected: true,
         sessionId: "desktop:session-1",
         sessionStatus: "resumed",
+        approvalMode: "ask",
+        securityMode: "default",
+        securityModeRemainingTTL: null,
         modelName: "sonnet",
         agentName: "Esperta Aria",
         messages: [],
@@ -424,6 +427,8 @@ describe("aria-desktop app assembly", () => {
     const text = collectTextContent(AriaDesktopAppShell({ model })).join(" ").replace(/\s+/g, " ");
     expect(text).toContain("Pending approval: exec");
     expect(text).toContain("Pending question: Ship it?");
+    expect(text).toContain("Approval mode: ask");
+    expect(text).toContain("Security mode: default");
   });
 
   test("can stop an aria thread through the desktop shell model", async () => {

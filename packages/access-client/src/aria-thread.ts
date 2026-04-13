@@ -35,6 +35,9 @@ export interface AriaChatState {
   connected: boolean;
   sessionId: string | null;
   sessionStatus: "disconnected" | "created" | "resumed";
+  approvalMode: "always" | "never" | "ask";
+  securityMode: "default" | "trusted" | "unrestricted";
+  securityModeRemainingTTL: number | null;
   modelName: string;
   agentName: string;
   messages: AriaChatMessage[];
@@ -116,6 +119,9 @@ export interface AriaChatClient {
     };
   };
   tool?: {
+    config?: {
+      query(input: { sessionId: string }): Promise<{ mode: "always" | "never" | "ask" }>;
+    };
     approve?: {
       mutate(input: { toolCallId: string; approved: boolean }): Promise<unknown>;
     };
@@ -126,6 +132,14 @@ export interface AriaChatClient {
   question?: {
     answer?: {
       mutate(input: { id: string; answer: string }): Promise<unknown>;
+    };
+  };
+  securityMode?: {
+    get?: {
+      query(input: { sessionId: string }): Promise<{
+        mode: "default" | "trusted" | "unrestricted";
+        remainingTTL: number | null;
+      }>;
     };
   };
 }
@@ -155,6 +169,9 @@ function initialState(): AriaChatState {
     connected: false,
     sessionId: null,
     sessionStatus: "disconnected",
+    approvalMode: "ask",
+    securityMode: "default",
+    securityModeRemainingTTL: null,
     modelName: "unknown",
     agentName: "Esperta Aria",
     messages: [],
@@ -250,6 +267,19 @@ function normalizeArchivedSession(entry: {
   };
 }
 
+async function loadSessionControls(client: AriaChatClient, sessionId: string) {
+  const [toolConfig, securityMode] = await Promise.all([
+    client.tool?.config?.query?.({ sessionId }),
+    client.securityMode?.get?.query?.({ sessionId }),
+  ]);
+
+  return {
+    approvalMode: toolConfig?.mode ?? "ask",
+    securityMode: securityMode?.mode ?? "default",
+    securityModeRemainingTTL: securityMode?.remainingTTL ?? null,
+  } as const;
+}
+
 export function createAriaChatController(
   client: AriaChatClient,
   options: AriaChatControllerOptions,
@@ -294,9 +324,11 @@ export function createAriaChatController(
           latest?.id && client.chat.history
             ? normalizeHistoryMessages((await client.chat.history.query({ sessionId })).messages)
             : [];
+        const controls = await loadSessionControls(client, sessionId);
 
         return setState({
           connected: true,
+          ...controls,
           modelName: ping.model,
           agentName: ping.agentName,
           sessionId,
@@ -457,9 +489,11 @@ export function createAriaChatController(
       const history = client.chat.history
         ? await client.chat.history.query({ sessionId })
         : { messages: [], archived: false };
+      const controls = await loadSessionControls(client, sessionId);
 
       return setState({
         connected: true,
+        ...controls,
         sessionId,
         sessionStatus: "resumed",
         messages: normalizeHistoryMessages(history.messages),

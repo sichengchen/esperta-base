@@ -244,7 +244,7 @@ describe("aria-mobile native host scaffold", () => {
   });
 
   test("exposes a pure mobile native host controller", async () => {
-    const state = {
+    let state: any = {
       connected: true,
       sessionId: "mobile:session-1",
       sessionStatus: "resumed" as const,
@@ -266,8 +266,27 @@ describe("aria-mobile native host scaffold", () => {
       ariaThreadController: {
         getState: () => state,
         connect: async () => state,
-        sendMessage: async () => state,
-        stop: async () => state,
+        sendMessage: async () => {
+          state = {
+            ...state,
+            messages: [...state.messages, { role: "assistant" as const, content: "sent" }],
+          };
+          return state;
+        },
+        stop: async () => {
+          state = {
+            ...state,
+            messages: [
+              ...state.messages,
+              {
+                role: "tool" as const,
+                content: "Stopped by user",
+                toolName: "system",
+              },
+            ],
+          };
+          return state;
+        },
         openSession: async () => state,
         approveToolCall: async () => state,
         acceptToolCallForSession: async () => state,
@@ -281,5 +300,11 @@ describe("aria-mobile native host scaffold", () => {
     const started = await controller.start();
     expect(started.model.sessionId).toBe("mobile:session-1");
     expect(controller.getBootstrap().model.latestMessage).toBe("hello");
+
+    const sent = await controller.sendMessage("hi");
+    expect(sent.model.latestMessage).toBe("sent");
+
+    const stopped = await controller.stop();
+    expect(stopped.model.latestMessage).toBe("Stopped by user");
   });
 });

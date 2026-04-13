@@ -60,7 +60,6 @@ flowchart TD
 - [monorepo.md](./monorepo.md)
 - [runtime.md](./runtime.md)
 - [storage-and-recovery.md](./storage-and-recovery.md)
-- [prompt-engine.md](./prompt-engine.md)
 - [tool-runtime.md](./tool-runtime.md)
 - [handoff.md](./handoff.md)
 - [providers.md](./providers.md)

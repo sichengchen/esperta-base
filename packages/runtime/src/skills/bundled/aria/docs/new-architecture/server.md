@@ -82,6 +82,8 @@ flowchart LR
 
 ## Ownership Rules
 
+Prompt assembly for `Aria Agent` and runtime-managed execution is defined in [prompt-engine.md](./prompt-engine.md).
+
 ### `Aria Agent` owns
 
 - direct Aria conversations

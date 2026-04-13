@@ -17,6 +17,7 @@ It is intentionally forward-looking. It does not describe the current repo as-is
 
 - [overview.md](./overview.md)
 - [deployment.md](./deployment.md)
+- [prompt-engine.md](./prompt-engine.md)
 - [relay.md](./relay.md)
 - [server.md](./server.md)
 - [desktop-and-mobile.md](./desktop-and-mobile.md)
@@ -53,6 +54,7 @@ That implies:
 
 - Start with [overview.md](./overview.md) for the system map
 - Read [deployment.md](./deployment.md) for where each component runs
+- Read [prompt-engine.md](./prompt-engine.md) for the target-state prompt assembly contract
 - Read [relay.md](./relay.md) for the secure access and transport model
 - Read [server.md](./server.md) for the server-side ownership model
 - Read [desktop-and-mobile.md](./desktop-and-mobile.md) for the client model

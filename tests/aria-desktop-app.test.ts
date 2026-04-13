@@ -12,6 +12,7 @@ import {
   createAriaDesktopAppShellModel,
   createAriaDesktopApplicationRoot,
   createAriaDesktopApplicationBootstrap,
+  openAriaDesktopAppShellSession,
   sendAriaDesktopAppShellMessage,
   stopAriaDesktopAppShell,
   type AriaDesktopAppShellModel,
@@ -457,6 +458,41 @@ describe("aria-desktop app assembly", () => {
       role: "tool",
       content: "Stopped by user",
       toolName: "system",
+    });
+  });
+
+  test("can open a specific aria thread through the desktop shell model", async () => {
+    const openedState = {
+      connected: true,
+      sessionId: "desktop:older-session",
+      sessionStatus: "resumed" as const,
+      modelName: "sonnet",
+      agentName: "Esperta Aria",
+      messages: [{ role: "assistant" as const, content: "Recovered history" }],
+      streamingText: "",
+      isStreaming: false,
+      pendingApproval: null,
+      pendingQuestion: null,
+      lastError: null,
+    };
+    const controller = {
+      getState: () => openedState,
+      connect: async () => openedState,
+      sendMessage: async () => openedState,
+      stop: async () => openedState,
+      openSession: async () => openedState,
+    };
+
+    const model = createAriaDesktopAppShellModel({
+      target: { serverId: "desktop", baseUrl: "http://127.0.0.1:7420/" },
+      ariaThreadController: controller as any,
+    });
+    const opened = await openAriaDesktopAppShellSession(model, "desktop:older-session");
+
+    expect(opened.ariaThread.state.sessionId).toBe("desktop:older-session");
+    expect(opened.ariaThread.state.messages.at(-1)).toEqual({
+      role: "assistant",
+      content: "Recovered history",
     });
   });
 });

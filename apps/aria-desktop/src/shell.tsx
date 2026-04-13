@@ -361,3 +361,18 @@ export async function stopAriaDesktopAppShell(
     },
   };
 }
+
+export async function openAriaDesktopAppShellSession(
+  model: AriaDesktopAppShellModel,
+  sessionId: string,
+): Promise<AriaDesktopAppShellModel> {
+  await model.ariaThread.controller.openSession(sessionId);
+
+  return {
+    ...model,
+    ariaThread: {
+      ...model.ariaThread,
+      state: model.ariaThread.controller.getState(),
+    },
+  };
+}

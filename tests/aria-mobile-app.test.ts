@@ -15,6 +15,7 @@ import {
   createConnectedAriaMobileAppShell,
   createAriaMobileAppShell,
   createAriaMobileHostBootstrap,
+  openAriaMobileAppShellSession,
   sendAriaMobileAppShellMessage,
   stopAriaMobileAppShell,
 } from "../apps/aria-mobile/src/index.js";
@@ -451,6 +452,41 @@ describe("Aria mobile app surface", () => {
       role: "tool",
       content: "Stopped by user",
       toolName: "system",
+    });
+  });
+
+  test("can open a specific aria thread through the mobile app shell", async () => {
+    const openedState = {
+      connected: true,
+      sessionId: "mobile:older-session",
+      sessionStatus: "resumed" as const,
+      modelName: "sonnet",
+      agentName: "Esperta Aria",
+      messages: [{ role: "assistant" as const, content: "Recovered history" }],
+      streamingText: "",
+      isStreaming: false,
+      pendingApproval: null,
+      pendingQuestion: null,
+      lastError: null,
+    };
+    const controller = {
+      getState: () => openedState,
+      connect: async () => openedState,
+      sendMessage: async () => openedState,
+      stop: async () => openedState,
+      openSession: async () => openedState,
+    };
+
+    const shell = createAriaMobileAppShell({
+      target: { serverId: "mobile", baseUrl: "https://aria.example.test/" },
+      ariaThreadController: controller as any,
+    });
+    const opened = await openAriaMobileAppShellSession(shell, "mobile:older-session");
+
+    expect(opened.ariaThread.state.sessionId).toBe("mobile:older-session");
+    expect(opened.ariaThread.state.messages.at(-1)).toEqual({
+      role: "assistant",
+      content: "Recovered history",
     });
   });
 });

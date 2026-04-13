@@ -191,6 +191,21 @@ export async function stopAriaMobileAppShell(
   };
 }
 
+export async function openAriaMobileAppShellSession(
+  shell: AriaMobileAppShell,
+  sessionId: string,
+): Promise<AriaMobileAppShell> {
+  await shell.ariaThread.controller.openSession(sessionId);
+
+  return {
+    ...shell,
+    ariaThread: {
+      ...shell.ariaThread,
+      state: shell.ariaThread.controller.getState(),
+    },
+  };
+}
+
 export const ariaMobileAppModel = {
   app: ariaMobileApp,
   navigation: ariaMobileNavigation,

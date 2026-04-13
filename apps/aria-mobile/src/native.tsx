@@ -39,6 +39,14 @@ export function AriaMobileNativeHost() {
     <ScrollView contentContainerStyle={styles.container}>
       <Text style={styles.title}>{model.title}</Text>
       <Text style={styles.subtitle}>Server: {model.serverLabel}</Text>
+      <View style={styles.section}>
+        <Text style={styles.sectionTitle}>Servers</Text>
+        {model.availableServers.map((server) => (
+          <Text key={server.serverId}>
+            {server.label} - {server.selected ? "selected" : "available"}
+          </Text>
+        ))}
+      </View>
       <Text>Session: {model.sessionId}</Text>
       <Text>Status: {model.sessionStatus}</Text>
       <Text>Approval mode: {model.approvalMode}</Text>

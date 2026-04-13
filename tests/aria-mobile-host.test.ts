@@ -37,6 +37,7 @@ describe("aria-mobile native host scaffold", () => {
     expect(createAriaMobileNativeHostModel(shell)).toEqual({
       title: "Aria Mobile",
       serverLabel: "mobile",
+      availableServers: [{ serverId: "mobile", label: "mobile", selected: true }],
       sessionId: "mobile:session-1",
       sessionStatus: "resumed",
       approvalMode: "ask",

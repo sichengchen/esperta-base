@@ -1,11 +1,26 @@
-import { startServer, type EngineServer, type EngineServerOptions } from "@aria/gateway/server";
+import {
+  startServer,
+  type EngineServer,
+  type EngineServerOptions,
+} from "@aria/gateway/server";
 import { createRuntime, type EngineRuntime } from "./runtime.js";
-import { CLI_NAME, PRODUCT_NAME, RUNTIME_NAME, getRuntimeHome } from "./brand.js";
-import { getRuntimeDiscoveryPaths, type RuntimeDiscoveryPaths } from "./discovery.js";
+import {
+  CLI_NAME,
+  PRODUCT_NAME,
+  RUNTIME_NAME,
+  getRuntimeHome,
+} from "./brand.js";
+import {
+  getRuntimeDiscoveryPaths,
+  type RuntimeDiscoveryPaths,
+} from "./discovery.js";
 
 export interface AriaServerFactories {
   createRuntime?: () => Promise<EngineRuntime>;
-  startServer?: (runtime: EngineRuntime, options?: EngineServerOptions) => Promise<EngineServer>;
+  startServer?: (
+    runtime: EngineRuntime,
+    options?: EngineServerOptions,
+  ) => Promise<EngineServer>;
 }
 
 export interface StartAriaServerOptions extends EngineServerOptions {
@@ -38,9 +53,12 @@ export const ariaServerApp = {
   ],
   ownership: {
     ariaAgent: "server-only",
+    assistantState: "server-only",
     memory: "server-only",
     automation: "server-only",
     connectors: "server-only",
+    inboxApprovals: "server-only",
+    remoteJobs: "server-only",
     projectLocalExecution: "desktop-only",
   },
 } as const;
@@ -53,7 +71,10 @@ export interface AriaServerBootstrap {
   port?: number;
 }
 
-export interface CreateAriaServerBootstrapOptions extends Pick<EngineServerOptions, "hostname" | "port"> {
+export interface CreateAriaServerBootstrapOptions extends Pick<
+  EngineServerOptions,
+  "hostname" | "port"
+> {
   runtimeHome?: string;
 }
 
@@ -70,7 +91,9 @@ export function createAriaServerBootstrap(
   };
 }
 
-export async function startAriaServer(options: StartAriaServerOptions = {}): Promise<AriaServerApp> {
+export async function startAriaServer(
+  options: StartAriaServerOptions = {},
+): Promise<AriaServerApp> {
   const { factories, ...serverOptions } = options;
   const createRuntimeImpl = factories?.createRuntime ?? createRuntime;
   const startServerImpl = factories?.startServer ?? startServer;

@@ -719,6 +719,9 @@ describe("aria-desktop app assembly", () => {
     expect(openButton?.props.children).toBe("Open");
     expect(typeof openButton?.props.onClick).toBe("function");
 
+    const searchButton = findElement(shell, (props) => props.children === "Search Sessions");
+    expect(searchButton?.props.type).toBe("submit");
+
     const sendButton = findElement(shell, (props) => props.children === "Send");
     const stopButton = findElement(shell, (props) => props.children === "Stop");
     expect(sendButton?.props.type).toBe("submit");

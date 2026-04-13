@@ -714,12 +714,22 @@ describe("Aria mobile app surface", () => {
     const sendButton = findElement(rendered, (props) => props.children === "Send");
     const stopButton = findElement(rendered, (props) => props.children === "Stop");
     const searchButton = findElement(rendered, (props) => props.children === "Search Sessions");
+    const sessionSearchInput = findElement(
+      rendered,
+      (props) => props.name === "aria-mobile-session-search",
+    );
+    const draftInput = findElement(
+      rendered,
+      (props) => props.name === "aria-mobile-composer-draft",
+    );
     expect(sendButton).toBeDefined();
     expect(sendButton!.props.type).toBe("submit");
     expect(searchButton).toBeDefined();
     expect(searchButton!.props.type).toBe("submit");
     expect(stopButton).toBeDefined();
     expect(typeof stopButton!.props.onClick).toBe("function");
+    expect(sessionSearchInput?.props.defaultValue).toBe("");
+    expect(draftInput?.props.defaultValue).toBe("");
 
     const shellWithInteractions = AriaMobileApplicationShell({
       shell: {

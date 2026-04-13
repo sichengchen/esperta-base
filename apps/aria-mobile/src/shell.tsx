@@ -215,7 +215,7 @@ export function AriaMobileApplicationShell(props: AriaMobileApplicationShellProp
               }
             }}
           >
-            <input name="aria-mobile-session-search" defaultValue="recent session" />
+            <input name="aria-mobile-session-search" defaultValue="" />
             <button type="submit">Search Sessions</button>
           </form>
           {props.shell.ariaRecentSessions.length > 0 ? (
@@ -248,7 +248,7 @@ export function AriaMobileApplicationShell(props: AriaMobileApplicationShellProp
               }
             }}
           >
-            <input name="aria-mobile-composer-draft" defaultValue="Message Aria" />
+            <input name="aria-mobile-composer-draft" defaultValue="" />
             <button type="submit">Send</button>
             <button type="button" onClick={() => props.onStopAriaSession?.()}>
               Stop

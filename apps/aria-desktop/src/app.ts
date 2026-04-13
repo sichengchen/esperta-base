@@ -7,7 +7,12 @@ import {
   type AriaDesktopBootstrap,
   type AriaDesktopServerInput,
 } from "@aria/desktop";
-import type { AccessClientTarget } from "@aria/access-client";
+import {
+  createTargetAriaChatController,
+  type AccessClientTarget,
+  type AriaChatController,
+  type AriaChatState,
+} from "@aria/access-client";
 import { ariaDesktopHost, createAriaDesktopHostBootstrap } from "./host.js";
 import { ariaDesktopAppFrame } from "./frame.js";
 
@@ -59,6 +64,35 @@ export interface AriaDesktopApplicationBootstrap {
   host: typeof ariaDesktopHost;
   shell: typeof ariaDesktopShell;
   bootstrap: AriaDesktopBootstrap;
+}
+
+export interface AriaDesktopAriaThread {
+  controller: AriaChatController;
+  state: AriaChatState;
+}
+
+export interface AriaDesktopAriaThreadOptions {
+  controller?: AriaChatController;
+  state?: AriaChatState;
+  connectorType?: string;
+  prefix?: string;
+}
+
+export function createAriaDesktopAriaThread(
+  target: AccessClientTarget,
+  options: AriaDesktopAriaThreadOptions = {},
+): AriaDesktopAriaThread {
+  const controller =
+    options.controller ??
+    createTargetAriaChatController(target, {
+      connectorType: options.connectorType ?? "tui",
+      prefix: options.prefix ?? "desktop",
+    });
+
+  return {
+    controller,
+    state: options.state ?? controller.getState(),
+  };
 }
 
 export function createAriaDesktopApplicationBootstrap(options: {

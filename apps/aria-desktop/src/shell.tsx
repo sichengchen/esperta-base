@@ -5,9 +5,9 @@ import {
   createAriaDesktopShell,
   type CreateAriaDesktopShellOptions,
 } from "@aria/desktop";
-import type { AccessClientTarget } from "@aria/access-client";
+import type { AccessClientTarget, AriaChatController, AriaChatState } from "@aria/access-client";
 import type { ReactElement, ReactNode } from "react";
-import { createAriaDesktopApplicationBootstrap } from "./app.js";
+import { createAriaDesktopApplicationBootstrap, createAriaDesktopAriaThread } from "./app.js";
 
 export interface CreateAriaDesktopAppShellModelOptions {
   target: AccessClientTarget;
@@ -19,6 +19,8 @@ export interface CreateAriaDesktopAppShellModelOptions {
   activeThreadContext?: CreateAriaDesktopShellOptions["activeThreadContext"];
   activeSpaceId?: (typeof ariaDesktopSpaces)[number]["id"];
   activeContextPanelId?: (typeof ariaDesktopContextPanels)[number]["id"];
+  ariaThreadController?: AriaChatController;
+  ariaThreadState?: AriaChatState;
 }
 
 export interface AriaDesktopAppShellModel {
@@ -29,6 +31,7 @@ export interface AriaDesktopAppShellModel {
   activeServerLabel: string;
   activeSpaceId: (typeof ariaDesktopSpaces)[number]["id"];
   activeContextPanelId: (typeof ariaDesktopContextPanels)[number]["id"];
+  ariaThread: ReturnType<typeof createAriaDesktopAriaThread>;
 }
 
 function deriveProjectsFromInitialThread(
@@ -96,6 +99,10 @@ export function createAriaDesktopAppShellModel(
     activeSpaceId: options.activeSpaceId ?? bootstrap.application.startup.defaultSpaceId,
     activeContextPanelId:
       options.activeContextPanelId ?? bootstrap.application.startup.defaultContextPanelId,
+    ariaThread: createAriaDesktopAriaThread(options.target, {
+      controller: options.ariaThreadController,
+      state: options.ariaThreadState,
+    }),
   };
 }
 
@@ -126,6 +133,12 @@ export function AriaDesktopAppShell(props: AriaDesktopAppShellProps): ReactEleme
         <p>{model.application.startup.landingDescription}</p>
         <small>
           Access: {model.activeServerLabel} ({model.bootstrap.bootstrap.access.httpUrl})
+        </small>
+        <small data-slot="aria-thread-status">
+          Aria thread:{" "}
+          {model.ariaThread.state.connected ? model.ariaThread.state.sessionId : "disconnected"}
+          {" | "}
+          Model: {model.ariaThread.state.modelName}
         </small>
         <label
           data-slot="server-switcher"
@@ -215,12 +228,18 @@ export function AriaDesktopAppShell(props: AriaDesktopAppShellProps): ReactEleme
           {section(
             "stream",
             "Stream",
-            <p>
-              {activeThreadScreen
-                ? activeThreadScreen.stream.tracks.join(" + ")
-                : "messages + runs"}{" "}
-              (live)
-            </p>,
+            <div>
+              <p>
+                {activeThreadScreen
+                  ? activeThreadScreen.stream.tracks.join(" + ")
+                  : "messages + runs"}{" "}
+                (live)
+              </p>
+              <p>
+                Aria chat messages: {model.ariaThread.state.messages.length} | Streaming:{" "}
+                {model.ariaThread.state.isStreaming ? "yes" : "no"}
+              </p>
+            </div>,
           )}
         </section>
 

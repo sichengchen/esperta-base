@@ -10,7 +10,12 @@ import {
   type AriaMobileServerInput,
   type AriaMobileShellInitialThread,
 } from "@aria/mobile";
-import type { AccessClientTarget } from "@aria/access-client";
+import {
+  createTargetAriaChatController,
+  type AccessClientTarget,
+  type AriaChatController,
+  type AriaChatState,
+} from "@aria/access-client";
 
 export interface AriaMobileNavigationSpaceScreen {
   id: string;
@@ -62,6 +67,10 @@ export const ariaMobileNavigation = {
 
 export interface AriaMobileAppShell extends AriaMobileShell {
   navigation: typeof ariaMobileNavigation;
+  ariaThread: {
+    controller: AriaChatController;
+    state: AriaChatState;
+  };
   layout: {
     threadListScreen: {
       placement: "stacked";
@@ -76,14 +85,45 @@ export interface AriaMobileAppShell extends AriaMobileShell {
   };
 }
 
+export interface AriaMobileAriaThreadOptions {
+  controller?: AriaChatController;
+  state?: AriaChatState;
+  connectorType?: string;
+  prefix?: string;
+}
+
+export function createAriaMobileAriaThread(
+  target: AccessClientTarget,
+  options: AriaMobileAriaThreadOptions = {},
+) {
+  const controller =
+    options.controller ??
+    createTargetAriaChatController(target, {
+      connectorType: options.connectorType ?? "tui",
+      prefix: options.prefix ?? "mobile",
+    });
+
+  return {
+    controller,
+    state: options.state ?? controller.getState(),
+  };
+}
+
 export function createAriaMobileAppShell(
-  options: CreateAriaMobileShellOptions,
+  options: CreateAriaMobileShellOptions & {
+    ariaThreadController?: AriaChatController;
+    ariaThreadState?: AriaChatState;
+  },
 ): AriaMobileAppShell {
   const shell = createAriaMobileShell(options);
 
   return {
     ...shell,
     navigation: ariaMobileNavigation,
+    ariaThread: createAriaMobileAriaThread(options.target, {
+      controller: options.ariaThreadController,
+      state: options.ariaThreadState,
+    }),
     layout: {
       threadListScreen: {
         placement: "stacked",

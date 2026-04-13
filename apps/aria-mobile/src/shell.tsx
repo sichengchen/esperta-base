@@ -106,6 +106,18 @@ export function AriaMobileApplicationShell(props: AriaMobileApplicationShellProp
         <section data-space-id="aria">
           <h2>Aria</h2>
           <p>Server chat, inbox, automations, and connectors stay in the remote control plane.</p>
+          <p>
+            Aria thread:{" "}
+            {props.shell.ariaThread.state.connected
+              ? props.shell.ariaThread.state.sessionId
+              : "disconnected"}
+            {" | "}
+            Model: {props.shell.ariaThread.state.modelName}
+          </p>
+          <p>
+            Transcript items: {props.shell.ariaThread.state.messages.length} | Streaming:{" "}
+            {props.shell.ariaThread.state.isStreaming ? "yes" : "no"}
+          </p>
           <ul>
             {navigation.spaces
               .find((space) => space.id === "aria")

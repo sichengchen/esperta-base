@@ -132,6 +132,13 @@ describe("Aria mobile app surface", () => {
     });
     expect(appShell.activeServerId).toBe("mobile");
     expect(appShell.activeServerLabel).toBe("Home Server");
+    expect(appShell.ariaThread.state).toMatchObject({
+      connected: false,
+      sessionId: null,
+      modelName: "unknown",
+      messages: [],
+      isStreaming: false,
+    });
     expect(appShell.serverSwitcher.availableServers.map((server) => server.label)).toEqual([
       "Home Server",
       "Relay Mirror",
@@ -154,11 +161,17 @@ describe("Aria mobile app surface", () => {
         servers: [
           {
             label: "Home Server",
-            target: { serverId: "mobile", baseUrl: "https://aria.example.test/" },
+            target: {
+              serverId: "mobile",
+              baseUrl: "https://aria.example.test/",
+            },
           },
           {
             label: "Relay Mirror",
-            target: { serverId: "relay", baseUrl: "https://relay.example.test/" },
+            target: {
+              serverId: "relay",
+              baseUrl: "https://relay.example.test/",
+            },
           },
         ],
         activeServerId: "mobile",
@@ -167,7 +180,10 @@ describe("Aria mobile app surface", () => {
   });
 
   test("declares a thin remote-first React application root over the app shell", () => {
-    const target = { serverId: "mobile", baseUrl: "https://aria.example.test/" };
+    const target = {
+      serverId: "mobile",
+      baseUrl: "https://aria.example.test/",
+    };
     const applicationBootstrap = createAriaMobileApplicationBootstrap({
       target,
       servers: [
@@ -266,7 +282,9 @@ describe("Aria mobile app surface", () => {
       },
     });
     expect(root.type).toBe(AriaMobileApplicationShell);
-    const rootProps = root.props as { shell: ReturnType<typeof createAriaMobileAppShell> };
+    const rootProps = root.props as {
+      shell: ReturnType<typeof createAriaMobileAppShell>;
+    };
     expect(rootProps.shell.layout.threadListScreen.mode).toBe("project-first");
     expect(rootProps.shell.app.capabilities).toContain("reconnect");
 
@@ -277,5 +295,6 @@ describe("Aria mobile app surface", () => {
     expect(renderedProps["data-active-tab-id"]).toBe("projects");
     expect(Array.isArray(renderedProps.children)).toBe(true);
     expect((renderedProps.children as unknown[]).length).toBe(4);
+    expect(rootProps.shell.ariaThread.state.connected).toBe(false);
   });
 });

@@ -38,7 +38,9 @@ function childElements(element: { props: { children?: ReactNode } }) {
 function asElementWithProps(element: unknown): {
   props: { children?: ReactNode; [key: string]: unknown };
 } {
-  return element as unknown as { props: { children?: ReactNode; [key: string]: unknown } };
+  return element as unknown as {
+    props: { children?: ReactNode; [key: string]: unknown };
+  };
 }
 
 describe("aria-desktop app assembly", () => {
@@ -162,7 +164,10 @@ describe("aria-desktop app assembly", () => {
           hostLabel: "This Device",
           environmentLabel: "wt/main",
           mode: "local",
-          target: { serverId: "desktop-local", baseUrl: "http://127.0.0.1:8123/" },
+          target: {
+            serverId: "desktop-local",
+            baseUrl: "http://127.0.0.1:8123/",
+          },
         },
       ],
       activeSpaceId: "projects",
@@ -176,6 +181,13 @@ describe("aria-desktop app assembly", () => {
     expect(model.activeServerLabel).toBe("Home Server");
     expect(model.activeSpaceId).toBe("projects");
     expect(model.activeContextPanelId).toBe("environment");
+    expect(model.ariaThread.state).toMatchObject({
+      connected: false,
+      sessionId: null,
+      modelName: "unknown",
+      messages: [],
+      isStreaming: false,
+    });
     expect(model.shell.projectSidebar.projects[0]).toMatchObject({
       projectLabel: "Aria",
       threads: [
@@ -260,6 +272,8 @@ describe("aria-desktop app assembly", () => {
     expect(text).toContain("messages + runs");
     expect(text).toContain("Context Panels");
     expect(text).toContain("Home Server / main");
+    expect(text.replace(/\s+/g, " ")).toContain("Aria thread: disconnected");
+    expect(text.replace(/\s+/g, " ")).toContain("Aria chat messages: 0");
     expect(text.replace(/\s+/g, " ")).toContain("Placement: bottom-docked");
   });
 
@@ -284,6 +298,7 @@ describe("aria-desktop app assembly", () => {
     const model = rootProps.props.model as AriaDesktopAppShellModel;
     expect(model.application).toBe(ariaDesktopApplication);
     expect(model.shell.projectSidebar.label).toBe("Projects");
+    expect(model.ariaThread.state.connected).toBe(false);
 
     const manualRoot = AriaDesktopApplicationRoot({
       model,

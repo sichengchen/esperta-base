@@ -124,6 +124,10 @@ export function AriaMobileApplicationShell(props: AriaMobileApplicationShellProp
             Latest Aria message:{" "}
             {props.shell.ariaThread.state.messages.at(-1)?.content ?? "No transcript yet"}
           </p>
+          <p>
+            Pending approval: {props.shell.ariaThread.state.pendingApproval?.toolName ?? "none"} |
+            Pending question: {props.shell.ariaThread.state.pendingQuestion?.question ?? "none"}
+          </p>
           {props.shell.ariaThread.state.streamingText ? (
             <p>Streaming text: {props.shell.ariaThread.state.streamingText}</p>
           ) : null}

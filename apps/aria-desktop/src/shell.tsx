@@ -245,6 +245,10 @@ export function AriaDesktopAppShell(props: AriaDesktopAppShellProps): ReactEleme
                 Latest Aria message:{" "}
                 {model.ariaThread.state.messages.at(-1)?.content ?? "No transcript yet"}
               </p>
+              <p>
+                Pending approval: {model.ariaThread.state.pendingApproval?.toolName ?? "none"} |
+                Pending question: {model.ariaThread.state.pendingQuestion?.question ?? "none"}
+              </p>
               {model.ariaThread.state.streamingText ? (
                 <p>Streaming text: {model.ariaThread.state.streamingText}</p>
               ) : null}

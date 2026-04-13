@@ -310,4 +310,99 @@ describe("client surfaces", () => {
       { role: "assistant", content: "Previous answer", toolName: undefined },
     ]);
   });
+
+  test("tracks pending approvals and questions from stream events and resolves them through controller actions", async () => {
+    const approvals: Array<{ toolCallId: string; approved: boolean }> = [];
+    const accepts: string[] = [];
+    const answers: Array<{ id: string; answer: string }> = [];
+    const controller = createAriaChatController(
+      {
+        health: {
+          ping: {
+            query: async () => ({ model: "sonnet", agentName: "Esperta Aria" }),
+          },
+        },
+        session: {
+          getLatest: {
+            query: async () => ({ id: "tui:session-existing" }),
+          },
+          create: {
+            mutate: async () => ({ session: { id: "unused" } }),
+          },
+        },
+        chat: {
+          history: {
+            query: async () => ({ messages: [], archived: false }),
+          },
+          stream: {
+            subscribe(_input, handlers) {
+              handlers.onData({
+                type: "tool_approval_request",
+                id: "tool-1",
+                name: "exec",
+                args: { command: "rm -rf tmp" },
+              });
+              handlers.onData({
+                type: "user_question",
+                id: "question-1",
+                question: "Ship it?",
+                options: ["Yes", "No"],
+              });
+              handlers.onComplete();
+            },
+          },
+        },
+        tool: {
+          approve: {
+            mutate: async (input) => {
+              approvals.push(input);
+            },
+          },
+          acceptForSession: {
+            mutate: async ({ toolCallId }) => {
+              accepts.push(toolCallId);
+            },
+          },
+        },
+        question: {
+          answer: {
+            mutate: async (input) => {
+              answers.push(input);
+            },
+          },
+        },
+      },
+      { connectorType: "tui", prefix: "tui" },
+    );
+
+    await controller.connect();
+    const streamed = await controller.sendMessage("run it");
+    expect(streamed.pendingApproval).toEqual({
+      toolCallId: "tool-1",
+      toolName: "exec",
+      args: { command: "rm -rf tmp" },
+    });
+    expect(streamed.pendingQuestion).toEqual({
+      questionId: "question-1",
+      question: "Ship it?",
+      options: ["Yes", "No"],
+    });
+
+    const afterApprove = await controller.approveToolCall("tool-1", true);
+    expect(approvals).toEqual([{ toolCallId: "tool-1", approved: true }]);
+    expect(afterApprove.pendingApproval).toBeNull();
+
+    const afterAccept = await controller.acceptToolCallForSession("tool-1");
+    expect(accepts).toEqual(["tool-1"]);
+    expect(afterAccept.pendingApproval).toBeNull();
+
+    const afterAnswer = await controller.answerQuestion("question-1", "Yes");
+    expect(answers).toEqual([{ id: "question-1", answer: "Yes" }]);
+    expect(afterAnswer.pendingQuestion).toBeNull();
+    expect(afterAnswer.messages.at(-1)).toEqual({
+      role: "tool",
+      content: "Answer: Yes",
+      toolName: "ask_user",
+    });
+  });
 });

@@ -387,4 +387,35 @@ describe("aria-desktop app assembly", () => {
     const text = collectTextContent(rendered).join(" ").replace(/\s+/g, " ");
     expect(text).toContain("Latest Aria message: hello world");
   });
+
+  test("renders pending aria interactions in the desktop shell", () => {
+    const model = createAriaDesktopAppShellModel({
+      target: { serverId: "desktop", baseUrl: "http://127.0.0.1:7420/" },
+      ariaThreadState: {
+        connected: true,
+        sessionId: "desktop:session-1",
+        sessionStatus: "resumed",
+        modelName: "sonnet",
+        agentName: "Esperta Aria",
+        messages: [],
+        streamingText: "",
+        isStreaming: false,
+        pendingApproval: {
+          toolCallId: "tool-1",
+          toolName: "exec",
+          args: { command: "rm -rf tmp" },
+        },
+        pendingQuestion: {
+          questionId: "question-1",
+          question: "Ship it?",
+          options: ["Yes", "No"],
+        },
+        lastError: null,
+      },
+    });
+
+    const text = collectTextContent(AriaDesktopAppShell({ model })).join(" ").replace(/\s+/g, " ");
+    expect(text).toContain("Pending approval: exec");
+    expect(text).toContain("Pending question: Ship it?");
+  });
 });

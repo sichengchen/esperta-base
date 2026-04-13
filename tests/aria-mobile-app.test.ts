@@ -376,4 +376,40 @@ describe("Aria mobile app surface", () => {
     expect(serialized).toContain("Latest Aria message:");
     expect(serialized).toContain("hello world");
   });
+
+  test("renders pending aria interactions in the mobile shell", () => {
+    const shell = createAriaMobileAppShell({
+      target: { serverId: "mobile", baseUrl: "https://aria.example.test/" },
+      ariaThreadState: {
+        connected: true,
+        sessionId: "mobile:session-1",
+        sessionStatus: "resumed",
+        modelName: "sonnet",
+        agentName: "Esperta Aria",
+        messages: [],
+        streamingText: "",
+        isStreaming: false,
+        pendingApproval: {
+          toolCallId: "tool-1",
+          toolName: "exec",
+          args: { command: "rm -rf tmp" },
+        },
+        pendingQuestion: {
+          questionId: "question-1",
+          question: "Ship it?",
+          options: ["Yes", "No"],
+        },
+        lastError: null,
+      },
+    });
+
+    const serialized = JSON.stringify(AriaMobileApplicationShell({ shell }).props).replace(
+      /\s+/g,
+      " ",
+    );
+    expect(serialized).toContain("Pending approval:");
+    expect(serialized).toContain("exec");
+    expect(serialized).toContain("Pending question:");
+    expect(serialized).toContain("Ship it?");
+  });
 });

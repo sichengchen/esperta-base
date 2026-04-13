@@ -8,6 +8,18 @@ export interface AriaChatMessage {
   toolName?: string;
 }
 
+export interface AriaChatPendingApproval {
+  toolCallId: string;
+  toolName: string;
+  args: Record<string, unknown>;
+}
+
+export interface AriaChatPendingQuestion {
+  questionId: string;
+  question: string;
+  options?: string[];
+}
+
 export interface AriaChatState {
   connected: boolean;
   sessionId: string | null;
@@ -17,6 +29,8 @@ export interface AriaChatState {
   messages: AriaChatMessage[];
   streamingText: string;
   isStreaming: boolean;
+  pendingApproval: AriaChatPendingApproval | null;
+  pendingQuestion: AriaChatPendingQuestion | null;
   lastError: string | null;
 }
 
@@ -52,6 +66,19 @@ export interface AriaChatClient {
       ): { unsubscribe(): void } | void;
     };
   };
+  tool?: {
+    approve?: {
+      mutate(input: { toolCallId: string; approved: boolean }): Promise<unknown>;
+    };
+    acceptForSession?: {
+      mutate(input: { toolCallId: string }): Promise<unknown>;
+    };
+  };
+  question?: {
+    answer?: {
+      mutate(input: { id: string; answer: string }): Promise<unknown>;
+    };
+  };
 }
 
 export interface AriaChatControllerOptions {
@@ -64,6 +91,9 @@ export interface AriaChatController {
   getState(): AriaChatState;
   connect(): Promise<AriaChatState>;
   sendMessage(message: string): Promise<AriaChatState>;
+  approveToolCall(toolCallId: string, approved: boolean): Promise<AriaChatState>;
+  acceptToolCallForSession(toolCallId: string): Promise<AriaChatState>;
+  answerQuestion(questionId: string, answer: string): Promise<AriaChatState>;
 }
 
 function initialState(): AriaChatState {
@@ -76,6 +106,8 @@ function initialState(): AriaChatState {
     messages: [],
     streamingText: "",
     isStreaming: false,
+    pendingApproval: null,
+    pendingQuestion: null,
     lastError: null,
   };
 }
@@ -235,6 +267,31 @@ export function createAriaChatController(
                     toolName: event.name,
                   });
                   break;
+                case "tool_approval_request":
+                  setState({
+                    pendingApproval: {
+                      toolCallId: event.id,
+                      toolName: event.name,
+                      args: event.args,
+                    },
+                  });
+                  break;
+                case "user_question":
+                  setState({
+                    pendingQuestion: {
+                      questionId: event.id,
+                      question: event.question,
+                      options: event.options,
+                    },
+                  });
+                  break;
+                case "reaction":
+                  appendMessage({
+                    role: "tool",
+                    content: event.emoji,
+                    toolName: "reaction",
+                  });
+                  break;
                 case "done":
                   if (streamed) {
                     appendMessage({ role: "assistant", content: streamed });
@@ -274,6 +331,23 @@ export function createAriaChatController(
           },
         );
       });
+    },
+    async approveToolCall(toolCallId: string, approved: boolean) {
+      await client.tool?.approve?.mutate({ toolCallId, approved });
+      return setState({ pendingApproval: null });
+    },
+    async acceptToolCallForSession(toolCallId: string) {
+      await client.tool?.acceptForSession?.mutate({ toolCallId });
+      return setState({ pendingApproval: null });
+    },
+    async answerQuestion(questionId: string, answer: string) {
+      await client.question?.answer?.mutate({ id: questionId, answer });
+      appendMessage({
+        role: "tool",
+        content: `Answer: ${answer}`,
+        toolName: "ask_user",
+      });
+      return setState({ pendingQuestion: null });
     },
   };
 }

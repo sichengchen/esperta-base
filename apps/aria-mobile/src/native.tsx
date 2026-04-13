@@ -64,6 +64,25 @@ export function AriaMobileNativeHost() {
       <Text>Pending approval: {model.pendingApproval}</Text>
       <Text>Pending question: {model.pendingQuestion}</Text>
       <View style={styles.section}>
+        <Text style={styles.sectionTitle}>Actions</Text>
+        <Pressable
+          onPress={() => {
+            void controller.sendMessage("Message Aria");
+          }}
+          style={styles.button}
+        >
+          <Text>Send</Text>
+        </Pressable>
+        <Pressable
+          onPress={() => {
+            void controller.stop();
+          }}
+          style={styles.button}
+        >
+          <Text>Stop</Text>
+        </Pressable>
+      </View>
+      <View style={styles.section}>
         <Text style={styles.sectionTitle}>Recent Sessions</Text>
         {model.recentSessions.length === 0 ? (
           <Text>None yet</Text>

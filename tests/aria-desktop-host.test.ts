@@ -271,7 +271,7 @@ describe("aria-desktop host scaffold", () => {
   });
 
   test("exposes a pure desktop renderer controller", async () => {
-    const state = {
+    let state: any = {
       connected: true,
       sessionId: "desktop:session-1",
       sessionStatus: "resumed" as const,
@@ -292,8 +292,27 @@ describe("aria-desktop host scaffold", () => {
       createAriaThreadController: (() => ({
         getState: () => state,
         connect: async () => state,
-        sendMessage: async () => state,
-        stop: async () => state,
+        sendMessage: async () => {
+          state = {
+            ...state,
+            messages: [...state.messages, { role: "assistant" as const, content: "sent" }],
+          };
+          return state;
+        },
+        stop: async () => {
+          state = {
+            ...state,
+            messages: [
+              ...state.messages,
+              {
+                role: "tool" as const,
+                content: "Stopped by user",
+                toolName: "system",
+              },
+            ],
+          };
+          return state;
+        },
         openSession: async () => state,
         approveToolCall: async () => state,
         acceptToolCallForSession: async () => state,
@@ -307,5 +326,11 @@ describe("aria-desktop host scaffold", () => {
     const started = await controller.start();
     expect(started.ariaThread.state.sessionId).toBe("desktop:session-1");
     expect(controller.getModel().ariaThread.state.messages.at(-1)?.content).toBe("hello");
+
+    const sent = await controller.sendMessage("hi");
+    expect(sent.ariaThread.state.messages.at(-1)?.content).toBe("sent");
+
+    const stopped = await controller.stop();
+    expect(stopped.ariaThread.state.messages.at(-1)?.content).toBe("Stopped by user");
   });
 });

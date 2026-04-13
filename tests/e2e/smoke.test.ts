@@ -13,8 +13,8 @@ import {
   createAriaDesktopApplicationBootstrap,
   createAriaDesktopApplicationRoot,
 } from "../../apps/aria-desktop/src/index.js";
-import { createAriaServerHostBootstrap } from "../../apps/aria-server/src/index.js";
-import { createAriaRelayServiceBootstrap } from "../../services/aria-relay/src/index.js";
+import { createAriaServerHostBootstrap } from "aria-server";
+import { createAriaRelayServiceBootstrap } from "aria-relay";
 
 let testHome: string;
 

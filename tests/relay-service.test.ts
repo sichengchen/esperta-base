@@ -7,7 +7,7 @@ import {
   createAriaRelayServiceBootstrap,
   resolveAriaRelayStatePath,
   runAriaRelayServiceHost,
-} from "../services/aria-relay/src/index.js";
+} from "aria-relay";
 
 describe("relay service surface", () => {
   test("exposes a thin relay wrapper over @aria/relay", async () => {

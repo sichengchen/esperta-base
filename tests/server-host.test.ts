@@ -7,9 +7,6 @@ import {
   getRuntimeDiscoveryPaths,
   startAriaServer,
 } from "@aria/server";
-import type { EngineServer } from "@aria/gateway/server";
-import type { EngineRuntime } from "@aria/server/runtime";
-
 import {
   ARIA_SERVER_DAEMON_COMMAND,
   ariaServerHost,
@@ -17,7 +14,9 @@ import {
   createAriaServerHostBootstrap,
   runAriaServerDaemonHost,
   runAriaServerHost,
-} from "../apps/aria-server/src/index.js";
+} from "aria-server";
+import type { EngineServer } from "@aria/gateway/server";
+import type { EngineRuntime } from "@aria/server/runtime";
 
 describe("server host surface", () => {
   test("starts and stops the server shell through the public package boundary", async () => {

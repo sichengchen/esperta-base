@@ -390,7 +390,7 @@ export function AriaDesktopAppShell(props: AriaDesktopAppShellProps): ReactEleme
                   }
                 }}
               >
-                <input name="aria-session-search" defaultValue="recent session" />
+                <input name="aria-session-search" defaultValue="" />
                 <button type="submit">Search Sessions</button>
               </form>
               {model.ariaRecentSessions.length > 0 ? (

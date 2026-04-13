@@ -14,8 +14,8 @@ export function AriaMobileNativeHost() {
   });
   const [controller] = useState(() => createAriaMobileNativeHostController(target));
   const [shell, setShell] = useState<AriaMobileAppShell>(() => controller.getBootstrap().shell);
-  const [draft, setDraft] = useState("Message Aria");
-  const [sessionSearch, setSessionSearch] = useState("recent session");
+  const [draft, setDraft] = useState("");
+  const [sessionSearch, setSessionSearch] = useState("");
 
   useEffect(() => {
     let cancelled = false;

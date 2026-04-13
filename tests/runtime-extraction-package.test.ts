@@ -90,14 +90,17 @@ describe("phase-1 extraction package verification", () => {
       fs.readFile(new URL("../packages/runtime/src/runtime.ts", import.meta.url), "utf-8"),
     );
     expect(runtimeSource).toContain("@aria/server/runtime");
+    const runtimeIndexSource = await import("node:fs/promises").then((fs) =>
+      fs.readFile(new URL("../packages/runtime/src/index.ts", import.meta.url), "utf-8"),
+    );
+    expect(runtimeIndexSource).not.toContain("./audio/index.js");
+    expect(runtimeIndexSource).not.toContain("./mcp.js");
+    expect(runtimeIndexSource).not.toContain("./session-archive.js");
+    expect(runtimeIndexSource).not.toContain("./sessions.js");
     const backendRegistrySource = await import("node:fs/promises").then((fs) =>
       fs.readFile(new URL("../packages/runtime/src/backend-registry.ts", import.meta.url), "utf-8"),
     );
     expect(backendRegistrySource).toContain("@aria/jobs/backend-registry");
-    const runtimeMcpSource = await import("node:fs/promises").then((fs) =>
-      fs.readFile(new URL("../packages/runtime/src/mcp.ts", import.meta.url), "utf-8"),
-    );
-    expect(runtimeMcpSource).toContain("@aria/server/mcp");
     const proceduresSource = await import("node:fs/promises").then((fs) =>
       fs.readFile(new URL("../packages/runtime/src/procedures.ts", import.meta.url), "utf-8"),
     );

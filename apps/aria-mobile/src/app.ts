@@ -165,6 +165,16 @@ export async function createConnectedAriaMobileAppShell(
   return connectAriaMobileAppShell(createAriaMobileAppShell(options));
 }
 
+export async function startAriaMobileNativeHostShell(
+  options: CreateAriaMobileShellOptions & {
+    ariaThreadController?: AriaChatController;
+    ariaThreadState?: AriaChatState;
+  },
+): Promise<AriaMobileAppShell> {
+  const connected = await createConnectedAriaMobileAppShell(options);
+  return loadAriaMobileAppShellRecentSessions(connected);
+}
+
 export async function sendAriaMobileAppShellMessage(
   shell: AriaMobileAppShell,
   message: string,

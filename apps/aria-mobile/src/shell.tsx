@@ -21,6 +21,7 @@ export interface AriaMobileApplicationShellProps {
   navigation?: AriaMobileNavigation;
   onSwitchServer?(serverId: string): void;
   onOpenAriaSession?(sessionId: string): void;
+  onSearchAriaSessions?(query: string): void;
   onSendAriaMessage?(message: string): void;
   onStopAriaSession?(): void;
   onApproveToolCall?(toolCallId: string, approved: boolean): void;
@@ -204,6 +205,19 @@ export function AriaMobileApplicationShell(props: AriaMobileApplicationShellProp
               : ""}
           </p>
           <p>Recent Aria sessions: {props.shell.ariaRecentSessions.length}</p>
+          <form
+            onSubmit={(event) => {
+              event.preventDefault();
+              const form = event.currentTarget;
+              const field = form.elements.namedItem("aria-mobile-session-search");
+              if (field instanceof HTMLInputElement) {
+                props.onSearchAriaSessions?.(field.value);
+              }
+            }}
+          >
+            <input name="aria-mobile-session-search" defaultValue="recent session" />
+            <button type="submit">Search Sessions</button>
+          </form>
           {props.shell.ariaRecentSessions.length > 0 ? (
             <ul>
               {props.shell.ariaRecentSessions.map((session) => (

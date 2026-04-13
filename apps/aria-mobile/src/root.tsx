@@ -8,6 +8,7 @@ export interface AriaMobileApplicationRootProps {
   navigation?: AriaMobileNavigation;
   onSwitchServer?(serverId: string): void;
   onOpenAriaSession?(sessionId: string): void;
+  onSearchAriaSessions?(query: string): void;
   onSendAriaMessage?(message: string): void;
   onStopAriaSession?(): void;
   onApproveToolCall?(toolCallId: string, approved: boolean): void;
@@ -22,6 +23,7 @@ export function AriaMobileApplicationRoot(props: AriaMobileApplicationRootProps)
       navigation={props.navigation}
       onSwitchServer={props.onSwitchServer}
       onOpenAriaSession={props.onOpenAriaSession}
+      onSearchAriaSessions={props.onSearchAriaSessions}
       onSendAriaMessage={props.onSendAriaMessage}
       onStopAriaSession={props.onStopAriaSession}
       onApproveToolCall={props.onApproveToolCall}

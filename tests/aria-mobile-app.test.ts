@@ -711,8 +711,11 @@ describe("Aria mobile app surface", () => {
 
     const sendButton = findElement(rendered, (props) => props.children === "Send");
     const stopButton = findElement(rendered, (props) => props.children === "Stop");
+    const searchButton = findElement(rendered, (props) => props.children === "Search Sessions");
     expect(sendButton).toBeDefined();
     expect(sendButton!.props.type).toBe("submit");
+    expect(searchButton).toBeDefined();
+    expect(searchButton!.props.type).toBe("submit");
     expect(stopButton).toBeDefined();
     expect(typeof stopButton!.props.onClick).toBe("function");
 

@@ -1,19 +1,21 @@
 # Prompt Engine
 
-The prompt engine is a dedicated subsystem. Prompt assembly is not performed through scattered inline string construction.
+This page defines the target-state prompt assembly model for Aria.
+
+The prompt engine is a dedicated subsystem owned by `@aria/prompt`. Prompt assembly is not performed through scattered inline string construction.
 
 ## Responsibilities
 
 The prompt engine assembles model input from structured sources:
 
-1. Runtime identity and policy
-2. User profile
-3. Project context
-4. Session state
-5. Relevant memory layers
-6. Tool affordances
-7. Active skills
-8. Connector, automation, or task overlays
+1. runtime identity and policy
+2. user profile
+3. project context
+4. session state
+5. relevant memory layers
+6. tool affordances
+7. active skills
+8. connector, automation, or task overlays
 
 ## Context Inputs
 
@@ -23,7 +25,7 @@ Identity, operator-facing behavior, safety policy, tool narration rules, and cap
 
 ### Project Context
 
-Project context files are loaded intentionally, in this precedence order:
+Project context files are loaded intentionally in this precedence order:
 
 1. `.aria.md`
 2. `AGENTS.md`

@@ -1,10 +1,7 @@
-import { join } from "node:path";
-import { RelayService } from "@aria/relay/service";
-import { RelayStore } from "@aria/relay/store";
+import type { RelayService } from "@aria/relay";
 import type { RelayAttachmentKind, RelayTransportMode } from "@aria/relay/types";
 import { CLI_NAME, getRuntimeHome } from "@aria/server/brand";
-
-const RELAY_STORE_FILE = "relay-state.json";
+import { runAriaRelayServiceHost } from "../../../services/aria-relay/src/index.js";
 
 function printHelp(): void {
   console.log(`Usage: ${CLI_NAME} relay <subcommand>`);
@@ -78,7 +75,10 @@ function parseServerRegistrationArgs(args: string[]): {
   }
 
   const labelParts: string[] = [];
-  const options: { enrollmentToken?: string | null; metadataJson?: string | null } = {};
+  const options: {
+    enrollmentToken?: string | null;
+    metadataJson?: string | null;
+  } = {};
   let parsingOptions = false;
 
   for (let index = 0; index < rest.length; index += 1) {
@@ -303,8 +303,9 @@ export async function relayCommand(args: string[]): Promise<void> {
     return;
   }
 
-  const store = new RelayStore(join(getRuntimeHome(), RELAY_STORE_FILE));
-  const relay = new RelayService(store);
+  const { relay } = await runAriaRelayServiceHost({
+    runtimeHome: getRuntimeHome(),
+  });
 
   if (action === "list") {
     const devices = await relay.listDevices();
@@ -508,7 +509,12 @@ export async function relayCommand(args: string[]): Promise<void> {
       return;
     }
     const approved = decision === "approve" || decision === "approved" || decision === "yes";
-    const event = await relay.queueApprovalResponse({ deviceId, sessionId, toolCallId, approved });
+    const event = await relay.queueApprovalResponse({
+      deviceId,
+      sessionId,
+      toolCallId,
+      approved,
+    });
     console.log(`Queued approval response ${event.eventId}.`);
     return;
   }

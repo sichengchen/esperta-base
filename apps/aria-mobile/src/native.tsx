@@ -1,5 +1,5 @@
 import { startTransition, useEffect, useState } from "react";
-import { Pressable, ScrollView, StyleSheet, Text, View } from "react-native";
+import { Pressable, ScrollView, StyleSheet, Text, TextInput, View } from "react-native";
 import { type AriaMobileAppShell } from "./app.js";
 import {
   createAriaMobileNativeHostController,
@@ -14,6 +14,7 @@ export function AriaMobileNativeHost() {
   });
   const [controller] = useState(() => createAriaMobileNativeHostController(target));
   const [shell, setShell] = useState<AriaMobileAppShell>(() => controller.getBootstrap().shell);
+  const [draft, setDraft] = useState("Message Aria");
 
   useEffect(() => {
     let cancelled = false;
@@ -121,9 +122,10 @@ export function AriaMobileNativeHost() {
       ) : null}
       <View style={styles.section}>
         <Text style={styles.sectionTitle}>Actions</Text>
+        <TextInput style={styles.input} value={draft} onChangeText={setDraft} />
         <Pressable
           onPress={() => {
-            void controller.sendMessage("Message Aria");
+            void controller.sendMessage(draft);
           }}
           style={styles.button}
         >
@@ -184,6 +186,13 @@ const styles = StyleSheet.create({
     fontWeight: "600",
   },
   button: {
+    borderRadius: 12,
+    borderWidth: 1,
+    borderColor: "#cbd5e1",
+    paddingHorizontal: 12,
+    paddingVertical: 10,
+  },
+  input: {
     borderRadius: 12,
     borderWidth: 1,
     borderColor: "#cbd5e1",

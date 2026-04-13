@@ -1,45 +1,48 @@
 import { app, BrowserWindow } from "electron";
-import { dirname, join } from "node:path";
+import { dirname } from "node:path";
 import { fileURLToPath } from "node:url";
+import { runAriaDesktopElectronHost } from "./electron-host.js";
 
 const __dirname = dirname(fileURLToPath(import.meta.url));
 const devServerUrl = process.env.ARIA_DESKTOP_DEV_SERVER_URL;
 
-function createWindow(): BrowserWindow {
-  const preloadPath = join(__dirname, "electron-preload.js");
-  const window = new BrowserWindow({
-    width: 1440,
-    height: 960,
-    minWidth: 1100,
-    minHeight: 720,
-    webPreferences: {
-      preload: preloadPath,
-      contextIsolation: true,
-      nodeIntegration: false,
+void runAriaDesktopElectronHost(
+  {
+    platform: process.platform,
+    whenReady: () => app.whenReady(),
+    onActivate(handler) {
+      app.on("activate", handler);
     },
-  });
-
-  if (devServerUrl) {
-    void window.loadURL(devServerUrl);
-  } else {
-    void window.loadFile(join(__dirname, "renderer", "index.html"));
-  }
-
-  return window;
-}
-
-app.whenReady().then(() => {
-  createWindow();
-
-  app.on("activate", () => {
-    if (BrowserWindow.getAllWindows().length === 0) {
-      createWindow();
-    }
-  });
-});
-
-app.on("window-all-closed", () => {
-  if (process.platform !== "darwin") {
-    app.quit();
-  }
+    onWindowAllClosed(handler) {
+      app.on("window-all-closed", handler);
+    },
+    createWindow(options) {
+      return new BrowserWindow({
+        width: options.width,
+        height: options.height,
+        minWidth: options.minWidth,
+        minHeight: options.minHeight,
+        webPreferences: {
+          preload: options.preloadPath,
+          contextIsolation: true,
+          nodeIntegration: false,
+        },
+      });
+    },
+    getAllWindows() {
+      return BrowserWindow.getAllWindows();
+    },
+    quit() {
+      app.quit();
+    },
+  },
+  {
+    distDir: __dirname,
+    devServerUrl,
+  },
+).catch((error) => {
+  console.error(
+    `[aria-desktop] Failed to start: ${error instanceof Error ? error.message : String(error)}`,
+  );
+  process.exit(1);
 });

@@ -3,6 +3,11 @@ import {
   createAriaMobileAppShell,
   startAriaMobileNativeHostShell,
 } from "../apps/aria-mobile/src/app.js";
+import {
+  createAriaMobileNativeHostBootstrap,
+  resolveAriaMobileNativeHostTarget,
+  startAriaMobileNativeHostBootstrap,
+} from "../apps/aria-mobile/src/native-host.js";
 import { createAriaMobileNativeHostModel } from "../apps/aria-mobile/src/native-model.js";
 
 describe("aria-mobile native host scaffold", () => {
@@ -40,6 +45,25 @@ describe("aria-mobile native host scaffold", () => {
       pendingQuestion: "none",
       recentSessions: [],
     });
+  });
+
+  test("resolves native host targets and bootstraps", () => {
+    expect(resolveAriaMobileNativeHostTarget(undefined)).toEqual({
+      serverId: "mobile",
+      baseUrl: "http://127.0.0.1:7420/",
+      token: undefined,
+      directBaseUrl: undefined,
+      relayBaseUrl: undefined,
+      directReachable: undefined,
+      preferredTransportMode: undefined,
+    });
+
+    const bootstrap = createAriaMobileNativeHostBootstrap({
+      serverId: "relay",
+      baseUrl: "https://relay.example.test/",
+    });
+    expect(bootstrap.target.serverId).toBe("relay");
+    expect(bootstrap.model.serverLabel).toBe("relay");
   });
 
   test("starts a mobile native host shell with recent sessions loaded", async () => {
@@ -95,6 +119,17 @@ describe("aria-mobile native host scaffold", () => {
     });
 
     expect(createAriaMobileNativeHostModel(shell).recentSessions).toEqual([
+      { sessionId: "mobile:live-1", kind: "live" },
+      { sessionId: "mobile:archived-1", kind: "archived" },
+    ]);
+
+    const bootstrap = await startAriaMobileNativeHostBootstrap({
+      serverId: "mobile",
+      baseUrl: "https://aria.example.test/",
+      ariaThreadController: controller as any,
+    });
+    expect(bootstrap.target.serverId).toBe("mobile");
+    expect(bootstrap.model.recentSessions).toEqual([
       { sessionId: "mobile:live-1", kind: "live" },
       { sessionId: "mobile:archived-1", kind: "archived" },
     ]);

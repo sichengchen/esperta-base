@@ -1,5 +1,6 @@
 import { createElement } from "react";
 import { createRoot, type Root } from "react-dom/client";
+import { resolveHostAccessClientTarget } from "@aria/access-client";
 import {
   AriaDesktopApplicationRoot,
   connectAriaDesktopAppShellModel,
@@ -28,10 +29,10 @@ export async function startAriaDesktopRendererModel(
 export function resolveAriaDesktopRendererTarget(
   config: Partial<AriaDesktopRendererTarget> | undefined,
 ): AriaDesktopRendererTarget {
-  return {
-    serverId: config?.serverId ?? "desktop",
-    baseUrl: config?.baseUrl ?? "http://127.0.0.1:7420/",
-  };
+  return resolveHostAccessClientTarget(config, {
+    serverId: "desktop",
+    baseUrl: "http://127.0.0.1:7420/",
+  });
 }
 
 export async function mountAriaDesktopRenderer(

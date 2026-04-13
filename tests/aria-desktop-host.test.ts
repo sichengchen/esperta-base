@@ -1,4 +1,9 @@
 import { describe, expect, test } from "bun:test";
+import { resolveHostAccessClientTarget } from "@aria/access-client";
+import {
+  createAriaDesktopElectronHostBootstrap,
+  runAriaDesktopElectronHost,
+} from "../apps/aria-desktop/src/electron-host.js";
 import {
   resolveAriaDesktopRendererTarget,
   startAriaDesktopRendererModel,
@@ -20,6 +25,96 @@ describe("aria-desktop host scaffold", () => {
       serverId: "relay",
       baseUrl: "https://relay.example.test/",
     });
+
+    expect(
+      resolveHostAccessClientTarget(
+        { serverId: "relay", baseUrl: "https://relay.example.test/" },
+        { serverId: "desktop", baseUrl: "http://127.0.0.1:7420/" },
+      ),
+    ).toEqual({
+      serverId: "relay",
+      baseUrl: "https://relay.example.test/",
+      token: undefined,
+      directBaseUrl: undefined,
+      relayBaseUrl: undefined,
+      directReachable: undefined,
+      preferredTransportMode: undefined,
+    });
+  });
+
+  test("builds a deterministic electron host bootstrap", () => {
+    expect(
+      createAriaDesktopElectronHostBootstrap({
+        distDir: "/tmp/aria-desktop",
+        devServerUrl: "http://127.0.0.1:5173/",
+      }),
+    ).toEqual({
+      preloadPath: "/tmp/aria-desktop/electron-preload.js",
+      rendererEntry: { kind: "url", value: "http://127.0.0.1:5173/" },
+      window: {
+        width: 1440,
+        height: 960,
+        minWidth: 1100,
+        minHeight: 720,
+      },
+    });
+  });
+
+  test("runs the pure electron host seam with a fake runtime", async () => {
+    const urls: string[] = [];
+    const files: string[] = [];
+    let activateHandler: (() => void) | undefined;
+    let closeHandler: (() => void) | undefined;
+    let windowCount = 0;
+    let quitCalled = false;
+
+    const bootstrap = await runAriaDesktopElectronHost(
+      {
+        platform: "linux",
+        whenReady: async () => {},
+        onActivate(handler) {
+          activateHandler = handler;
+        },
+        onWindowAllClosed(handler) {
+          closeHandler = handler;
+        },
+        createWindow() {
+          windowCount += 1;
+          return {
+            loadURL(url) {
+              urls.push(url);
+            },
+            loadFile(filePath) {
+              files.push(filePath);
+            },
+          };
+        },
+        getAllWindows() {
+          return [];
+        },
+        quit() {
+          quitCalled = true;
+        },
+      },
+      {
+        distDir: "/tmp/aria-desktop",
+        devServerUrl: "http://127.0.0.1:5173/",
+      },
+    );
+
+    expect(bootstrap.rendererEntry).toEqual({
+      kind: "url",
+      value: "http://127.0.0.1:5173/",
+    });
+    expect(windowCount).toBe(1);
+    expect(urls).toEqual(["http://127.0.0.1:5173/"]);
+
+    activateHandler?.();
+    expect(windowCount).toBe(2);
+
+    closeHandler?.();
+    expect(quitCalled).toBe(true);
+    expect(files).toEqual([]);
   });
 
   test("starts a desktop renderer model with recent sessions loaded", async () => {

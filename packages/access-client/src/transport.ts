@@ -56,8 +56,28 @@ export interface AccessClientTargetRoster {
   selectedTarget: AccessClientTargetSummary | null;
 }
 
+export interface HostAccessClientTargetDefaults {
+  serverId: string;
+  baseUrl: string;
+}
+
 function stripTrailingSlash(value: string): string {
   return value.endsWith("/") ? value.slice(0, -1) : value;
+}
+
+export function resolveHostAccessClientTarget(
+  config: Partial<AccessClientTarget> | undefined,
+  defaults: HostAccessClientTargetDefaults,
+): AccessClientTarget {
+  return {
+    serverId: config?.serverId ?? defaults.serverId,
+    baseUrl: config?.baseUrl ?? defaults.baseUrl,
+    token: config?.token,
+    directBaseUrl: config?.directBaseUrl,
+    relayBaseUrl: config?.relayBaseUrl,
+    directReachable: config?.directReachable,
+    preferredTransportMode: config?.preferredTransportMode,
+  };
 }
 
 export function resolveAccessClientRoute(target: AccessClientTarget): AccessClientRoute {

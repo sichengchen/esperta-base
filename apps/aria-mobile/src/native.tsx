@@ -1,32 +1,29 @@
 import { startTransition, useEffect, useState } from "react";
 import { ScrollView, StyleSheet, Text, View } from "react-native";
+import { type AriaMobileAppShell } from "./app.js";
 import {
-  createAriaMobileAppShell,
-  startAriaMobileNativeHostShell,
-  type AriaMobileAppShell,
-} from "./app.js";
+  createAriaMobileNativeHostBootstrap,
+  resolveAriaMobileNativeHostTarget,
+  startAriaMobileNativeHostBootstrap,
+} from "./native-host.js";
 import { createAriaMobileNativeHostModel } from "./native-model.js";
 
-function resolveDefaultTarget() {
-  return {
-    serverId: process.env.EXPO_PUBLIC_ARIA_SERVER_ID ?? "mobile",
-    baseUrl: process.env.EXPO_PUBLIC_ARIA_SERVER_URL ?? "http://127.0.0.1:7420/",
-  };
-}
-
 export function AriaMobileNativeHost() {
-  const target = resolveDefaultTarget();
-  const [shell, setShell] = useState<AriaMobileAppShell>(() =>
-    createAriaMobileAppShell({ target }),
+  const target = resolveAriaMobileNativeHostTarget({
+    serverId: process.env.EXPO_PUBLIC_ARIA_SERVER_ID,
+    baseUrl: process.env.EXPO_PUBLIC_ARIA_SERVER_URL,
+  });
+  const [shell, setShell] = useState<AriaMobileAppShell>(
+    () => createAriaMobileNativeHostBootstrap(target).shell,
   );
 
   useEffect(() => {
     let cancelled = false;
 
-    void startAriaMobileNativeHostShell({ target }).then((connected) => {
+    void startAriaMobileNativeHostBootstrap(target).then((bootstrap) => {
       if (!cancelled) {
         startTransition(() => {
-          setShell(connected);
+          setShell(bootstrap.shell);
         });
       }
     });

@@ -5,4 +5,5 @@ export * from "./repository.js";
 export * from "./reviews.js";
 export * from "./schema.js";
 export * from "./store.js";
+export * from "./thread-environments.js";
 export * from "./types.js";

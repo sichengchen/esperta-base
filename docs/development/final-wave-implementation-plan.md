@@ -42,6 +42,7 @@ This plan continues `docs/development/new-architecture-implementation-plan.md` a
   - `docs/new-architecture/prompt-engine.md`
 - Contributor and bundled-skill doc entrypoints now point at the current canonical docs tree.
 - The remaining `docs/architecture/*` pages have been retired after their target-state content was moved into `docs/new-architecture/*` and current development docs.
+- `@aria/projects` now exposes a dedicated thread-environment switch service, `@aria/desktop-bridge` exposes it at the desktop-local boundary, and the CLI plus desktop shell can route environment changes through that durable mutation path.
 
 ### Not Completed
 
@@ -53,7 +54,7 @@ This plan continues `docs/development/new-architecture-implementation-plan.md` a
 - Protocol/gateway/runtime ownership is still partially split in places.
 - Server/relay reconnect, recovery, and e2e proof are not yet complete enough.
 - Console and connector runtime workflows still need stronger integration coverage.
-- Durable project environment switching still needs to be completed through `Projects Control`, not only in client UI state.
+- Desktop host wiring still needs to attach the shell to a real `Projects Control` instance by default; the in-memory shell fallback remains when no durable switch callback is provided.
 - Desktop and mobile exist, but they are not yet complete as real product apps.
 
 ## Final Wave Goals
@@ -173,7 +174,7 @@ Finish the project execution plane as defined by the new architecture.
 
 #### Highest-value missing piece
 
-Desktop environment switching is currently wired at the shell/controller layer, but still needs durable `Projects Control` mutation/history behavior.
+Desktop host composition still needs to supply a real `Projects Control` environment-switch callback by default so the shell no longer relies on its in-memory fallback path.
 
 #### Likely areas
 

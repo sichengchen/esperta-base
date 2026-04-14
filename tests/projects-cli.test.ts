@@ -295,6 +295,34 @@ describe("projectsCommand", () => {
       "aria-thread-model",
       "Aria Thread Model",
     ]);
+    await projectsCommand(["workspace-create", "workspace-1", "desktop_local", "This", "Device"]);
+    await projectsCommand(["workspace-create", "workspace-2", "aria_server", "Home", "Server"]);
+    await projectsCommand([
+      "environment-create",
+      "environment-1",
+      "workspace-1",
+      "project-3",
+      "local",
+      "worktree",
+      "/tmp/aria-main",
+      "This",
+      "Device",
+      "/",
+      "wt/main",
+    ]);
+    await projectsCommand([
+      "environment-create",
+      "environment-2",
+      "workspace-2",
+      "project-3",
+      "remote",
+      "worktree",
+      "ssh://aria/review",
+      "Home",
+      "Server",
+      "/",
+      "wt/review",
+    ]);
     await projectsCommand([
       "thread-create",
       "thread-3",
@@ -345,7 +373,7 @@ describe("projectsCommand", () => {
       await projectsCommand(["thread-bindings", "thread-3"]);
     });
 
-    expect(threadLogs.join("\n")).toContain("[Local Project]");
+    expect(threadLogs.join("\n")).toContain("[Remote Project]");
     expect(threadLogs.join("\n")).toContain("workspace=workspace-2");
     expect(threadLogs.join("\n")).toContain("environment=environment-2");
     expect(threadLogs.join("\n")).toContain("binding=binding-2");
@@ -357,7 +385,7 @@ describe("projectsCommand", () => {
 
     await withRepository((repository) => {
       const thread = repository.getThread("thread-3");
-      expect(thread?.threadType).toBe("local_project");
+      expect(thread?.threadType).toBe("remote_project");
       expect(thread?.workspaceId).toBe("workspace-2");
       expect(thread?.environmentId).toBe("environment-2");
       expect(thread?.environmentBindingId).toBe("binding-2");

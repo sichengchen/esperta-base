@@ -12,8 +12,15 @@ import type {
   AriaChatSessionSummary,
   AriaChatState,
 } from "@aria/access-client";
+import type { ThreadRecord } from "@aria/projects";
 import type { ReactElement, ReactNode } from "react";
 import { createAriaDesktopApplicationBootstrap, createAriaDesktopAriaThread } from "./app.js";
+
+type AriaDesktopProjectThread = NonNullable<
+  CreateAriaDesktopShellOptions["projects"]
+>[number]["threads"][number];
+type AriaDesktopEnvironmentSwitchThread = AriaDesktopProjectThread &
+  Pick<ThreadRecord, "workspaceId" | "environmentBindingId">;
 
 export interface CreateAriaDesktopAppShellModelOptions {
   target: AccessClientTarget;
@@ -28,6 +35,10 @@ export interface CreateAriaDesktopAppShellModelOptions {
   ariaThreadController?: AriaChatController;
   createAriaThreadController?: (target: AccessClientTarget) => AriaChatController;
   ariaThreadState?: AriaChatState;
+  switchThreadEnvironment?: (
+    threadId: string,
+    environmentId: string,
+  ) => AriaDesktopEnvironmentSwitchThread;
 }
 
 export interface AriaDesktopAppShellSourceOptions extends Omit<
@@ -130,6 +141,47 @@ function deriveProjectThreadInputs(
   );
 }
 
+function replaceProjectThreadInputs(
+  projects: NonNullable<CreateAriaDesktopShellOptions["projects"]>,
+  nextThread: AriaDesktopEnvironmentSwitchThread,
+): NonNullable<CreateAriaDesktopShellOptions["projects"]> {
+  let didReplace = false;
+
+  const nextProjects = projects.map((project) => ({
+    ...project,
+    threads: project.threads.map((thread) => {
+      if (thread.threadId !== nextThread.threadId) {
+        return thread;
+      }
+
+      didReplace = true;
+      return {
+        ...thread,
+        ...nextThread,
+      };
+    }),
+  }));
+
+  return didReplace ? nextProjects : projects;
+}
+
+function replaceInitialThread(
+  initialThread: CreateAriaDesktopAppShellModelOptions["initialThread"],
+  nextThread: AriaDesktopEnvironmentSwitchThread,
+): CreateAriaDesktopAppShellModelOptions["initialThread"] {
+  if (!initialThread || initialThread.thread.threadId !== nextThread.threadId) {
+    return initialThread;
+  }
+
+  return {
+    ...initialThread,
+    thread: {
+      ...initialThread.thread,
+      ...nextThread,
+    },
+  };
+}
+
 function deriveActiveThreadFromProjectSelection(
   model: AriaDesktopAppShellModel,
   threadId: string,
@@ -166,13 +218,20 @@ function deriveCurrentActiveThreadContext(
   );
 }
 
-function deriveActiveThreadFromEnvironmentSelection(
+function resolveThreadAfterEnvironmentSelection(
   model: AriaDesktopAppShellModel,
   environmentId: string,
-): CreateAriaDesktopShellOptions["activeThreadContext"] {
+): AriaDesktopEnvironmentSwitchThread | undefined {
   const activeThreadContext = deriveCurrentActiveThreadContext(model);
   if (!activeThreadContext) {
     return undefined;
+  }
+
+  if (model.sourceOptions.switchThreadEnvironment) {
+    return model.sourceOptions.switchThreadEnvironment(
+      activeThreadContext.thread.threadId,
+      environmentId,
+    );
   }
 
   const environmentMode = resolveDesktopEnvironmentMode(
@@ -188,17 +247,30 @@ function deriveActiveThreadFromEnvironmentSelection(
       : activeThreadContext.thread.threadType;
 
   return {
+    ...activeThreadContext.thread,
+    threadType: nextThreadType,
+    environmentId,
+  };
+}
+
+function deriveActiveThreadFromEnvironmentSelection(
+  model: AriaDesktopAppShellModel,
+  nextThread: AriaDesktopEnvironmentSwitchThread,
+): CreateAriaDesktopShellOptions["activeThreadContext"] {
+  const activeThreadContext = deriveCurrentActiveThreadContext(model);
+  if (!activeThreadContext) {
+    return undefined;
+  }
+
+  return {
     ...activeThreadContext,
     serverLabel: model.activeServerLabel,
-    thread: {
-      ...activeThreadContext.thread,
-      threadType: nextThreadType,
-      environmentId,
-    },
+    thread: nextThread,
     environmentLabel: resolveDesktopEnvironmentLabel(
       model.sourceOptions.environments,
-      environmentId,
+      nextThread.environmentId,
     ),
+    agentLabel: nextThread.agentId ?? undefined,
   };
 }
 
@@ -253,6 +325,7 @@ export function createAriaDesktopAppShellModel(
       activeSpaceId: options.activeSpaceId,
       activeContextPanelId: options.activeContextPanelId,
       createAriaThreadController: options.createAriaThreadController,
+      switchThreadEnvironment: options.switchThreadEnvironment,
     },
   };
 }
@@ -815,9 +888,18 @@ export function selectAriaDesktopAppShellEnvironment(
   model: AriaDesktopAppShellModel,
   environmentId: string,
 ): AriaDesktopAppShellModel {
-  const activeThreadContext = deriveActiveThreadFromEnvironmentSelection(model, environmentId);
+  const nextThread = resolveThreadAfterEnvironmentSelection(model, environmentId);
+  if (!nextThread) {
+    return model;
+  }
+
+  const projects = replaceProjectThreadInputs(deriveProjectThreadInputs(model), nextThread);
+  const initialThread = replaceInitialThread(model.sourceOptions.initialThread, nextThread);
+  const activeThreadContext = deriveActiveThreadFromEnvironmentSelection(model, nextThread);
   const rebuilt = createAriaDesktopAppShellModel({
     ...model.sourceOptions,
+    projects,
+    initialThread,
     activeSpaceId: "projects",
     activeThreadContext,
   });
@@ -828,6 +910,8 @@ export function selectAriaDesktopAppShellEnvironment(
     ariaRecentSessions: model.ariaRecentSessions,
     sourceOptions: {
       ...model.sourceOptions,
+      projects,
+      initialThread,
       activeThreadContext,
       activeSpaceId: "projects",
     },

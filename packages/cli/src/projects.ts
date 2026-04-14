@@ -10,6 +10,7 @@ import {
   ProjectsPlanningService,
   ProjectsPublishService,
   ProjectsReviewService,
+  ProjectsThreadEnvironmentService,
   resolveThreadType,
   type EnvironmentKind,
   type EnvironmentMode,
@@ -198,9 +199,12 @@ function parseServerRecordArgs(args: string[]): {
   };
 }
 
-function parseWorkspaceRecordArgs(
-  args: string[],
-): { workspaceId: string; host: WorkspaceHost; label: string; serverId?: string | null } | null {
+function parseWorkspaceRecordArgs(args: string[]): {
+  workspaceId: string;
+  host: WorkspaceHost;
+  label: string;
+  serverId?: string | null;
+} | null {
   const [workspaceId, host, ...rest] = args;
   if (!workspaceId || !isWorkspaceHost(host)) {
     return null;
@@ -770,26 +774,29 @@ export async function projectsCommand(args: string[]): Promise<void> {
         process.exitCode = 1;
         return;
       }
+      const environment = repository.getEnvironment(environmentId);
+      if (!environment) {
+        console.log(`Environment not found: ${environmentId}`);
+        process.exitCode = 1;
+        return;
+      }
+      if (environment.projectId !== projectId || environment.workspaceId !== workspaceId) {
+        console.log(
+          `Environment ${environmentId} does not match project ${projectId} and workspace ${workspaceId}.`,
+        );
+        process.exitCode = 1;
+        return;
+      }
       const now = Date.now();
-      repository.upsertThreadEnvironmentBinding({
-        bindingId,
-        threadId,
-        projectId,
-        workspaceId,
-        environmentId,
-        attachedAt: now,
-        detachedAt: null,
-        isActive: true,
-        reason,
-      });
-      repository.upsertThread({
-        ...thread,
-        projectId: projectId ?? thread.projectId,
-        workspaceId,
-        environmentId,
-        environmentBindingId: bindingId,
-        updatedAt: now,
-      });
+      new ProjectsThreadEnvironmentService(repository).switchThreadEnvironment(
+        {
+          bindingId,
+          threadId,
+          environmentId,
+          reason,
+        },
+        now,
+      );
       console.log(`Saved environment binding ${bindingId}.`);
       return;
     }

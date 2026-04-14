@@ -11,6 +11,7 @@ import {
   ProjectsEngineStore,
   ProjectsPublishService,
   ProjectsReviewService,
+  ProjectsThreadEnvironmentService,
   type ThreadEnvironmentBindingRecord,
 } from "@aria/projects";
 import { ProjectsWorktreeService } from "@aria/workspaces";
@@ -101,6 +102,122 @@ describe("projects workflow services", () => {
       bindingId: "binding-2",
       environmentId: "env-worktree",
       isActive: true,
+    });
+  });
+
+  test("thread environment service switches bindings durably through projects control", async () => {
+    const repository = await createProjectsRepository();
+    const now = Date.now();
+
+    repository.upsertProject({
+      projectId: "project-switch",
+      name: "Aria",
+      slug: "aria-switch",
+      description: null,
+      createdAt: now,
+      updatedAt: now,
+    });
+    repository.upsertServer({
+      serverId: "server-home",
+      label: "Home Server",
+      relayId: null,
+      directBaseUrl: "https://aria.example.test",
+      createdAt: now,
+      updatedAt: now,
+    });
+    repository.upsertWorkspace({
+      workspaceId: "workspace-local",
+      host: "desktop_local",
+      serverId: null,
+      label: "This Device",
+      createdAt: now,
+      updatedAt: now,
+    });
+    repository.upsertWorkspace({
+      workspaceId: "workspace-remote",
+      host: "aria_server",
+      serverId: "server-home",
+      label: "Home Server",
+      createdAt: now,
+      updatedAt: now,
+    });
+    repository.upsertEnvironment({
+      environmentId: "env-local",
+      workspaceId: "workspace-local",
+      projectId: "project-switch",
+      label: "This Device / wt/main",
+      mode: "local",
+      kind: "worktree",
+      locator: "/tmp/aria-main",
+      createdAt: now,
+      updatedAt: now,
+    });
+    repository.upsertEnvironment({
+      environmentId: "env-remote",
+      workspaceId: "workspace-remote",
+      projectId: "project-switch",
+      label: "Home Server / wt/review",
+      mode: "remote",
+      kind: "worktree",
+      locator: "ssh://aria/review",
+      createdAt: now,
+      updatedAt: now,
+    });
+    repository.upsertThread({
+      threadId: "thread-switch",
+      projectId: "project-switch",
+      taskId: null,
+      repoId: null,
+      title: "Switchable thread",
+      status: "idle",
+      threadType: "local_project",
+      workspaceId: "workspace-local",
+      environmentId: "env-local",
+      environmentBindingId: "binding-local",
+      agentId: "codex",
+      createdAt: now,
+      updatedAt: now,
+    });
+    repository.upsertThreadEnvironmentBinding({
+      bindingId: "binding-local",
+      threadId: "thread-switch",
+      projectId: "project-switch",
+      workspaceId: "workspace-local",
+      environmentId: "env-local",
+      attachedAt: now,
+      detachedAt: null,
+      isActive: true,
+      reason: "Initial local binding",
+    });
+
+    const switched = new ProjectsThreadEnvironmentService(repository).switchThreadEnvironment(
+      {
+        bindingId: "binding-remote",
+        threadId: "thread-switch",
+        environmentId: "env-remote",
+        reason: "Switch to remote review",
+      },
+      now + 1,
+    );
+
+    expect(switched.thread.threadType).toBe("remote_project");
+    expect(switched.thread.workspaceId).toBe("workspace-remote");
+    expect(switched.thread.environmentId).toBe("env-remote");
+    expect(switched.thread.environmentBindingId).toBe("binding-remote");
+    expect(switched.activeBinding).toMatchObject({
+      bindingId: "binding-remote",
+      environmentId: "env-remote",
+      workspaceId: "workspace-remote",
+      isActive: true,
+    });
+    expect(switched.history.map((binding) => binding.bindingId)).toEqual([
+      "binding-remote",
+      "binding-local",
+    ]);
+    expect(switched.history[1]).toMatchObject({
+      bindingId: "binding-local",
+      isActive: false,
+      detachedAt: now + 1,
     });
   });
 
@@ -444,9 +561,21 @@ describe("projects workflow services", () => {
       isActive: true,
     });
     expect(repository.listThreadEnvironmentBindings("thread-binding")).toEqual([
-      expect.objectContaining({ bindingId: "binding-3", isActive: true, detachedAt: null }),
-      expect.objectContaining({ bindingId: "binding-2", isActive: false, detachedAt: now }),
-      expect.objectContaining({ bindingId: "binding-1", isActive: false, detachedAt: null }),
+      expect.objectContaining({
+        bindingId: "binding-3",
+        isActive: true,
+        detachedAt: null,
+      }),
+      expect.objectContaining({
+        bindingId: "binding-2",
+        isActive: false,
+        detachedAt: now,
+      }),
+      expect.objectContaining({
+        bindingId: "binding-1",
+        isActive: false,
+        detachedAt: null,
+      }),
     ]);
   });
 

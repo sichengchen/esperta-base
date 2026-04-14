@@ -962,4 +962,92 @@ describe("aria-desktop app assembly", () => {
     );
     expect(selected.shell.activeThreadScreen?.header.threadType).toBe("remote_project");
   });
+
+  test("can delegate environment switching through a durable projects-control callback", () => {
+    const switches: Array<[threadId: string, environmentId: string]> = [];
+    const model = createAriaDesktopAppShellModel({
+      target: { serverId: "desktop", baseUrl: "http://127.0.0.1:7420/" },
+      projects: [
+        {
+          project: { name: "Aria" },
+          threads: [
+            {
+              threadId: "thread-1",
+              title: "First thread",
+              status: "running",
+              threadType: "local_project",
+              environmentId: "desktop-main",
+              agentId: "codex",
+            },
+          ],
+        },
+      ],
+      environments: [
+        {
+          environmentId: "desktop-main",
+          hostLabel: "This Device",
+          environmentLabel: "main",
+          mode: "local",
+          target: {
+            serverId: "desktop-local",
+            baseUrl: "http://127.0.0.1:8123/",
+          },
+        },
+        {
+          environmentId: "server-review",
+          hostLabel: "Home Server",
+          environmentLabel: "wt/review",
+          mode: "remote",
+          target: {
+            serverId: "home",
+            baseUrl: "https://aria.example.test/",
+          },
+        },
+      ],
+      initialThread: {
+        project: { name: "Aria" },
+        thread: {
+          threadId: "thread-1",
+          title: "First thread",
+          status: "running",
+          threadType: "local_project",
+          environmentId: "desktop-main",
+          agentId: "codex",
+        },
+      },
+      switchThreadEnvironment(threadId, environmentId) {
+        switches.push([threadId, environmentId]);
+        return {
+          threadId,
+          title: "First thread",
+          status: "running",
+          threadType: "remote_project",
+          workspaceId: "workspace-remote",
+          environmentId,
+          environmentBindingId: "binding-2",
+          agentId: "codex",
+        };
+      },
+    });
+
+    const selected = selectAriaDesktopAppShellEnvironment(model, "server-review");
+
+    expect(switches).toEqual([["thread-1", "server-review"]]);
+    expect(selected.shell.activeThreadScreen?.environmentSwitcher.activeEnvironmentId).toBe(
+      "server-review",
+    );
+    expect(selected.shell.activeThreadScreen?.header.threadType).toBe("remote_project");
+    expect(selected.sourceOptions.projects?.[0]?.threads[0]).toMatchObject({
+      threadId: "thread-1",
+      threadType: "remote_project",
+      environmentId: "server-review",
+      environmentBindingId: "binding-2",
+      workspaceId: "workspace-remote",
+    });
+    expect(selected.sourceOptions.initialThread?.thread).toMatchObject({
+      threadId: "thread-1",
+      threadType: "remote_project",
+      environmentId: "server-review",
+    });
+  });
 });

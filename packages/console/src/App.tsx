@@ -8,8 +8,9 @@ import { ModelPicker } from "./ModelPicker.js";
 import { SessionPicker } from "./SessionPicker.js";
 import { ToolApproval } from "./ToolApproval.js";
 import { UserQuestion } from "./UserQuestion.js";
+import { handleConsoleWorkflowCommand } from "./commands.js";
 import { createTuiClient } from "./client.js";
-import type { ModelConfig, ProviderConfig } from "@aria/gateway/router/types";
+import type { ModelConfig } from "@aria/gateway/router/types";
 import type { Session } from "@aria/protocol";
 
 type EngineClient = ReturnType<typeof createTuiClient>;
@@ -126,205 +127,33 @@ export function App({ client }: AppProps) {
     async (text: string) => {
       if (isStreaming || !sessionId) return;
 
-      // Handle /new command (clear session)
-      if (text === "/new") {
-        try {
-          await client.session.destroy.mutate({ sessionId });
-          const { session } = await client.session.create.mutate({
-            connectorType: "tui",
-            prefix: "tui",
-          });
-          setSessionId(session.id);
-          setSessionConnectorType("tui");
-          addMessage({
-            role: "tool",
-            content: `New session started: ${session.id.slice(0, 12)}`,
-            toolName: "system",
-          });
-        } catch {}
-        return;
-      }
-
-      // Handle /stop command — abort current agent work
-      if (text === "/stop") {
-        try {
-          if (sessionId) {
-            const result = await client.chat.stop.mutate({ sessionId });
-            addMessage({
-              role: "tool",
-              content: result.cancelled ? "Stopped all running tasks." : "Nothing running.",
-              toolName: "system",
-            });
-          }
-        } catch (err) {
-          const msg = err instanceof Error ? err.message : String(err);
-          addMessage({ role: "error", content: msg });
-        }
+      if (
+        await handleConsoleWorkflowCommand(text, {
+          client,
+          sessionId,
+          modelName,
+          handlers: {
+            addMessage,
+            appendMessages(messages) {
+              setMessages((prev) => [
+                ...prev,
+                ...messages.map((message) => ({ ...message, id: nextId() })),
+              ]);
+            },
+            setSessionId,
+            setSessionConnectorType,
+            setShowModelPicker,
+            setShowSessionPicker,
+            setModels,
+            setSessions,
+            scheduleExit(delayMs) {
+              setTimeout(() => exit(), delayMs);
+            },
+          },
+        })
+      ) {
         setStreamingText("");
         setIsStreaming(false);
-        return;
-      }
-
-      // Handle /shutdown command — stop the engine completely
-      if (text === "/shutdown") {
-        try {
-          addMessage({
-            role: "tool",
-            content: "Shutting down Aria Runtime...",
-            toolName: "system",
-          });
-          await client.engine.shutdown.mutate();
-          setTimeout(() => exit(), 500);
-        } catch (err) {
-          const msg = err instanceof Error ? err.message : String(err);
-          addMessage({ role: "error", content: msg });
-        }
-        return;
-      }
-
-      // Handle /restart command — restart the engine
-      if (text === "/restart") {
-        try {
-          addMessage({
-            role: "tool",
-            content: "Restarting Aria Runtime...",
-            toolName: "system",
-          });
-          await client.engine.restart.mutate();
-          // Engine will shut down — exit TUI so user can reconnect
-          setTimeout(() => exit(), 500);
-        } catch (err) {
-          const msg = err instanceof Error ? err.message : String(err);
-          addMessage({ role: "error", content: msg });
-        }
-        return;
-      }
-
-      // Handle /status command
-      if (text === "/status") {
-        try {
-          const ping = await client.health.ping.query();
-          addMessage({
-            role: "tool",
-            content: `Engine: ${ping.status} | Model: ${ping.model} | Sessions: ${ping.sessions} | Uptime: ${Math.floor(ping.uptime)}s`,
-            toolName: "system",
-          });
-        } catch (err) {
-          const msg = err instanceof Error ? err.message : String(err);
-          addMessage({ role: "error", content: msg });
-        }
-        return;
-      }
-
-      // Handle /model command — open model picker to switch
-      if (text === "/model") {
-        try {
-          const freshModels = await client.model.list.query();
-          setModels(freshModels);
-        } catch {}
-        setShowModelPicker(true);
-        return;
-      }
-
-      // Handle /models command — list configured models with details
-      if (text === "/models") {
-        try {
-          const modelList = await client.model.list.query();
-          const lines = modelList.map((m: ModelConfig) => {
-            const marker = m.name === modelName ? "●" : "○";
-            const extras: string[] = [];
-            if (m.temperature !== undefined) extras.push(`temp=${m.temperature}`);
-            if (m.maxTokens !== undefined) extras.push(`max=${m.maxTokens}`);
-            const suffix = extras.length > 0 ? `  (${extras.join(", ")})` : "";
-            return `${marker} ${m.name}  ${m.provider} → ${m.model}${suffix}`;
-          });
-          addMessage({
-            role: "tool",
-            content: `Models:\n${lines.join("\n")}`,
-            toolName: "system",
-          });
-        } catch (err) {
-          const msg = err instanceof Error ? err.message : String(err);
-          addMessage({ role: "error", content: msg });
-        }
-        return;
-      }
-
-      // Handle /provider command — list providers
-      if (text === "/provider") {
-        try {
-          const providers = await client.provider.list.query();
-          const lines = providers.map((p: ProviderConfig) => {
-            const base = `• ${p.id} (${p.type}) — ${p.apiKeyEnvVar}`;
-            return p.baseUrl ? `${base}  [${p.baseUrl}]` : base;
-          });
-          addMessage({
-            role: "tool",
-            content: `Providers:\n${lines.join("\n")}`,
-            toolName: "system",
-          });
-        } catch (err) {
-          const msg = err instanceof Error ? err.message : String(err);
-          addMessage({ role: "error", content: msg });
-        }
-        return;
-      }
-
-      // Handle /sessions command — list or open picker
-      if (text === "/sessions") {
-        try {
-          const list = await client.session.list.query();
-          setSessions(list);
-          setShowSessionPicker(true);
-        } catch (err) {
-          const msg = err instanceof Error ? err.message : String(err);
-          addMessage({ role: "error", content: msg });
-        }
-        return;
-      }
-
-      // Handle /switch <id> command — switch to a session by ID prefix
-      if (text.startsWith("/switch ")) {
-        const target = text.slice(8).trim();
-        if (!target) {
-          addMessage({ role: "error", content: "Usage: /switch <session-id>" });
-          return;
-        }
-        try {
-          const list = await client.session.list.query();
-          const match = list.find((s: Session) => s.id.startsWith(target));
-          if (!match) {
-            addMessage({
-              role: "error",
-              content: `No session found matching: ${target}`,
-            });
-            return;
-          }
-          setSessionId(match.id);
-          setSessionConnectorType(match.connectorType);
-          // Load history
-          const history = await client.chat.history.query({
-            sessionId: match.id,
-          });
-          const historyMessages: ChatMessage[] = (history.messages as any[]).map((m: any) => ({
-            id: nextId(),
-            role: m.role === "assistant" ? "assistant" : m.role === "user" ? "user" : "tool",
-            content: typeof m.content === "string" ? m.content : JSON.stringify(m.content),
-          }));
-          setMessages((prev) => [
-            ...prev,
-            {
-              id: nextId(),
-              role: "tool",
-              content: `Switched to session ${match.id.slice(0, 8)} [${match.connectorType}]`,
-              toolName: "system",
-            },
-            ...historyMessages,
-          ]);
-        } catch (err) {
-          const msg = err instanceof Error ? err.message : String(err);
-          addMessage({ role: "error", content: msg });
-        }
         return;
       }
 
@@ -884,7 +713,7 @@ export function App({ client }: AppProps) {
         setIsStreaming(false);
       }
     },
-    [client, sessionId, isStreaming],
+    [client, exit, isStreaming, modelName, sessionId],
   );
 
   const handleModelSelect = useCallback(

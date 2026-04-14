@@ -17,6 +17,7 @@
     "./StatusBar": "./src/StatusBar.tsx",
     "./ToolApproval": "./src/ToolApproval.tsx",
     "./UserQuestion": "./src/UserQuestion.tsx",
+    "./commands": "./src/commands.ts",
     "./client": "./src/client.ts"
   }
 }

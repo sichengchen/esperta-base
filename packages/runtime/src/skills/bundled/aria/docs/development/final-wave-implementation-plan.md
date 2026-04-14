@@ -48,6 +48,7 @@ This plan continues `docs/development/new-architecture-implementation-plan.md` a
 - Relay resumed attachments now preserve `jobId` correlation into queued follow-up and approval events after reconnect.
 - Protocol and gateway tests now prove durable identity on normal streamed chat events, not only streamed errors.
 - Connector runtime coverage now includes the shared stream handler plus Chat SDK adapter question, approval, and session-command fallbacks.
+- Console workflow coverage now includes a dedicated command-layer helper with direct tests for session, engine, model, provider, and session-switch flows.
 - The pack build now externalizes Bun-native modules explicitly, removing the prior `bun` and `bun:sqlite` unresolved-import warning noise from the green build.
 - The platform-complete gate currently runs green end-to-end through `bun run verify`.
 - Desktop host composition now injects a real bridge-backed project environment-switch callback by default when a desktop bridge or projects repository is supplied, instead of relying on the shell's in-memory fallback path.
@@ -57,7 +58,7 @@ This plan continues `docs/development/new-architecture-implementation-plan.md` a
 - Legacy boot surfaces are still on the critical path.
 - Protocol/gateway/runtime ownership is still partially split in places.
 - Server/relay reconnect, recovery, and e2e proof are not yet complete enough.
-- Console workflows still need stronger integration coverage, and connector runtime proof still needs deeper end-to-end coverage beyond the current focused adapter tests.
+- Console still needs deeper end-to-end UI coverage, and connector runtime proof still needs broader end-to-end recovery and audit coverage beyond the current focused adapter tests.
 - Desktop and mobile exist, but they are not yet complete as real product apps.
 
 ## Final Wave Goals

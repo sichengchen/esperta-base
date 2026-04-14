@@ -184,7 +184,6 @@ const COMMANDS: Record<string, (args: string[]) => Promise<void>> = {
     process.exit(1);
   },
   shutdown: async () => {
-    const { createTuiClient } = await import("@aria/console/client.js");
     try {
       const client = createTuiClient();
       console.log(`Shutting down ${RUNTIME_NAME}...`);
@@ -198,7 +197,6 @@ const COMMANDS: Record<string, (args: string[]) => Promise<void>> = {
     }
   },
   restart: async () => {
-    const { createTuiClient } = await import("@aria/console/client.js");
     try {
       const client = createTuiClient();
       console.log(`Restarting ${RUNTIME_NAME}...`);
@@ -225,7 +223,6 @@ const COMMANDS: Record<string, (args: string[]) => Promise<void>> = {
     }
   },
   stop: async () => {
-    const { createTuiClient } = await import("@aria/console/client.js");
     try {
       const client = createTuiClient();
       const result = await client.chat.stopAll.mutate();

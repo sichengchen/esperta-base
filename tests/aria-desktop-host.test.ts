@@ -114,6 +114,49 @@ async function seedProjectThread(repository: ProjectsEngineRepository, now: numb
   });
 }
 
+function seedProjectRepoAndWorktree(repository: ProjectsEngineRepository, now: number): void {
+  repository.upsertRepo({
+    repoId: "repo-1",
+    projectId: "project-1",
+    name: "aria",
+    remoteUrl: "git@github.com:test/aria.git",
+    defaultBranch: "main",
+    createdAt: now,
+    updatedAt: now,
+  });
+  repository.upsertThread({
+    ...(repository.getThread("thread-1") ?? {
+      threadId: "thread-1",
+      projectId: "project-1",
+      taskId: null,
+      title: "Tracked thread",
+      status: "running",
+      threadType: "local_project",
+      workspaceId: "workspace-local",
+      environmentId: "env-local",
+      environmentBindingId: "binding-local",
+      agentId: "codex",
+      createdAt: now,
+      updatedAt: now,
+    }),
+    repoId: "repo-1",
+    updatedAt: now + 1,
+  });
+  repository.upsertWorktree({
+    worktreeId: "worktree-1",
+    repoId: "repo-1",
+    threadId: "thread-1",
+    dispatchId: null,
+    path: "/tmp/aria-thread-1",
+    branchName: "aria/thread/thread-1",
+    baseRef: "main",
+    status: "retained",
+    createdAt: now,
+    expiresAt: now + 60_000,
+    prunedAt: null,
+  });
+}
+
 describe("aria-desktop host scaffold", () => {
   test("resolves renderer targets with desktop defaults", () => {
     expect(resolveAriaDesktopRendererTarget(undefined)).toEqual({
@@ -226,6 +269,7 @@ describe("aria-desktop host scaffold", () => {
     const repository = await createRepository("aria-desktop-host-");
     const now = Date.now();
     await seedProjectThread(repository, now);
+    seedProjectRepoAndWorktree(repository, now);
 
     const bridge = createDesktopBridge({ repository });
     const bootstrap = createAriaDesktopHostBootstrap({
@@ -244,6 +288,18 @@ describe("aria-desktop host scaffold", () => {
     expect(repository.getActiveThreadEnvironmentBinding("thread-1")?.environmentId).toBe(
       "env-remote",
     );
+    expect(bootstrap.projectsControl?.describeLocalProject("thread-1")).toMatchObject({
+      threadId: "thread-1",
+      repoId: "repo-1",
+      repoName: "aria",
+      repoRemoteUrl: "git@github.com:test/aria.git",
+      repoDefaultBranch: "main",
+      worktreeId: "worktree-1",
+      worktreePath: "/tmp/aria-thread-1",
+      worktreeBranchName: "aria/thread/thread-1",
+      worktreeBaseRef: "main",
+      worktreeStatus: "retained",
+    });
 
     repository.close();
   });
@@ -575,6 +631,7 @@ describe("aria-desktop host scaffold", () => {
     const repository = await createRepository("aria-desktop-renderer-");
     const now = Date.now();
     await seedProjectThread(repository, now);
+    seedProjectRepoAndWorktree(repository, now);
 
     const state = {
       connected: true,
@@ -662,6 +719,13 @@ describe("aria-desktop host scaffold", () => {
 
     await controller.start();
     expect(typeof controller.getModel().sourceOptions.switchThreadEnvironment).toBe("function");
+    expect(typeof controller.getModel().sourceOptions.resolveLocalProjectState).toBe("function");
+    expect(controller.getModel().activeLocalProjectState).toMatchObject({
+      repoName: "aria",
+      worktreePath: "/tmp/aria-thread-1",
+      worktreeBranchName: "aria/thread/thread-1",
+      worktreeStatus: "retained",
+    });
 
     const switched = await controller.selectEnvironment("env-remote");
 
@@ -680,6 +744,12 @@ describe("aria-desktop host scaffold", () => {
       threadType: "remote_project",
       workspaceId: "workspace-remote",
       environmentId: "env-remote",
+    });
+    expect(switched.activeLocalProjectState).toMatchObject({
+      repoName: "aria",
+      worktreePath: "/tmp/aria-thread-1",
+      worktreeBranchName: "aria/thread/thread-1",
+      worktreeStatus: "retained",
     });
 
     repository.close();

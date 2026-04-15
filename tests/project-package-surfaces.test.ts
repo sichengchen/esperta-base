@@ -112,6 +112,7 @@ describe("project package surfaces", () => {
     expect(runnableThreads[0]?.thread.workspaceId).toBe("workspace-active");
     expect(runnableThreads[0]?.thread.environmentId).toBe("env-active");
     expect(runnableThreads[0]?.thread.environmentBindingId).toBe("binding-active");
+    expect(planning.getThreadPlan("thread-1")?.thread.environmentId).toBe("env-active");
     repository.close();
   });
 
@@ -166,6 +167,8 @@ describe("project package surfaces", () => {
     worktrees.markRetained("worktree-1", now + 1_000);
 
     expect(repos.getRepo("repo-1")?.name).toBe("aria");
+    expect(worktrees.getWorktree("worktree-1")?.path).toBe("/tmp/aria-thread-1");
+    expect(worktrees.listWorktrees("repo-1", "thread/one")).toHaveLength(1);
     expect(sanitizeWorktreeSegment("thread/one")).toBe("thread_one");
     expect(repository.getWorktree("worktree-1")?.branchName).toBe("aria/thread/thread_one");
     expect(repository.getWorktree("worktree-1")?.status).toBe("retained");

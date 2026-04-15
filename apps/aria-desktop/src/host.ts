@@ -10,6 +10,7 @@ import {
 import { createDesktopBridge, type DesktopBridge } from "@aria/desktop-bridge";
 import type { AccessClientTarget } from "@aria/access-client";
 import type { ProjectRecord, ProjectsEngineRepository, ThreadRecord } from "@aria/projects";
+import type { WorktreeStatus } from "@aria/workspaces";
 
 export const ariaDesktopHost = {
   id: "aria-desktop",
@@ -35,6 +36,20 @@ export interface AriaDesktopHostBootstrap {
 export interface AriaDesktopProjectsControl {
   readonly bridge: DesktopBridge;
   switchThreadEnvironment(threadId: string, environmentId: string): ThreadRecord;
+  describeLocalProject(threadId: string): AriaDesktopLocalProjectState | undefined;
+}
+
+export interface AriaDesktopLocalProjectState {
+  readonly threadId: string;
+  readonly repoId?: string;
+  readonly repoName?: string;
+  readonly repoRemoteUrl?: string;
+  readonly repoDefaultBranch?: string;
+  readonly worktreeId?: string;
+  readonly worktreePath?: string;
+  readonly worktreeBranchName?: string;
+  readonly worktreeBaseRef?: string;
+  readonly worktreeStatus?: WorktreeStatus;
 }
 
 export interface CreateAriaDesktopHostBootstrapOptions {
@@ -73,6 +88,38 @@ export function createAriaDesktopProjectsControl(options: {
         threadId,
         environmentId,
       }).thread;
+    },
+    describeLocalProject(threadId) {
+      const threadPlan = bridge.planning.getThreadPlan(threadId);
+      if (!threadPlan) {
+        return undefined;
+      }
+
+      const repo = threadPlan.thread.repoId
+        ? bridge.git.repos.getRepo(threadPlan.thread.repoId)
+        : undefined;
+      const worktrees = bridge.git.worktrees.listWorktrees(
+        threadPlan.thread.repoId ?? undefined,
+        threadId,
+      );
+      const worktree = worktrees.find((entry) => entry.status !== "pruned") ?? worktrees[0];
+
+      if (!repo && !worktree) {
+        return undefined;
+      }
+
+      return {
+        threadId,
+        repoId: repo?.repoId ?? threadPlan.thread.repoId ?? undefined,
+        repoName: repo?.name,
+        repoRemoteUrl: repo?.remoteUrl,
+        repoDefaultBranch: repo?.defaultBranch,
+        worktreeId: worktree?.worktreeId,
+        worktreePath: worktree?.path,
+        worktreeBranchName: worktree?.branchName,
+        worktreeBaseRef: worktree?.baseRef,
+        worktreeStatus: worktree?.status,
+      };
     },
   };
 }

@@ -30,6 +30,13 @@ export interface RunnableThreadPlan {
   blockers: ReturnType<typeof getThreadBlockers>;
 }
 
+export interface ThreadPlan {
+  thread: ThreadRecord;
+  task?: TaskRecord;
+  dispatches: DispatchRecord[];
+  blockers: ReturnType<typeof getThreadBlockers>;
+}
+
 export interface RunnableDispatchPlan {
   dispatch: DispatchRecord;
   thread?: ThreadRecord;
@@ -107,6 +114,27 @@ export class ProjectsPlanningService {
     private readonly clock: PlanningClock = { now: () => Date.now() },
   ) {}
 
+  getThreadPlan(threadId: string): ThreadPlan | undefined {
+    const thread = this.repository.getThread(threadId);
+    if (!thread) {
+      return undefined;
+    }
+
+    const resolvedThread = resolveThreadForPlanning(this.repository, thread);
+    const task = resolvedThread.taskId ? this.repository.getTask(resolvedThread.taskId) : undefined;
+    const dispatches = this.repository.listDispatches(
+      resolvedThread.threadId,
+      resolvedThread.taskId ?? undefined,
+    );
+
+    return {
+      thread: resolvedThread,
+      task,
+      dispatches,
+      blockers: getThreadBlockers(resolvedThread, task, dispatches),
+    };
+  }
+
   listRunnableTasks(filter: PlanningFilter = {}): RunnableTaskPlan[] {
     const tasks = this.repository.listTasks(filter.projectId, filter.repoId);
     const plans = tasks
@@ -129,22 +157,8 @@ export class ProjectsPlanningService {
     const threads = this.repository.listThreads(filter.projectId);
     const plans = threads
       .filter((thread) => !filter.repoId || thread.repoId === filter.repoId)
-      .map((thread) => {
-        const resolvedThread = resolveThreadForPlanning(this.repository, thread);
-        const task = resolvedThread.taskId
-          ? this.repository.getTask(resolvedThread.taskId)
-          : undefined;
-        const dispatches = this.repository.listDispatches(
-          resolvedThread.threadId,
-          resolvedThread.taskId ?? undefined,
-        );
-        return {
-          thread: resolvedThread,
-          task,
-          dispatches,
-          blockers: getThreadBlockers(resolvedThread, task, dispatches),
-        };
-      })
+      .map((thread) => this.getThreadPlan(thread.threadId))
+      .filter((plan): plan is ThreadPlan => Boolean(plan))
       .filter((plan) => plan.blockers.length === 0 && isRunnableThreadStatus(plan.thread.status));
 
     plans.sort(compareByWorkPriority);

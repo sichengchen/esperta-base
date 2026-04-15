@@ -73,6 +73,8 @@ export interface AriaDesktopApplicationBootstrap {
   projectsControl?: AriaDesktopProjectsControl;
 }
 
+export type { AriaDesktopLocalProjectState } from "./host.js";
+
 export interface AriaDesktopAriaThread {
   controller: AriaChatController;
   state: AriaChatState;

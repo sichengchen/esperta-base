@@ -52,6 +52,7 @@ This plan continues `docs/development/new-architecture-implementation-plan.md` a
 - The pack build now externalizes Bun-native modules explicitly, removing the prior `bun` and `bun:sqlite` unresolved-import warning noise from the green build.
 - The platform-complete gate currently runs green end-to-end through `bun run verify`.
 - Desktop host composition now injects a real bridge-backed project environment-switch callback by default when a desktop bridge or projects repository is supplied, instead of relying on the shell's in-memory fallback path.
+- Desktop shell models can now derive and display tracked repo/worktree state for the active local project thread through the desktop-local boundary.
 
 ### Not Completed
 

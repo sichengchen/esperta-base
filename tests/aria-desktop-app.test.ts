@@ -258,6 +258,18 @@ describe("aria-desktop app assembly", () => {
           target: { serverId: "home", baseUrl: "https://aria.example.test/" },
         },
       ],
+      resolveLocalProjectState(threadId) {
+        return {
+          threadId,
+          repoName: "aria",
+          repoRemoteUrl: "git@github.com:test/aria.git",
+          repoDefaultBranch: "main",
+          worktreePath: "/tmp/aria-thread-1",
+          worktreeBranchName: "aria/thread/thread-1",
+          worktreeBaseRef: "main",
+          worktreeStatus: "retained",
+        };
+      },
     });
 
     expect(isValidElement(built.element)).toBeTrue();
@@ -265,6 +277,12 @@ describe("aria-desktop app assembly", () => {
     const builtElement = asElementWithProps(built.element);
     expect(builtElement.props.model).toBe(built.model);
     expect(built.model.activeServerLabel).toBe("Home Server");
+    expect(built.model.activeLocalProjectState).toMatchObject({
+      repoName: "aria",
+      worktreePath: "/tmp/aria-thread-1",
+      worktreeBranchName: "aria/thread/thread-1",
+      worktreeStatus: "retained",
+    });
 
     const rendered = AriaDesktopAppShell({ model: built.model });
     const [topChrome, workbench, statusStrip] = childElements(asElementWithProps(rendered));
@@ -278,6 +296,7 @@ describe("aria-desktop app assembly", () => {
     expect(rail.props["data-slot"]).toBe("right-rail");
 
     const text = collectTextContent(rendered).join(" ");
+    const normalizedText = text.replace(/\s+/g, " ");
 
     expect(text).toContain("Aria Desktop");
     expect(text).toContain("Home Server");
@@ -288,8 +307,13 @@ describe("aria-desktop app assembly", () => {
     expect(text).toContain("messages + runs");
     expect(text).toContain("Context Panels");
     expect(text).toContain("Home Server / main");
-    expect(text.replace(/\s+/g, " ")).toContain("Aria thread: disconnected");
-    expect(text.replace(/\s+/g, " ")).toContain("Status: disconnected");
+    expect(text).toContain("Repo:");
+    expect(text).toContain("git@github.com:test/aria.git");
+    expect(text).toContain("/tmp/aria-thread-1");
+    expect(text).toContain("aria/thread/thread-1");
+    expect(normalizedText).toContain("Worktree status: retained");
+    expect(normalizedText).toContain("Aria thread: disconnected");
+    expect(normalizedText).toContain("Status: disconnected");
     expect(text.replace(/\s+/g, " ")).toContain("Aria chat messages: 0");
     expect(text).toContain("Send");
     expect(text).toContain("Stop");

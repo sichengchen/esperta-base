@@ -16,6 +16,7 @@ import type { DesktopBridge } from "@aria/desktop-bridge";
 import type { ProjectsEngineRepository, ThreadRecord } from "@aria/projects";
 import type { ReactElement, ReactNode } from "react";
 import { createAriaDesktopApplicationBootstrap, createAriaDesktopAriaThread } from "./app.js";
+import type { AriaDesktopLocalProjectState } from "./host.js";
 
 type AriaDesktopProjectThread = NonNullable<
   CreateAriaDesktopShellOptions["projects"]
@@ -42,6 +43,7 @@ export interface CreateAriaDesktopAppShellModelOptions {
     threadId: string,
     environmentId: string,
   ) => AriaDesktopEnvironmentSwitchThread;
+  resolveLocalProjectState?: (threadId: string) => AriaDesktopLocalProjectState | undefined;
 }
 
 export interface AriaDesktopAppShellSourceOptions extends Omit<
@@ -59,7 +61,19 @@ export interface AriaDesktopAppShellModel {
   activeContextPanelId: (typeof ariaDesktopContextPanels)[number]["id"];
   ariaThread: ReturnType<typeof createAriaDesktopAriaThread>;
   ariaRecentSessions: AriaChatSessionSummary[];
+  activeLocalProjectState?: AriaDesktopLocalProjectState;
   sourceOptions: AriaDesktopAppShellSourceOptions;
+}
+
+function resolveActiveLocalProjectState(
+  threadId: string | undefined,
+  resolver: ((threadId: string) => AriaDesktopLocalProjectState | undefined) | undefined,
+): AriaDesktopLocalProjectState | undefined {
+  if (!threadId || !resolver) {
+    return undefined;
+  }
+
+  return resolver(threadId);
 }
 
 function deriveProjectsFromInitialThread(
@@ -290,6 +304,15 @@ export function createAriaDesktopAppShellModel(
   });
   const switchThreadEnvironment =
     options.switchThreadEnvironment ?? bootstrap.projectsControl?.switchThreadEnvironment;
+  const resolveLocalProjectState =
+    options.resolveLocalProjectState ?? bootstrap.projectsControl?.describeLocalProject;
+  const activeThreadContext =
+    options.activeThreadContext ??
+    deriveActiveThreadFromInitialThread(
+      options.initialThread,
+      bootstrap.bootstrap.activeServerLabel,
+      options.environments,
+    );
   const shell = createAriaDesktopShell({
     target: options.target,
     initialThread: options.initialThread,
@@ -297,13 +320,7 @@ export function createAriaDesktopAppShellModel(
     activeServerId: options.activeServerId,
     projects: options.projects ?? deriveProjectsFromInitialThread(options.initialThread),
     environments: options.environments,
-    activeThreadContext:
-      options.activeThreadContext ??
-      deriveActiveThreadFromInitialThread(
-        options.initialThread,
-        bootstrap.bootstrap.activeServerLabel,
-        options.environments,
-      ),
+    activeThreadContext,
   });
 
   return {
@@ -321,6 +338,10 @@ export function createAriaDesktopAppShellModel(
       state: options.ariaThreadState,
     }),
     ariaRecentSessions: [],
+    activeLocalProjectState: resolveActiveLocalProjectState(
+      activeThreadContext?.thread.threadId,
+      resolveLocalProjectState,
+    ),
     sourceOptions: {
       target: options.target,
       initialThread: options.initialThread,
@@ -335,6 +356,7 @@ export function createAriaDesktopAppShellModel(
       desktopBridge: options.desktopBridge,
       projectsRepository: options.projectsRepository,
       switchThreadEnvironment,
+      resolveLocalProjectState,
     },
   };
 }
@@ -647,14 +669,40 @@ export function AriaDesktopAppShell(props: AriaDesktopAppShellProps): ReactEleme
           {section(
             "context-panels",
             "Context Panels",
-            <ul>
-              {model.application.contextPanels.map((panel) => (
-                <li key={panel.id}>
-                  {panel.label}
-                  {panel.id === model.activeContextPanelId ? " (active)" : ""}
-                </li>
-              ))}
-            </ul>,
+            <div>
+              <ul>
+                {model.application.contextPanels.map((panel) => (
+                  <li key={panel.id}>
+                    {panel.label}
+                    {panel.id === model.activeContextPanelId ? " (active)" : ""}
+                  </li>
+                ))}
+              </ul>
+              {model.activeLocalProjectState ? (
+                <div data-slot="local-project-state">
+                  <p>
+                    Repo:{" "}
+                    {model.activeLocalProjectState.repoName ??
+                      model.activeLocalProjectState.repoId ??
+                      "unknown"}
+                  </p>
+                  <p>
+                    Remote: {model.activeLocalProjectState.repoRemoteUrl ?? "unknown"}
+                    {model.activeLocalProjectState.repoDefaultBranch
+                      ? ` | Default branch: ${model.activeLocalProjectState.repoDefaultBranch}`
+                      : ""}
+                  </p>
+                  <p>Worktree: {model.activeLocalProjectState.worktreePath ?? "not attached"}</p>
+                  <p>
+                    Branch: {model.activeLocalProjectState.worktreeBranchName ?? "n/a"}
+                    {model.activeLocalProjectState.worktreeBaseRef
+                      ? ` | Base: ${model.activeLocalProjectState.worktreeBaseRef}`
+                      : ""}
+                  </p>
+                  <p>Worktree status: {model.activeLocalProjectState.worktreeStatus ?? "n/a"}</p>
+                </div>
+              ) : null}
+            </div>,
           )}
         </aside>
       </main>

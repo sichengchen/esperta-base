@@ -12,6 +12,14 @@ export function buildBranchName(threadId: string): string {
 export class ProjectsWorktreeService {
   constructor(private readonly repository: ProjectsEngineRepository) {}
 
+  getWorktree(worktreeId: string): WorktreeRecord | undefined {
+    return this.repository.getWorktree(worktreeId);
+  }
+
+  listWorktrees(repoId?: string, threadId?: string): WorktreeRecord[] {
+    return this.repository.listWorktrees(repoId, threadId);
+  }
+
   registerWorktree(worktree: WorktreeRecord): void {
     this.repository.upsertWorktree(worktree);
   }

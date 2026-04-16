@@ -5,6 +5,7 @@
   "type": "module",
   "main": "./dist/electron-main.js",
   "scripts": {
+    "dev": "bun ./scripts/dev.ts",
     "dev:renderer": "vite --config ./vite.config.ts",
     "dev:host": "bun run build:host && ARIA_DESKTOP_DEV_SERVER_URL=http://127.0.0.1:5173 electron ./dist/electron-main.js",
     "build:renderer": "vite build --config ./vite.config.ts",

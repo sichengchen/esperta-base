@@ -34,7 +34,7 @@ One tracked dispatch creates one runtime execution.
 
 ```bash
 bun install
-bun run dev
+bun run dev:server
 ```
 
 On first run, Aria writes operator state under `~/.aria/` and opens the onboarding flow if needed.
@@ -120,6 +120,9 @@ vp run repo:verify
 Convenience wrappers are also available:
 
 ```bash
+bun run dev:server
+bun run dev:desktop
+bun run dev:mobile
 bun run check
 bun run test
 bun run build

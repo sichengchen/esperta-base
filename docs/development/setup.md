@@ -17,7 +17,15 @@ bun install
 ## Local Run
 
 ```bash
-bun run dev
+bun run dev:server
+```
+
+App-specific dev commands:
+
+```bash
+bun run dev:server
+bun run dev:desktop
+bun run dev:mobile
 ```
 
 Use `ARIA_HOME=/tmp/aria-dev` when you want an isolated runtime home.

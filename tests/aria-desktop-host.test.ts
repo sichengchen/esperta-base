@@ -363,6 +363,61 @@ describe("aria-desktop host scaffold", () => {
     ]);
   });
 
+  test("starts a desktop renderer model even when the server is unavailable", async () => {
+    const disconnectedState = {
+      connected: false,
+      sessionId: null,
+      sessionStatus: "disconnected" as const,
+      approvalMode: "ask" as const,
+      securityMode: "default" as const,
+      securityModeRemainingTTL: null,
+      modelName: "unknown",
+      agentName: "Esperta Aria",
+      messages: [
+        {
+          role: "error" as const,
+          content: "Failed to connect to Aria Server: fetch failed",
+        },
+      ],
+      streamingText: "",
+      isStreaming: false,
+      pendingApproval: null,
+      pendingQuestion: null,
+      lastError: "fetch failed",
+    };
+    const controller = {
+      getState: () => disconnectedState,
+      connect: async () => disconnectedState,
+      sendMessage: async () => disconnectedState,
+      stop: async () => disconnectedState,
+      openSession: async () => disconnectedState,
+      approveToolCall: async () => disconnectedState,
+      acceptToolCallForSession: async () => disconnectedState,
+      answerQuestion: async () => disconnectedState,
+      listSessions: async () => {
+        throw new Error("server offline");
+      },
+      listArchivedSessions: async () => {
+        throw new Error("server offline");
+      },
+      searchSessions: async () => [],
+    };
+
+    const model = await startAriaDesktopRendererModel({
+      target: { serverId: "desktop", baseUrl: "http://127.0.0.1:7420/" },
+      ariaThreadController: controller as any,
+    });
+
+    expect(model.ariaThread.state.connected).toBe(false);
+    expect(model.ariaThread.state.sessionStatus).toBe("disconnected");
+    expect(model.ariaThread.state.lastError).toBe("server offline");
+    expect(model.ariaThread.state.messages.at(-1)).toEqual({
+      role: "error",
+      content: "Desktop could not reach Aria Server: server offline",
+    });
+    expect(model.ariaRecentSessions).toEqual([]);
+  });
+
   test("switches a desktop renderer model to another server", async () => {
     const relayState = {
       connected: true,

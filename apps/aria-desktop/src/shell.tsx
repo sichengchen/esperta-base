@@ -737,18 +737,59 @@ export function AriaDesktopAppShell(props: AriaDesktopAppShellProps): ReactEleme
 
 export interface CreateAriaDesktopAppShellOptions extends CreateAriaDesktopAppShellModelOptions {}
 
+function desktopAriaErrorMessage(error: unknown): string {
+  return error instanceof Error ? error.message : String(error);
+}
+
+function buildDesktopOfflineState(
+  model: AriaDesktopAppShellModel,
+  error: unknown,
+): AriaDesktopAppShellModel["ariaThread"]["state"] {
+  const currentState = model.ariaThread.controller.getState();
+  const message = `Desktop could not reach Aria Server: ${desktopAriaErrorMessage(error)}`;
+  const hasMessage = currentState.messages.some(
+    (entry) => entry.role === "error" && entry.content === message,
+  );
+
+  return {
+    ...currentState,
+    connected: false,
+    sessionStatus: currentState.sessionId ? currentState.sessionStatus : "disconnected",
+    lastError: desktopAriaErrorMessage(error),
+    messages: hasMessage
+      ? currentState.messages
+      : [...currentState.messages, { role: "error", content: message }],
+  };
+}
+
+async function syncDesktopAriaThreadState(
+  model: AriaDesktopAppShellModel,
+  action: () => Promise<unknown>,
+): Promise<AriaDesktopAppShellModel> {
+  try {
+    await action();
+    return {
+      ...model,
+      ariaThread: {
+        ...model.ariaThread,
+        state: model.ariaThread.controller.getState(),
+      },
+    };
+  } catch (error) {
+    return {
+      ...model,
+      ariaThread: {
+        ...model.ariaThread,
+        state: buildDesktopOfflineState(model, error),
+      },
+    };
+  }
+}
+
 export async function connectAriaDesktopAppShellModel(
   model: AriaDesktopAppShellModel,
 ): Promise<AriaDesktopAppShellModel> {
-  await model.ariaThread.controller.connect();
-
-  return {
-    ...model,
-    ariaThread: {
-      ...model.ariaThread,
-      state: model.ariaThread.controller.getState(),
-    },
-  };
+  return syncDesktopAriaThreadState(model, () => model.ariaThread.controller.connect());
 }
 
 export async function createConnectedAriaDesktopAppShellModel(
@@ -789,44 +830,20 @@ export async function sendAriaDesktopAppShellMessage(
   model: AriaDesktopAppShellModel,
   message: string,
 ): Promise<AriaDesktopAppShellModel> {
-  await model.ariaThread.controller.sendMessage(message);
-
-  return {
-    ...model,
-    ariaThread: {
-      ...model.ariaThread,
-      state: model.ariaThread.controller.getState(),
-    },
-  };
+  return syncDesktopAriaThreadState(model, () => model.ariaThread.controller.sendMessage(message));
 }
 
 export async function stopAriaDesktopAppShell(
   model: AriaDesktopAppShellModel,
 ): Promise<AriaDesktopAppShellModel> {
-  await model.ariaThread.controller.stop();
-
-  return {
-    ...model,
-    ariaThread: {
-      ...model.ariaThread,
-      state: model.ariaThread.controller.getState(),
-    },
-  };
+  return syncDesktopAriaThreadState(model, () => model.ariaThread.controller.stop());
 }
 
 export async function openAriaDesktopAppShellSession(
   model: AriaDesktopAppShellModel,
   sessionId: string,
 ): Promise<AriaDesktopAppShellModel> {
-  await model.ariaThread.controller.openSession(sessionId);
-
-  return {
-    ...model,
-    ariaThread: {
-      ...model.ariaThread,
-      state: model.ariaThread.controller.getState(),
-    },
-  };
+  return syncDesktopAriaThreadState(model, () => model.ariaThread.controller.openSession(sessionId));
 }
 
 export async function approveAriaDesktopAppShellToolCall(
@@ -834,30 +851,18 @@ export async function approveAriaDesktopAppShellToolCall(
   toolCallId: string,
   approved: boolean,
 ): Promise<AriaDesktopAppShellModel> {
-  await model.ariaThread.controller.approveToolCall(toolCallId, approved);
-
-  return {
-    ...model,
-    ariaThread: {
-      ...model.ariaThread,
-      state: model.ariaThread.controller.getState(),
-    },
-  };
+  return syncDesktopAriaThreadState(model, () =>
+    model.ariaThread.controller.approveToolCall(toolCallId, approved),
+  );
 }
 
 export async function acceptAriaDesktopAppShellToolCallForSession(
   model: AriaDesktopAppShellModel,
   toolCallId: string,
 ): Promise<AriaDesktopAppShellModel> {
-  await model.ariaThread.controller.acceptToolCallForSession(toolCallId);
-
-  return {
-    ...model,
-    ariaThread: {
-      ...model.ariaThread,
-      state: model.ariaThread.controller.getState(),
-    },
-  };
+  return syncDesktopAriaThreadState(model, () =>
+    model.ariaThread.controller.acceptToolCallForSession(toolCallId),
+  );
 }
 
 export async function answerAriaDesktopAppShellQuestion(
@@ -865,39 +870,55 @@ export async function answerAriaDesktopAppShellQuestion(
   questionId: string,
   answer: string,
 ): Promise<AriaDesktopAppShellModel> {
-  await model.ariaThread.controller.answerQuestion(questionId, answer);
-
-  return {
-    ...model,
-    ariaThread: {
-      ...model.ariaThread,
-      state: model.ariaThread.controller.getState(),
-    },
-  };
+  return syncDesktopAriaThreadState(model, () =>
+    model.ariaThread.controller.answerQuestion(questionId, answer),
+  );
 }
 
 export async function loadAriaDesktopAppShellRecentSessions(
   model: AriaDesktopAppShellModel,
 ): Promise<AriaDesktopAppShellModel> {
-  const [live, archived] = await Promise.all([
-    model.ariaThread.controller.listSessions(),
-    model.ariaThread.controller.listArchivedSessions(),
-  ]);
+  try {
+    const [live, archived] = await Promise.all([
+      model.ariaThread.controller.listSessions(),
+      model.ariaThread.controller.listArchivedSessions(),
+    ]);
 
-  return {
-    ...model,
-    ariaRecentSessions: [...live, ...archived],
-  };
+    return {
+      ...model,
+      ariaRecentSessions: [...live, ...archived],
+    };
+  } catch (error) {
+    return {
+      ...model,
+      ariaThread: {
+        ...model.ariaThread,
+        state: buildDesktopOfflineState(model, error),
+      },
+      ariaRecentSessions: [],
+    };
+  }
 }
 
 export async function searchAriaDesktopAppShellSessions(
   model: AriaDesktopAppShellModel,
   query: string,
 ): Promise<AriaDesktopAppShellModel> {
-  return {
-    ...model,
-    ariaRecentSessions: await model.ariaThread.controller.searchSessions(query),
-  };
+  try {
+    return {
+      ...model,
+      ariaRecentSessions: await model.ariaThread.controller.searchSessions(query),
+    };
+  } catch (error) {
+    return {
+      ...model,
+      ariaThread: {
+        ...model.ariaThread,
+        state: buildDesktopOfflineState(model, error),
+      },
+      ariaRecentSessions: [],
+    };
+  }
 }
 
 export async function switchAriaDesktopAppShellServer(

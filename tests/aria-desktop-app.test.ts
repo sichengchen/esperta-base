@@ -428,6 +428,45 @@ describe("aria-desktop app assembly", () => {
     expect(text).toContain("Latest Aria message: hello world");
   });
 
+  test("keeps the desktop shell usable when sending without a server connection", async () => {
+    const disconnectedState = {
+      connected: false,
+      sessionId: null,
+      sessionStatus: "disconnected" as const,
+      approvalMode: "ask" as const,
+      securityMode: "default" as const,
+      securityModeRemainingTTL: null,
+      modelName: "unknown",
+      agentName: "Esperta Aria",
+      messages: [],
+      streamingText: "",
+      isStreaming: false,
+      pendingApproval: null,
+      pendingQuestion: null,
+      lastError: null,
+    };
+    const controller = {
+      getState: () => disconnectedState,
+      connect: async () => disconnectedState,
+      sendMessage: async () => {
+        throw new Error("server offline");
+      },
+    };
+
+    const model = createAriaDesktopAppShellModel({
+      target: { serverId: "desktop", baseUrl: "http://127.0.0.1:7420/" },
+      ariaThreadController: controller as any,
+    });
+
+    const updated = await sendAriaDesktopAppShellMessage(model, "hi");
+    expect(updated.ariaThread.state.connected).toBe(false);
+    expect(updated.ariaThread.state.lastError).toBe("server offline");
+    expect(updated.ariaThread.state.messages.at(-1)).toEqual({
+      role: "error",
+      content: "Desktop could not reach Aria Server: server offline",
+    });
+  });
+
   test("renders pending aria interactions in the desktop shell", () => {
     const model = createAriaDesktopAppShellModel({
       target: { serverId: "desktop", baseUrl: "http://127.0.0.1:7420/" },

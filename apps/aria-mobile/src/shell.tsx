@@ -77,6 +77,14 @@ function renderThreadSignals(shell: AriaMobileShell): ReactElement {
           <dd>{activeThread?.automationLabel ?? "Idle"}</dd>
         </div>
         <div>
+          <dt>Notifications</dt>
+          <dd>{activeThread?.notificationLabel ?? "Server-managed"}</dd>
+        </div>
+        <div>
+          <dt>Attachments</dt>
+          <dd>{activeThread?.attachmentLabel ?? "Remote fetch ready"}</dd>
+        </div>
+        <div>
           <dt>Remote review</dt>
           <dd>{activeThread?.remoteReviewLabel ?? "Ready"}</dd>
         </div>
@@ -105,7 +113,10 @@ export function AriaMobileApplicationShell(props: AriaMobileApplicationShellProp
       <header>
         <h1>{ariaMobileApplication.displayName}</h1>
         <p>{ariaMobileApplication.startup.landingDescription}</p>
-        <small>Remote-first stacked shell with approvals, reconnect, and project review.</small>
+        <small>
+          Remote-first stacked shell with approvals, notifications, attachments, reconnect, and
+          project review.
+        </small>
         {renderServerSwitcher(props.shell, props.onSwitchServer)}
       </header>
 
@@ -120,7 +131,10 @@ export function AriaMobileApplicationShell(props: AriaMobileApplicationShellProp
       <main>
         <section data-space-id="aria">
           <h2>Aria</h2>
-          <p>Server chat, inbox, automations, and connectors stay in the remote control plane.</p>
+          <p>
+            Server chat, inbox, automations, connectors, notifications, and attachment handoff stay
+            in the remote control plane.
+          </p>
           <p>
             Aria thread:{" "}
             {props.shell.ariaThread.state.connected

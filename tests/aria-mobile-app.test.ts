@@ -53,6 +53,8 @@ describe("Aria mobile app surface", () => {
               agentId: "codex",
               approvalLabel: "2 approvals pending",
               automationLabel: "Automation queued",
+              notificationLabel: "Push ready via relay",
+              attachmentLabel: "2 attachments ready",
               remoteReviewLabel: "Ready for remote review",
               connectionLabel: "Connected to Home Server",
               reconnectLabel: "Reconnect after sleep",
@@ -70,6 +72,8 @@ describe("Aria mobile app surface", () => {
           agentId: "codex",
           approvalLabel: "2 approvals pending",
           automationLabel: "Automation queued",
+          notificationLabel: "Push ready via relay",
+          attachmentLabel: "2 attachments ready",
           remoteReviewLabel: "Ready for remote review",
           connectionLabel: "Connected to Home Server",
           reconnectLabel: "Reconnect after sleep",
@@ -81,6 +85,8 @@ describe("Aria mobile app surface", () => {
           threadType: "remote_project",
           approvalLabel: "2 approvals pending",
           automationLabel: "Automation queued",
+          notificationLabel: "Push ready via relay",
+          attachmentLabel: "2 attachments ready",
           remoteReviewLabel: "Ready for remote review",
           connectionLabel: "Connected to Home Server",
           reconnectLabel: "Reconnect after sleep",
@@ -164,6 +170,8 @@ describe("Aria mobile app surface", () => {
       connectionLabel: "Connected to Home Server",
       approvalLabel: "2 approvals pending",
       automationLabel: "Automation queued",
+      notificationLabel: "Push ready via relay",
+      attachmentLabel: "2 attachments ready",
       remoteReviewLabel: "Ready for remote review",
       reconnectLabel: "Reconnect after sleep",
     });
@@ -260,6 +268,8 @@ describe("Aria mobile app surface", () => {
         thread: {
           threadId: "thread-9",
           threadType: "remote_project",
+          notificationLabel: "Push ready via relay",
+          attachmentLabel: "1 artifact ready",
           reconnectLabel: "Reconnect after sleep",
         },
         serverLabel: "Home Server",
@@ -287,6 +297,8 @@ describe("Aria mobile app surface", () => {
         thread: {
           threadId: "thread-9",
           threadType: "remote_project",
+          notificationLabel: "Push ready via relay",
+          attachmentLabel: "1 artifact ready",
           reconnectLabel: "Reconnect after sleep",
         },
         serverLabel: "Home Server",
@@ -299,6 +311,8 @@ describe("Aria mobile app surface", () => {
     };
     expect(rootProps.shell.layout.threadListScreen.mode).toBe("project-first");
     expect(rootProps.shell.app.capabilities).toContain("reconnect");
+    expect(rootProps.shell.app.capabilities).toContain("notifications");
+    expect(rootProps.shell.app.capabilities).toContain("attachments");
 
     const rendered = AriaMobileApplicationShell({ shell: rootProps.shell });
     const renderedProps = rendered.props as Record<string, unknown>;

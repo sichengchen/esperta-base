@@ -44,6 +44,8 @@ describe("aria-mobile native host scaffold", () => {
       latestMessage: "hello",
       pendingApproval: "none",
       pendingQuestion: "none",
+      notificationState: "Server-managed",
+      attachmentState: "Remote fetch ready",
       recentSessions: [],
     });
   });

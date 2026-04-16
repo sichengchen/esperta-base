@@ -16,10 +16,14 @@
     "assetBundlePatterns": ["**/*"],
     "ios": {
       "supportsTablet": true,
-      "bundleIdentifier": "dev.esperta.ariamobile"
+      "bundleIdentifier": "dev.esperta.ariamobile",
+      "infoPlist": {
+        "UIBackgroundModes": ["remote-notification"]
+      }
     },
     "android": {
-      "package": "dev.esperta.ariamobile"
+      "package": "dev.esperta.ariamobile",
+      "permissions": ["POST_NOTIFICATIONS"]
     }
   }
 }

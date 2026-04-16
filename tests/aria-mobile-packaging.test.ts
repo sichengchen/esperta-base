@@ -39,8 +39,12 @@ describe("aria-mobile packaging surface", () => {
         userInterfaceStyle?: string;
         runtimeVersion?: { policy?: string };
         updates?: { fallbackToCacheTimeout?: number };
-        ios?: { supportsTablet?: boolean; bundleIdentifier?: string };
-        android?: { package?: string };
+        ios?: {
+          supportsTablet?: boolean;
+          bundleIdentifier?: string;
+          infoPlist?: { UIBackgroundModes?: string[] };
+        };
+        android?: { package?: string; permissions?: string[] };
       };
     };
 
@@ -59,9 +63,13 @@ describe("aria-mobile packaging surface", () => {
       ios: {
         supportsTablet: true,
         bundleIdentifier: "dev.esperta.ariamobile",
+        infoPlist: {
+          UIBackgroundModes: ["remote-notification"],
+        },
       },
       android: {
         package: "dev.esperta.ariamobile",
+        permissions: ["POST_NOTIFICATIONS"],
       },
     });
   });

@@ -1,8 +1,8 @@
-# New Architecture
+# Architecture
 
-This folder defines the target-state architecture for the new Aria product shape.
+This folder defines the canonical architecture for Esperta Aria.
 
-It is intentionally forward-looking. It does not describe the current repo as-is. It describes the architecture the repo should keep moving toward:
+It is the architecture the repo should keep aligned to:
 
 - `Aria Server` hosts `Aria Agent`
 - `Aria Agent` is the only component that owns Aria-managed memory, context, IM connectors, and automation

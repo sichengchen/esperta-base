@@ -6,29 +6,29 @@ This tree is organized by reader intent, not by the old code layout.
 
 - Product overview: [product/overview.md](./product/overview.md)
 - Getting started as an operator: [operator/getting-started.md](./operator/getting-started.md)
-- System map: [new-architecture/README.md](./new-architecture/README.md)
+- System map: [architecture/README.md](./architecture/README.md)
 - Security model: [security/README.md](./security/README.md)
 - Contributing and shipping: [development/README.md](./development/README.md)
 
 ## Documentation Map
 
-### Target Architecture
+### Architecture
 
-- [new-architecture/README.md](./new-architecture/README.md)
-- [new-architecture/overview.md](./new-architecture/overview.md)
-- [new-architecture/deployment.md](./new-architecture/deployment.md)
-- [new-architecture/runtime.md](./new-architecture/runtime.md)
-- [new-architecture/prompt-engine.md](./new-architecture/prompt-engine.md)
-- [new-architecture/tool-runtime.md](./new-architecture/tool-runtime.md)
-- [new-architecture/automation.md](./new-architecture/automation.md)
-- [new-architecture/interaction-protocol.md](./new-architecture/interaction-protocol.md)
-- [new-architecture/relay.md](./new-architecture/relay.md)
-- [new-architecture/handoff.md](./new-architecture/handoff.md)
-- [new-architecture/server.md](./new-architecture/server.md)
-- [new-architecture/desktop-and-mobile.md](./new-architecture/desktop-and-mobile.md)
-- [new-architecture/tech-decisions.md](./new-architecture/tech-decisions.md)
-- [new-architecture/domain-model.md](./new-architecture/domain-model.md)
-- [new-architecture/packages.md](./new-architecture/packages.md)
+- [architecture/README.md](./architecture/README.md)
+- [architecture/overview.md](./architecture/overview.md)
+- [architecture/deployment.md](./architecture/deployment.md)
+- [architecture/runtime.md](./architecture/runtime.md)
+- [architecture/prompt-engine.md](./architecture/prompt-engine.md)
+- [architecture/tool-runtime.md](./architecture/tool-runtime.md)
+- [architecture/automation.md](./architecture/automation.md)
+- [architecture/interaction-protocol.md](./architecture/interaction-protocol.md)
+- [architecture/relay.md](./architecture/relay.md)
+- [architecture/handoff.md](./architecture/handoff.md)
+- [architecture/server.md](./architecture/server.md)
+- [architecture/desktop-and-mobile.md](./architecture/desktop-and-mobile.md)
+- [architecture/tech-decisions.md](./architecture/tech-decisions.md)
+- [architecture/domain-model.md](./architecture/domain-model.md)
+- [architecture/packages.md](./architecture/packages.md)
 
 ### Product
 
@@ -77,15 +77,6 @@ This tree is organized by reader intent, not by the old code layout.
 - [development/testing.md](./development/testing.md)
 - [development/release.md](./development/release.md)
 - [development/migration.md](./development/migration.md)
-- [development/final-wave-implementation-plan.md](./development/final-wave-implementation-plan.md)
-- [development/phase-13-relay-service-seam-ledger.md](./development/phase-13-relay-service-seam-ledger.md)
-- [development/package-extraction-ledger.md](./development/package-extraction-ledger.md)
-- [development/phase-2-extraction-ledger.md](./development/phase-2-extraction-ledger.md)
-- [development/phase-4-server-package-seams-ledger.md](./development/phase-4-server-package-seams-ledger.md)
-- [development/phase-5-server-app-seam-ledger.md](./development/phase-5-server-app-seam-ledger.md)
-- [development/phase-6-client-app-seams-ledger.md](./development/phase-6-client-app-seams-ledger.md)
-- [development/phase-8-client-shell-seams-ledger.md](./development/phase-8-client-shell-seams-ledger.md)
-- [development/phase-9-architecture-truth-table.md](./development/phase-9-architecture-truth-table.md)
 
 ## Documentation Rule
 

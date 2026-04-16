@@ -1,6 +1,6 @@
 # Domain Model
 
-This page defines the persistent and protocol-facing object model for the new architecture.
+This page defines the persistent and protocol-facing object model for the canonical architecture.
 
 ## Core Hierarchy
 

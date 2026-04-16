@@ -11,6 +11,10 @@
     "build:host": "bun build ./src/electron-main.ts ./src/electron-preload.ts --outdir ./dist --target node --external electron",
     "build": "bun run build:renderer && bun run build:host",
     "smoke:build": "bun run build && bun -e \"for (const path of ['./dist/electron-main.js', './dist/electron-preload.js', './dist/renderer/index.html']) { if (!(await Bun.file(path).exists())) throw new Error('Missing ' + path) }\"",
+    "package:dir": "bun run build && bunx electron-builder --config ./electron-builder.json --dir",
+    "dist:mac": "bun run build && bunx electron-builder --config ./electron-builder.json --mac dmg zip",
+    "dist:linux": "bun run build && bunx electron-builder --config ./electron-builder.json --linux AppImage zip",
+    "dist:win": "bun run build && bunx electron-builder --config ./electron-builder.json --win nsis zip",
     "start": "bun run build && electron ./dist/electron-main.js"
   },
   "dependencies": {

@@ -16,6 +16,8 @@ export interface AriaMobileNativeHostModel {
   latestMessage: string;
   pendingApproval: string;
   pendingQuestion: string;
+  notificationState: string;
+  attachmentState: string;
   recentSessions: Array<{
     sessionId: string;
     kind: "live" | "archived";
@@ -44,6 +46,8 @@ export function createAriaMobileNativeHostModel(
     latestMessage: shell.ariaThread.state.messages.at(-1)?.content ?? "No transcript yet",
     pendingApproval: shell.ariaThread.state.pendingApproval?.toolName ?? "none",
     pendingQuestion: shell.ariaThread.state.pendingQuestion?.question ?? "none",
+    notificationState: shell.activeThreadContext?.notificationLabel ?? "Server-managed",
+    attachmentState: shell.activeThreadContext?.attachmentLabel ?? "Remote fetch ready",
     recentSessions: shell.ariaRecentSessions.map((session) => ({
       sessionId: session.sessionId,
       kind: session.archived ? "archived" : "live",

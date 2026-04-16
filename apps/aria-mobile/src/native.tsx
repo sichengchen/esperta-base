@@ -65,6 +65,8 @@ export function AriaMobileNativeHost() {
       <Text>Latest message: {model.latestMessage}</Text>
       <Text>Pending approval: {model.pendingApproval}</Text>
       <Text>Pending question: {model.pendingQuestion}</Text>
+      <Text>Notifications: {model.notificationState}</Text>
+      <Text>Attachments: {model.attachmentState}</Text>
       {shell.ariaThread.state.pendingApproval ? (
         <View style={styles.section}>
           <Text style={styles.sectionTitle}>Approval</Text>

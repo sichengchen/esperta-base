@@ -1,139 +1,52 @@
 # Migration
 
-## Goal
+This page documents the remaining data-migration procedure that still ships in the repo.
 
-Converge the repo on package-owned implementations and retire old assumptions about legacy trees and repos after the data and workflow cutover is complete.
+## Scope
 
-## Target Boundaries
+The architecture and package migration work is complete. The only migration flow that remains documented here is the legacy Esperta Code import handled by:
 
-- `packages/runtime`
-- `packages/handoff`
-- `packages/relay`
-- `packages/connectors`
-- provider packages
-- CLI and future app surfaces
+- `scripts/migrate-legacy-esperta-code.ts`
 
-## Principles
+Use this page when you need to import older local state into the current Aria runtime home.
 
-- prefer package-owned implementations over compatibility wrappers
-- remove temporary trees once replacements are live
-- keep runtime responsible for execution
-- keep `projects`, `workspaces`, and `jobs` responsible for durable tracked-work state
-- keep Relay responsible for remote trust and transport
-- keep Handoff responsible for submission into Projects
+## What The Tool Preserves
 
-## Legacy Import
-
-The legacy import path should preserve:
+The migration tool attempts to preserve:
 
 - projects and repos
 - tasks, threads, and jobs
 - dispatch and worktree relationships where recoverable
 - external refs to legacy systems
 
-The migration tool supports dry-run reporting before mutation and a normal write pass when run without `--dry-run`.
-
 ## Safe Write-Mode Flow
 
-Dry-run is read-only and leaves the target database untouched. Write mode creates a backup directory under `.aria-migration-backups/`, writes `migration-manifest.json`, and prints rollback instructions/hints on stderr.
+The tool supports a read-only dry run and a write pass.
 
-1. Run the migration with `--dry-run` first and save the JSON output. Treat that JSON as the migration report you review before mutation.
-2. Rerun the same command without `--dry-run` to perform the write pass.
-3. Keep the generated backup directory and manifest with the dry-run report until validation is complete.
-4. If the write pass needs to be retried, restore the backup database from the generated backup directory and rerun dry-run before attempting write mode again.
+- Dry run leaves the target database untouched.
+- Write mode creates a backup directory under `.aria-migration-backups/`, writes `migration-manifest.json`, and prints rollback instructions on stderr.
+
+Recommended procedure:
+
+1. Run the migration with `--dry-run` first and save the JSON output.
+2. Review the dry-run output as the migration report.
+3. Rerun the same command without `--dry-run` only after that review.
+4. Keep the generated backup directory and manifest until validation is complete.
 
 ## Rollback
 
-If the write pass needs to be undone, stop Aria, restore `aria.db` from the generated backup copy in the migration backup directory, copy any companion files back alongside it, and rerun dry-run before retrying. When no pre-existing target database existed, rollback is deleting the imported target db and reseeding from the original source.
+If the write pass needs to be undone:
+
+1. Stop Aria.
+2. Restore `aria.db` from the generated backup copy in the migration backup directory.
+3. Restore any companion files that were copied beside it.
+4. Rerun dry-run before retrying the write pass.
+
+When no pre-existing target database existed, rollback is deleting the imported target db and reseeding from the original source.
 
 ## Current State
 
-- the root `src` tree is removed
-- runtime, server, projects, workspaces, jobs, connectors-im, console, CLI, handoff, and relay are package-owned
-- docs are becoming the only canonical documentation tree
-
-## Phase 1 Runtime Extraction
-
-Phase 1 keeps the current CLI and runtime behavior stable while splitting runtime-owned protocol, store, audit, prompt, tools, and policy code into target-aligned packages.
-
-Use the [runtime extraction ledger](./runtime-extraction-ledger.md) as the source of truth for:
-
-- the current runtime-owned entrypoints for each domain
-- the target package each domain should move into
-- extraction order and compatibility constraints
-- verification expectations before and after each move
-
-## Phase 4 Server Package Seams
-
-Phase 4 keeps the current tracked-work and runtime behavior stable while seeding the target-state server package seams for `@aria/projects`, `@aria/workspaces`, `@aria/jobs`, and `@aria/agents-coding`.
-
-Use the [phase 4 server package seams ledger](./phase-4-server-package-seams-ledger.md) as the source of truth for:
-
-- the current `projects-engine`, runtime, and provider-owned entrypoints behind each seam
-- the compatibility surfaces that must stay stable while the new package names appear
-- extraction order and review hotspots for the server-oriented package wave
-- focused verification expectations for project/workspace and dispatch/backend paths
-
-## Phase 5 Server App Seam
-
-Phase 5 keeps the current CLI, daemon, and gateway behavior stable while seeding the target-state server product seam for `@aria/server` and `apps/aria-server`.
-
-Use the [phase 5 server app seam ledger](./phase-5-server-app-seam-ledger.md) as the source of truth for:
-
-- the current CLI/runtime/gateway-owned bootstrap entrypoints behind the server seam
-- the compatibility surfaces that must stay stable while the new package and app names appear
-- the extraction order and review hotspots for the server composition-root wave
-- focused verification expectations for docs, embedded-skill docs, and server-entry compatibility
-
-## Phase 6 Client App Seams
-
-Phase 6 keeps the current CLI, server, console, and project-control behavior stable while seeding the target-state client package/app seams for `@aria/access-client`, `@aria/ui`, `apps/aria-desktop`, and `apps/aria-mobile`.
-
-Use the [phase 6 client app seams ledger](./phase-6-client-app-seams-ledger.md) as the source of truth for:
-
-- the current shared transport/UI entrypoints behind the client seams
-- the compatibility surfaces that must stay stable while the new package and app names appear
-- the extraction order and review hotspots for the shared-client and thin-app wave
-- focused verification expectations for docs, bundled docs, and embedded-skill refreshes
-
-## Phase 8 Client Shell Seams
-
-Phase 8 keeps the current app wrappers and shared client seams stable while seeding the target-state shell packages for `@aria/desktop` and `@aria/mobile`.
-
-Use the [phase 8 client shell seams ledger](./phase-8-client-shell-seams-ledger.md) as the source of truth for:
-
-- the current app-wrapper and shared-client entrypoints behind the new shell packages
-- the compatibility surfaces that must stay stable while the `@aria/desktop` and `@aria/mobile` package names appear
-- the extraction order and review hotspots for the desktop/mobile shell-package wave
-- focused verification expectations for docs, bundled docs, embedded-skill refreshes, and client-shell stability checks
-
-## Phase 9 Architecture Truth Table
-
-Phase 9 does not seed a new package name. It closes the remaining ambiguity about which surfaces are target-owned today, which surfaces are hybrid target shells over compatibility seams, and which surfaces still ship from legacy owners.
-
-Use the [phase 9 architecture truth table](./phase-9-architecture-truth-table.md) as the source of truth for:
-
-- whether a target package/app name is already the current implementation owner
-- which legacy compatibility surface still ships behavior when a target seam exists only as a facade
-- which package/app should be edited first when target architecture docs and repo history appear to disagree
-- which earlier phase ledger still governs a surface after the owner classification is known
-
-## Phase 13 Relay Service Seam
-
-Phase 13 keeps current relay behavior stable while seeding the target-state relay service surface for `services/aria-relay` over `@aria/relay`.
-
-Use the [phase 13 relay service seam ledger](./phase-13-relay-service-seam-ledger.md) as the source of truth for:
-
-- the current package-owned relay implementation surfaces
-- the new thin service wrapper and repo-layout alignment
-- compatibility constraints that preserve transport/access-only ownership
-- focused verification for relay service bootstrap and docs alignment
-
-## Cutover Criteria
-
-Before legacy repos are archived:
-
-1. package boundaries are live
-2. runtime, projects, handoff, and relay flows are verifiably usable
-3. legacy import supports dry-run and write modes
-4. tests, typecheck, and build pass
+- the old root `src` tree is gone
+- the repo is package-first
+- `docs/architecture/*` is the canonical architecture path
+- the migration tool remains only for legacy local-state import

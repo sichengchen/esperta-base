@@ -1,6 +1,6 @@
 # Package And Naming Model
 
-This page defines the proposed package names, top-level repo layout, and naming rules for the new architecture.
+This page defines the package names, top-level repo layout, and naming rules for the canonical architecture.
 
 ## Naming Rules
 
@@ -114,8 +114,6 @@ For the concrete app-shell decisions and Bun-runtime clarification, see [tech-de
 
 ## Package Ownership
 
-> Current repo note: most target package names on this page are now real ownership boundaries on `new-aria`. The migration history for the runtime-core wave is tracked in [../development/runtime-extraction-ledger.md](../development/runtime-extraction-ledger.md), the Aria-owned package wave in [../development/phase-2-extraction-ledger.md](../development/phase-2-extraction-ledger.md), the server package wave in [../development/phase-4-server-package-seams-ledger.md](../development/phase-4-server-package-seams-ledger.md), the server product seam in [../development/phase-5-server-app-seam-ledger.md](../development/phase-5-server-app-seam-ledger.md), the client seam waves for `@aria/access-client`, `@aria/ui`, `apps/aria-desktop`, and `apps/aria-mobile` in [../development/phase-6-client-app-seams-ledger.md](../development/phase-6-client-app-seams-ledger.md) and [../development/phase-8-client-shell-seams-ledger.md](../development/phase-8-client-shell-seams-ledger.md), the cross-phase owner classification in [../development/phase-9-architecture-truth-table.md](../development/phase-9-architecture-truth-table.md), and the relay service wrapper in [../development/phase-13-relay-service-seam-ledger.md](../development/phase-13-relay-service-seam-ledger.md). The main remaining legacy surfaces are compatibility packages such as `@aria/runtime` and `packages/connectors`.
-
 | Package                | Responsibility                                                                                                 |
 | ---------------------- | -------------------------------------------------------------------------------------------------------------- |
 | `@aria/server`         | Server app bootstrap, composition root, deployment runtime for `Aria Server`                                   |
@@ -146,7 +144,7 @@ For the concrete app-shell decisions and Bun-runtime clarification, see [tech-de
 
 ## Current Repo State
 
-The repo is now package-first. Most target-state packages are real owners on `new-aria`, while a smaller set of legacy surfaces remain only as compatibility layers. Use [../development/phase-9-architecture-truth-table.md](../development/phase-9-architecture-truth-table.md) when you need the exact current repo owner to edit first.
+The repo is package-first. The package names on this page are the live ownership boundaries, while a smaller set of legacy compatibility surfaces still remain around them.
 
 ## Tooling Ownership Notes
 

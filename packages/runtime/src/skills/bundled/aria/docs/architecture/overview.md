@@ -1,6 +1,6 @@
-# New Architecture Overview
+# Architecture Overview
 
-The new Aria architecture separates the system into one server-hosted assistant platform and multiple client surfaces.
+The Aria architecture separates the system into one server-hosted assistant platform and multiple client surfaces.
 
 The most important rule is simple:
 

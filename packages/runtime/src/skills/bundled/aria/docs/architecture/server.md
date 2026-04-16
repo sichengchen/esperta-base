@@ -193,9 +193,9 @@ Recommended behavior:
 - it exposes inbox and automation inspection appropriate for Aria use
 - it does not become a separate local-project environment
 
-## Current Repo Migration Note
+## Current Repo Note
 
-Most server-oriented package names on this page are now real ownership boundaries on `new-aria`. The server package migration history is tracked in [../development/phase-4-server-package-seams-ledger.md](../development/phase-4-server-package-seams-ledger.md), the server product seam in [../development/phase-5-server-app-seam-ledger.md](../development/phase-5-server-app-seam-ledger.md), the client seam waves in [../development/phase-6-client-app-seams-ledger.md](../development/phase-6-client-app-seams-ledger.md) and [../development/phase-8-client-shell-seams-ledger.md](../development/phase-8-client-shell-seams-ledger.md), and the current owner classification in [../development/phase-9-architecture-truth-table.md](../development/phase-9-architecture-truth-table.md). The main remaining server-side legacy surface is the `@aria/runtime` compatibility shell.
+The server-oriented package names on this page are the live ownership boundaries. The main remaining server-side compatibility surface is the `@aria/runtime` shell.
 
 ## Recommended Internal Packages
 

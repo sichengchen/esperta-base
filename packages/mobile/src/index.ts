@@ -19,6 +19,8 @@ export const ariaMobileApp = {
     "remote-review",
     "approvals",
     "automation",
+    "notifications",
+    "attachments",
     "reconnect",
   ],
   ownership: {
@@ -50,6 +52,8 @@ export const ariaMobileDetailPresentations = [
 export const ariaMobileActionSections = [
   { id: "approvals", label: "Approvals" },
   { id: "automation", label: "Automations" },
+  { id: "notifications", label: "Notifications" },
+  { id: "attachments", label: "Attachments" },
   { id: "remote-review", label: "Remote Review" },
   { id: "reconnect", label: "Reconnect" },
   { id: "job-status", label: "Job Status" },
@@ -98,6 +102,8 @@ export interface AriaMobileBootstrap {
 export interface AriaMobileThreadSignals {
   approvalLabel?: string;
   automationLabel?: string;
+  notificationLabel?: string;
+  attachmentLabel?: string;
   remoteReviewLabel?: string;
   connectionLabel?: string;
   reconnectLabel?: string;
@@ -115,6 +121,8 @@ export interface AriaMobileThreadContext {
   connectionLabel?: string;
   approvalLabel?: string;
   automationLabel?: string;
+  notificationLabel?: string;
+  attachmentLabel?: string;
   remoteReviewLabel?: string;
   reconnectLabel?: string;
   sections: typeof ariaMobileActionSections;
@@ -212,6 +220,8 @@ export function createAriaMobileProjectThreadItem(
     ...threadItem,
     ...(thread.approvalLabel ? { approvalLabel: thread.approvalLabel } : {}),
     ...(thread.automationLabel ? { automationLabel: thread.automationLabel } : {}),
+    ...(thread.notificationLabel ? { notificationLabel: thread.notificationLabel } : {}),
+    ...(thread.attachmentLabel ? { attachmentLabel: thread.attachmentLabel } : {}),
     ...(thread.remoteReviewLabel ? { remoteReviewLabel: thread.remoteReviewLabel } : {}),
     ...(thread.connectionLabel ? { connectionLabel: thread.connectionLabel } : {}),
     ...(thread.reconnectLabel ? { reconnectLabel: thread.reconnectLabel } : {}),
@@ -245,6 +255,10 @@ export function createAriaMobileThreadContext(input: {
     ...(input.thread.connectionLabel ? { connectionLabel: input.thread.connectionLabel } : {}),
     ...(input.thread.approvalLabel ? { approvalLabel: input.thread.approvalLabel } : {}),
     ...(input.thread.automationLabel ? { automationLabel: input.thread.automationLabel } : {}),
+    ...(input.thread.notificationLabel
+      ? { notificationLabel: input.thread.notificationLabel }
+      : {}),
+    ...(input.thread.attachmentLabel ? { attachmentLabel: input.thread.attachmentLabel } : {}),
     ...(input.thread.remoteReviewLabel
       ? { remoteReviewLabel: input.thread.remoteReviewLabel }
       : {}),
@@ -314,6 +328,8 @@ export function createAriaMobileShell(options: CreateAriaMobileShellOptions): Ar
               threadType: options.initialThread.thread.threadType,
               approvalLabel: options.initialThread.thread.approvalLabel,
               automationLabel: options.initialThread.thread.automationLabel,
+              notificationLabel: options.initialThread.thread.notificationLabel,
+              attachmentLabel: options.initialThread.thread.attachmentLabel,
               remoteReviewLabel: options.initialThread.thread.remoteReviewLabel,
               connectionLabel: options.initialThread.thread.connectionLabel,
               reconnectLabel: options.initialThread.thread.reconnectLabel,

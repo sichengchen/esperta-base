@@ -249,6 +249,8 @@ flowchart LR
 - review inbox items
 - answer approvals and questions
 - inspect automation state
+- receive server-owned notifications and relay wakeups
+- review attachments and remote artifacts without taking ownership of them
 - view project threads that are attached to remote environments
 - reconnect to ongoing remote jobs
 
@@ -269,6 +271,7 @@ Recommended model:
    - bottom sheet
    - push screen
    - segmented detail view
+5. notification and attachment affordances presented as remote-first detail surfaces rather than local device ownership
 
 That keeps the thread model consistent across devices.
 
@@ -300,8 +303,6 @@ Both desktop and mobile should share the same access model:
 
 ## Recommended Internal Packages
 
-Current repo migration note: the thin seam wave for `@aria/access-client`, `@aria/ui`, `apps/aria-desktop`, and `apps/aria-mobile` is tracked in [../development/phase-6-client-app-seams-ledger.md](../development/phase-6-client-app-seams-ledger.md). The follow-on shell-package wave for `@aria/desktop` and `@aria/mobile` is tracked in [../development/phase-8-client-shell-seams-ledger.md](../development/phase-8-client-shell-seams-ledger.md). The cross-phase owner classification that says whether a change belongs in the target shell or in a compatibility seam is tracked in [../development/phase-9-architecture-truth-table.md](../development/phase-9-architecture-truth-table.md). Today, those desktop/mobile surfaces should be treated as hybrid target shells that still compose shared-client compatibility seams during the cutover.
-
 | Responsibility              | Package                                                   |
 | --------------------------- | --------------------------------------------------------- |
 | Desktop shell               | `@aria/desktop`                                           |
@@ -313,9 +314,9 @@ Current repo migration note: the thin seam wave for `@aria/access-client`, `@ari
 | Local coding agent adapters | `@aria/agents-coding` or `@aria/desktop-agents`           |
 | Shared UI primitives        | `@aria/ui`                                                |
 
-## Current Repo Migration Note
+## Current Repo Note
 
-The client seams on this page now exist on `new-aria` as real target shells and shared packages. The shared client seam wave is tracked in [../development/phase-6-client-app-seams-ledger.md](../development/phase-6-client-app-seams-ledger.md), the shell-package wave in [../development/phase-8-client-shell-seams-ledger.md](../development/phase-8-client-shell-seams-ledger.md), and the owner classification in [../development/phase-9-architecture-truth-table.md](../development/phase-9-architecture-truth-table.md). The current repo truth is that `@aria/desktop`, `@aria/mobile`, `apps/aria-desktop`, and `apps/aria-mobile` are hybrid target shells to edit first while preserving the shared-client seams beneath them. The remaining legacy pieces are mostly compatibility wrappers behind `@aria/runtime`, `@aria/gateway`, and older operator-facing console/CLI flows.
+The desktop and mobile package/app surfaces on this page are live. The main remaining legacy pieces are compatibility wrappers behind `@aria/runtime`, `@aria/gateway`, and older operator-facing console/CLI flows.
 
 ## Toolchain References
 

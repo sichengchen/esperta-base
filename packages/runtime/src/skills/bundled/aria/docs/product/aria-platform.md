@@ -33,7 +33,7 @@ These are not separate backends. They all sit on the same runtime, store, and pr
 Esperta Aria favors the target architecture over legacy naming, folder structure, or wrapper layers.
 
 - remove engine-era seams when they conflict with the target model
-- keep `docs/new-architecture/*` as the canonical system design path
+- keep `docs/architecture/*` as the canonical system design path
 - prefer explicit package and app ownership over compatibility re-exports
 
 ## North-Star Criteria
@@ -51,4 +51,4 @@ The platform is moving toward these non-negotiable outcomes:
 - [overview.md](./overview.md)
 - [areas.md](./areas.md)
 - [glossary.md](./glossary.md)
-- [../new-architecture/overview.md](../new-architecture/overview.md)
+- [../architecture/overview.md](../architecture/overview.md)

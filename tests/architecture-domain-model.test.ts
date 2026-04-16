@@ -8,7 +8,7 @@ import {
 } from "@aria/projects";
 import { ThreadStatusSchema, ThreadTypeSchema } from "@aria/protocol";
 
-describe("new architecture domain model", () => {
+describe("architecture domain model", () => {
   test("project and protocol surfaces share the same explicit thread-type model", () => {
     expect(THREAD_TYPES).toEqual([
       "aria",

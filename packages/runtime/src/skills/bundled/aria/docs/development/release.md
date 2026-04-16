@@ -12,12 +12,12 @@ CI runs:
 
 ## Pre-finalization checks
 
-Before merge/finalization on long-running migration branches:
+Before merge/finalization on a release branch:
 
 - `vp run repo:check`
 - `vp run repo:test`
 - `vp run repo:build`
-- `bun run audit:history -- origin/new-aria..HEAD`
+- `bun run audit:history -- origin/main..HEAD`
 
 The history audit checks that the pending branch-range commits do not contain
 system-generated `auto-checkpoint` wording and that they include the required

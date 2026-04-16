@@ -378,7 +378,7 @@ export const ariaMobileLaunchModes = [
     id: "relay-attached",
     label: "Relay-attached",
     description:
-      "Stay connected through Aria Relay for approvals, remote review, and reconnect-safe thread handoff.",
+      "Stay connected through Aria Relay for approvals, notifications, attachment handoff, remote review, and reconnect-safe thread handoff.",
   },
 ] as const;
 
@@ -423,7 +423,7 @@ export const ariaMobileApplication = {
     defaultTabId: "aria",
     defaultScreenId: "chat",
     landingDescription:
-      "Aria Mobile stays remote-first: approvals, automation, reconnect, and project-thread review over server access.",
+      "Aria Mobile stays remote-first: approvals, notifications, attachments, automation, reconnect, and project-thread review over server access.",
   },
 } as const;
 

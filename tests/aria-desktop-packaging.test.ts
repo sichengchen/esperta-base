@@ -8,7 +8,7 @@ const desktopBuilderConfigPath = new URL(
 );
 
 describe("aria-desktop packaging surface", () => {
-  test("declares host, renderer, smoke-build, and distribution scripts for the desktop app", async () => {
+  test("declares dev, host, renderer, smoke-build, and distribution scripts for the desktop app", async () => {
     const packageJson = JSON.parse(await readFile(desktopPackageJsonPath, "utf-8")) as {
       main?: string;
       scripts?: Record<string, string>;
@@ -16,6 +16,7 @@ describe("aria-desktop packaging surface", () => {
 
     expect(packageJson.main).toBe("./dist/electron-main.js");
     expect(packageJson.scripts).toMatchObject({
+      dev: "bun ./scripts/dev.ts",
       "dev:renderer": "vite --config ./vite.config.ts",
       "dev:host":
         "bun run build:host && ARIA_DESKTOP_DEV_SERVER_URL=http://127.0.0.1:5173 electron ./dist/electron-main.js",

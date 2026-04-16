@@ -90,5 +90,5 @@ The repo is still reducing `@aria/runtime` toward a thinner compatibility-facing
 - [prompt-engine.md](./prompt-engine.md)
 - [tool-runtime.md](./tool-runtime.md)
 - [automation.md](./automation.md)
-- [server.md](./server.md)
-- [domain-model.md](./domain-model.md)
+- [../surfaces/server.md](../surfaces/server.md)
+- [../core/domain-model.md](../core/domain-model.md)

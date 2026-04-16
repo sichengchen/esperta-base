@@ -6,7 +6,7 @@ Read these pages when you need the ownership split between `Aria Server`, `Aria 
 
 ## Documents
 
-- [../server.md](../server.md)
-- [../gateway-access.md](../gateway-access.md)
-- [../desktop-and-mobile.md](../desktop-and-mobile.md)
-- [../desktop-design.md](../desktop-design.md)
+- [server.md](./server.md)
+- [gateway-access.md](./gateway-access.md)
+- [desktop-and-mobile.md](./desktop-and-mobile.md)
+- [desktop-design.md](./desktop-design.md)

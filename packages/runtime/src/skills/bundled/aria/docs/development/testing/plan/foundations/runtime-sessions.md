@@ -2,10 +2,10 @@
 
 Spec sources:
 
-- [../../../../architecture/runtime.md](../../../../architecture/runtime.md)
-- [../../../../architecture/interaction-protocol.md](../../../../architecture/interaction-protocol.md)
-- [../../../../architecture/server.md](../../../../architecture/server.md)
-- [../../../../operator/sessions.md](../../../../operator/sessions.md)
+- [../../../../architecture/runtime/runtime.md](../../../../architecture/runtime/runtime.md)
+- [../../../../architecture/runtime/interaction-protocol.md](../../../../architecture/runtime/interaction-protocol.md)
+- [../../../../architecture/surfaces/server.md](../../../../architecture/surfaces/server.md)
+- [../../../../operator/operations/sessions.md](../../../../operator/operations/sessions.md)
 
 | Case ID | Feature path | Scenario | Expected result | Lane | Status | Target suite |
 | --- | --- | --- | --- | --- | --- | --- |

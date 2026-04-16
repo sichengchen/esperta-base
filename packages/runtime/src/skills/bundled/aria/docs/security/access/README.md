@@ -4,6 +4,6 @@ This group covers authentication, approval, and auditability at the server bound
 
 ## Documents
 
-- [../auth.md](../auth.md)
-- [../approval-flow.md](../approval-flow.md)
-- [../audit-log.md](../audit-log.md)
+- [auth.md](./auth.md)
+- [approval-flow.md](./approval-flow.md)
+- [audit-log.md](./audit-log.md)

@@ -1,7 +1,5 @@
 # Esperta Aria Docs
 
-This tree is organized by reader intent, not by the old code layout.
-
 ## Start Here
 
 - Product overview: [product/overview.md](./product/overview.md)

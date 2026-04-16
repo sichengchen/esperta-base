@@ -84,7 +84,7 @@ Every tool execution records:
 
 The current built-in tool catalog and danger-level rules live in the reference docs:
 
-- [../reference/tools/README.md](../reference/tools/README.md)
-- [../security/approval-flow.md](../security/approval-flow.md)
+- [../../reference/tools/README.md](../../reference/tools/README.md)
+- [../../security/access/approval-flow.md](../../security/access/approval-flow.md)
 
 This page defines the architecture contract; the reference pages define today's concrete surface.

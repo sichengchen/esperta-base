@@ -6,9 +6,9 @@ Read these pages when you need execution semantics, prompt assembly, tool runtim
 
 ## Documents
 
-- [../runtime.md](../runtime.md)
-- [../prompt-engine.md](../prompt-engine.md)
-- [../tool-runtime.md](../tool-runtime.md)
-- [../automation.md](../automation.md)
-- [../interaction-protocol.md](../interaction-protocol.md)
-- [../handoff.md](../handoff.md)
+- [runtime.md](./runtime.md)
+- [prompt-engine.md](./prompt-engine.md)
+- [tool-runtime.md](./tool-runtime.md)
+- [automation.md](./automation.md)
+- [interaction-protocol.md](./interaction-protocol.md)
+- [handoff.md](./handoff.md)

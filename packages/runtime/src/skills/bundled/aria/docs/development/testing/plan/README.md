@@ -70,17 +70,17 @@ Execution docs define how the plan is carried out:
 
 This test plan is derived from:
 
-- [../../../architecture/server.md](../../../architecture/server.md)
-- [../../../architecture/overview.md](../../../architecture/overview.md)
-- [../../../architecture/runtime.md](../../../architecture/runtime.md)
-- [../../../architecture/prompt-engine.md](../../../architecture/prompt-engine.md)
-- [../../../architecture/tool-runtime.md](../../../architecture/tool-runtime.md)
-- [../../../architecture/automation.md](../../../architecture/automation.md)
-- [../../../architecture/interaction-protocol.md](../../../architecture/interaction-protocol.md)
-- [../../../architecture/gateway-access.md](../../../architecture/gateway-access.md)
-- [../../../security/auth.md](../../../security/auth.md)
-- [../../../security/approval-flow.md](../../../security/approval-flow.md)
-- [../../../security/audit-log.md](../../../security/audit-log.md)
+- [../../../architecture/surfaces/server.md](../../../architecture/surfaces/server.md)
+- [../../../architecture/core/overview.md](../../../architecture/core/overview.md)
+- [../../../architecture/runtime/runtime.md](../../../architecture/runtime/runtime.md)
+- [../../../architecture/runtime/prompt-engine.md](../../../architecture/runtime/prompt-engine.md)
+- [../../../architecture/runtime/tool-runtime.md](../../../architecture/runtime/tool-runtime.md)
+- [../../../architecture/runtime/automation.md](../../../architecture/runtime/automation.md)
+- [../../../architecture/runtime/interaction-protocol.md](../../../architecture/runtime/interaction-protocol.md)
+- [../../../architecture/surfaces/gateway-access.md](../../../architecture/surfaces/gateway-access.md)
+- [../../../security/access/auth.md](../../../security/access/auth.md)
+- [../../../security/access/approval-flow.md](../../../security/access/approval-flow.md)
+- [../../../security/access/audit-log.md](../../../security/access/audit-log.md)
 
 ## Status Meanings
 

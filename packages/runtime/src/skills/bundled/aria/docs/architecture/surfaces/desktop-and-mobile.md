@@ -29,7 +29,7 @@ This gives Aria:
 - good monorepo ergonomics
 - strong support for AI-assisted workflows
 
-For the concrete shell decisions, see [tech-decisions.md](./tech-decisions.md).
+For the concrete shell decisions, see [../core/tech-decisions.md](../core/tech-decisions.md).
 
 ## Desktop Component Diagram
 

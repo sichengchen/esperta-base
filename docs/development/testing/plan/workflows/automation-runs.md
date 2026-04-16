@@ -2,9 +2,9 @@
 
 Primary spec:
 
-- [../../../../architecture/automation.md](../../../../architecture/automation.md)
-- [../../../../architecture/server.md](../../../../architecture/server.md)
-- [../../../../operator/automation.md](../../../../operator/automation.md)
+- [../../../../architecture/runtime/automation.md](../../../../architecture/runtime/automation.md)
+- [../../../../architecture/surfaces/server.md](../../../../architecture/surfaces/server.md)
+- [../../../../operator/operations/automation.md](../../../../operator/operations/automation.md)
 
 | Case ID | Workflow path | Scenario | Expected result | Lane | Status | Target suite |
 | --- | --- | --- | --- | --- | --- | --- |

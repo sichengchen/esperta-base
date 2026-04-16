@@ -2,10 +2,10 @@
 
 Spec sources:
 
-- [../../../../architecture/server.md](../../../../architecture/server.md)
-- [../../../../architecture/gateway-access.md](../../../../architecture/gateway-access.md)
-- [../../../../architecture/interaction-protocol.md](../../../../architecture/interaction-protocol.md)
-- [../../../../security/auth.md](../../../../security/auth.md)
+- [../../../../architecture/surfaces/server.md](../../../../architecture/surfaces/server.md)
+- [../../../../architecture/surfaces/gateway-access.md](../../../../architecture/surfaces/gateway-access.md)
+- [../../../../architecture/runtime/interaction-protocol.md](../../../../architecture/runtime/interaction-protocol.md)
+- [../../../../security/access/auth.md](../../../../security/access/auth.md)
 
 | Case ID | Feature path | Scenario | Expected result | Lane | Status | Target suite |
 | --- | --- | --- | --- | --- | --- | --- |

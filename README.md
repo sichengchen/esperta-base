@@ -133,8 +133,8 @@ Recommended entry points:
 
 - [docs/README.md](./docs/README.md)
 - [docs/product/overview.md](./docs/product/overview.md)
-- [docs/architecture/overview.md](./docs/architecture/overview.md)
-- [docs/architecture/server.md](./docs/architecture/server.md)
-- [docs/architecture/packages.md](./docs/architecture/packages.md)
-- [docs/architecture/gateway-access.md](./docs/architecture/gateway-access.md)
-- [docs/operator/getting-started.md](./docs/operator/getting-started.md)
+- [docs/architecture/core/overview.md](./docs/architecture/core/overview.md)
+- [docs/architecture/surfaces/server.md](./docs/architecture/surfaces/server.md)
+- [docs/architecture/core/packages.md](./docs/architecture/core/packages.md)
+- [docs/architecture/surfaces/gateway-access.md](./docs/architecture/surfaces/gateway-access.md)
+- [docs/operator/core/getting-started.md](./docs/operator/core/getting-started.md)

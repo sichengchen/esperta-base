@@ -69,7 +69,7 @@ Notes:
 - `exec` uses hybrid classification: the effective danger level is determined
   at runtime by `classifyExecCommand()` after the agent declares its own
   assessment. See [exec.md](exec.md) for the full algorithm.
-- Full approval flow details: `docs/security/approval-flow.md`.
+- Full approval flow details: `docs/security/access/approval-flow.md`.
 
 ---
 

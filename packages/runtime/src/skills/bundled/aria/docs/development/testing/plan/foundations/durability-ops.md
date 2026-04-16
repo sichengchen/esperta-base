@@ -2,9 +2,9 @@
 
 Spec sources:
 
-- [../../../../architecture/runtime.md](../../../../architecture/runtime.md)
-- [../../../../architecture/server.md](../../../../architecture/server.md)
-- [../../../../security/audit-log.md](../../../../security/audit-log.md)
+- [../../../../architecture/runtime/runtime.md](../../../../architecture/runtime/runtime.md)
+- [../../../../architecture/surfaces/server.md](../../../../architecture/surfaces/server.md)
+- [../../../../security/access/audit-log.md](../../../../security/access/audit-log.md)
 
 | Case ID | Feature path | Scenario | Expected result | Lane | Status | Target suite |
 | --- | --- | --- | --- | --- | --- | --- |

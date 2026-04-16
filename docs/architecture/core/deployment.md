@@ -150,7 +150,7 @@ Typical examples:
 - Caddy / Nginx / Traefik reverse proxy
 - a cloud load balancer in front of the server
 
-See [gateway-access.md](./gateway-access.md) for the detailed security model.
+See [../surfaces/gateway-access.md](../surfaces/gateway-access.md) for the detailed security model.
 
 ## Failure and Disconnect Model
 

@@ -2,9 +2,9 @@
 
 Spec sources:
 
-- [../../../../architecture/server.md](../../../../architecture/server.md)
-- [../../../../architecture/overview.md](../../../../architecture/overview.md)
-- [../../../../architecture/interaction-protocol.md](../../../../architecture/interaction-protocol.md)
+- [../../../../architecture/surfaces/server.md](../../../../architecture/surfaces/server.md)
+- [../../../../architecture/core/overview.md](../../../../architecture/core/overview.md)
+- [../../../../architecture/runtime/interaction-protocol.md](../../../../architecture/runtime/interaction-protocol.md)
 
 | Case ID | Feature path | Scenario | Expected result | Lane | Status | Target suite |
 | --- | --- | --- | --- | --- | --- | --- |

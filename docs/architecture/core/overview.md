@@ -197,7 +197,7 @@ The user can:
 ## Recommended Reading
 
 - [deployment.md](./deployment.md)
-- [server.md](./server.md)
-- [desktop-and-mobile.md](./desktop-and-mobile.md)
+- [../surfaces/server.md](../surfaces/server.md)
+- [../surfaces/desktop-and-mobile.md](../surfaces/desktop-and-mobile.md)
 - [domain-model.md](./domain-model.md)
 - [packages.md](./packages.md)

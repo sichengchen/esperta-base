@@ -2,9 +2,9 @@
 
 Spec sources:
 
-- [../../../../architecture/prompt-engine.md](../../../../architecture/prompt-engine.md)
-- [../../../../architecture/runtime.md](../../../../architecture/runtime.md)
-- [../../../../architecture/server.md](../../../../architecture/server.md)
+- [../../../../architecture/runtime/prompt-engine.md](../../../../architecture/runtime/prompt-engine.md)
+- [../../../../architecture/runtime/runtime.md](../../../../architecture/runtime/runtime.md)
+- [../../../../architecture/surfaces/server.md](../../../../architecture/surfaces/server.md)
 
 | Case ID | Feature path | Scenario | Expected result | Lane | Status | Target suite |
 | --- | --- | --- | --- | --- | --- | --- |

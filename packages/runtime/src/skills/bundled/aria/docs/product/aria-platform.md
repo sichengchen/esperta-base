@@ -51,4 +51,4 @@ The platform is moving toward these non-negotiable outcomes:
 - [overview.md](./overview.md)
 - [areas.md](./areas.md)
 - [glossary.md](./glossary.md)
-- [../architecture/overview.md](../architecture/overview.md)
+- [../architecture/core/overview.md](../architecture/core/overview.md)

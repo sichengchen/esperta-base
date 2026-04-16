@@ -6,8 +6,8 @@ Read these pages when you need the overall system shape, deployment boundary, du
 
 ## Documents
 
-- [../overview.md](../overview.md)
-- [../deployment.md](../deployment.md)
-- [../domain-model.md](../domain-model.md)
-- [../packages.md](../packages.md)
-- [../tech-decisions.md](../tech-decisions.md)
+- [overview.md](./overview.md)
+- [deployment.md](./deployment.md)
+- [domain-model.md](./domain-model.md)
+- [packages.md](./packages.md)
+- [tech-decisions.md](./tech-decisions.md)

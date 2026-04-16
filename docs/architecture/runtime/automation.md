@@ -66,4 +66,4 @@ On restart the server should:
 
 ## Current Repo Note
 
-Current operator-facing task shapes, schedules, and procedures are documented in [../operator/automation.md](../operator/automation.md). This page defines the architecture boundary that those workflows should continue moving toward.
+Current operator-facing task shapes, schedules, and procedures are documented in [../../operator/operations/automation.md](../../operator/operations/automation.md). This page defines the architecture boundary that those workflows should continue moving toward.

@@ -37,7 +37,7 @@ All URLs are checked against Esperta Aria's SSRF protection before fetching:
 - Blocks file:// and other non-HTTP(S) schemes
 - Follows redirects but re-checks each hop
 
-Full details: `docs/security/url-policy.md`.
+Full details: `docs/security/execution/url-policy.md`.
 
 ---
 

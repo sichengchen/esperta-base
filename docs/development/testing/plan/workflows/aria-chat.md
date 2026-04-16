@@ -2,8 +2,8 @@
 
 Primary spec:
 
-- [../../../../architecture/server.md](../../../../architecture/server.md)
-- [../../../../architecture/interaction-protocol.md](../../../../architecture/interaction-protocol.md)
+- [../../../../architecture/surfaces/server.md](../../../../architecture/surfaces/server.md)
+- [../../../../architecture/runtime/interaction-protocol.md](../../../../architecture/runtime/interaction-protocol.md)
 
 | Case ID | Workflow path | Scenario | Expected result | Lane | Status | Target suite |
 | --- | --- | --- | --- | --- | --- | --- |

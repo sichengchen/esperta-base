@@ -77,6 +77,6 @@ Each frontend adapts the protocol to its own UI constraints, but it must not red
 ## Related Reading
 
 - [runtime.md](./runtime.md)
-- [domain-model.md](./domain-model.md)
-- [gateway-access.md](./gateway-access.md)
-- [server.md](./server.md)
+- [../core/domain-model.md](../core/domain-model.md)
+- [../surfaces/gateway-access.md](../surfaces/gateway-access.md)
+- [../surfaces/server.md](../surfaces/server.md)

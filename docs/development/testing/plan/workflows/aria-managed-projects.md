@@ -2,8 +2,8 @@
 
 Primary spec:
 
-- [../../../../architecture/server.md](../../../../architecture/server.md)
-- [../../../../architecture/overview.md](../../../../architecture/overview.md)
+- [../../../../architecture/surfaces/server.md](../../../../architecture/surfaces/server.md)
+- [../../../../architecture/core/overview.md](../../../../architecture/core/overview.md)
 
 | Case ID | Workflow path | Scenario | Expected result | Lane | Status | Target suite |
 | --- | --- | --- | --- | --- | --- | --- |

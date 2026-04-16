@@ -41,7 +41,7 @@ export function createAriaDesktopElectronHostBootstrap(
   options: AriaDesktopElectronHostOptions,
 ): AriaDesktopElectronHostBootstrap {
   return {
-    preloadPath: join(options.distDir, "electron-preload.js"),
+    preloadPath: join(options.distDir, "electron-preload.cjs"),
     rendererEntry: options.devServerUrl
       ? { kind: "url", value: options.devServerUrl }
       : {

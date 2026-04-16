@@ -6,7 +6,7 @@
   },
   "files": [
     "dist/electron-main.js",
-    "dist/electron-preload.js",
+    "dist/electron-preload.cjs",
     "dist/renderer/**/*",
     "package.json"
   ],

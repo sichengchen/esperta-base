@@ -10,7 +10,7 @@ import {
   type ProjectRecord,
   type ThreadRecord,
   type ThreadType,
-} from "@aria/projects";
+} from "@aria/projects/client";
 
 export const ariaDesktopApp = {
   id: "aria-desktop",

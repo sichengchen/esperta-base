@@ -19,13 +19,13 @@ describe("aria-desktop packaging surface", () => {
       dev: "bun ./scripts/dev.ts",
       "dev:renderer": "vite --config ./vite.config.ts",
       "dev:host":
-        "bun run build:host && ARIA_DESKTOP_DEV_SERVER_URL=http://127.0.0.1:5173 electron ./dist/electron-main.js",
+        "bun run build:host && ARIA_DESKTOP_DEV_SERVER_URL=http://127.0.0.1:5173 ./node_modules/.bin/electron ./dist/electron-main.js",
       "build:renderer": "vite build --config ./vite.config.ts",
       "build:host":
-        "bun build ./src/electron-main.ts ./src/electron-preload.ts --outdir ./dist --target node --external electron",
+        "bun build ./src/electron-main.ts --outfile ./dist/electron-main.js --target node --external electron && bun build ./src/electron-preload.ts --outfile ./dist/electron-preload.cjs --target node --format cjs --external electron",
       build: "bun run build:renderer && bun run build:host",
       "smoke:build":
-        "bun run build && bun -e \"for (const path of ['./dist/electron-main.js', './dist/electron-preload.js', './dist/renderer/index.html']) { if (!(await Bun.file(path).exists())) throw new Error('Missing ' + path) }\"",
+        "bun run build && bun -e \"for (const path of ['./dist/electron-main.js', './dist/electron-preload.cjs', './dist/renderer/index.html']) { if (!(await Bun.file(path).exists())) throw new Error('Missing ' + path) }\"",
       "package:dir":
         "bun run build && bunx electron-builder --config ./electron-builder.json --dir",
       "dist:mac":
@@ -34,7 +34,7 @@ describe("aria-desktop packaging surface", () => {
         "bun run build && bunx electron-builder --config ./electron-builder.json --linux AppImage zip",
       "dist:win":
         "bun run build && bunx electron-builder --config ./electron-builder.json --win nsis zip",
-      start: "bun run build && electron ./dist/electron-main.js",
+      start: "bun run build && ./node_modules/.bin/electron ./dist/electron-main.js",
     });
   });
 
@@ -57,7 +57,7 @@ describe("aria-desktop packaging surface", () => {
       },
       files: [
         "dist/electron-main.js",
-        "dist/electron-preload.js",
+        "dist/electron-preload.cjs",
         "dist/renderer/**/*",
         "package.json",
       ],

@@ -40,8 +40,19 @@ const aliases = Object.entries(tsconfig.compilerOptions?.paths ?? {}).flatMap(([
 
 export default defineConfig({
   root: rootDir,
+  server: {
+    host: "127.0.0.1",
+    port: 5173,
+    strictPort: true,
+  },
   resolve: {
-    alias: aliases,
+    alias: [
+      {
+        find: /^@aria\/desktop-bridge$/,
+        replacement: resolve(rootDir, "src/browser-stubs/desktop-bridge.ts"),
+      },
+      ...aliases,
+    ],
   },
   build: {
     outDir: resolve(rootDir, "dist", "renderer"),

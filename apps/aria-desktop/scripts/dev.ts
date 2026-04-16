@@ -9,6 +9,7 @@ const desktopDir = join(dirname(fileURLToPath(import.meta.url)), "..");
 const childProcesses = new Set<ChildProcess>();
 let shuttingDown = false;
 let hostStarted = false;
+let hostStartPending = false;
 let startHostTimer: ReturnType<typeof setTimeout> | null = null;
 
 function forwardOutput(
@@ -94,13 +95,66 @@ function spawnDesktopProcess(label: string, args: string[]) {
   return child;
 }
 
-function startHost() {
-  if (hostStarted) {
+async function waitForRenderer(url: string) {
+  for (let attempt = 0; attempt < 40; attempt += 1) {
+    try {
+      const response = await fetch(url);
+      if (response.ok) {
+        return true;
+      }
+    } catch {}
+
+    await new Promise((resolve) => setTimeout(resolve, 150));
+  }
+
+  return false;
+}
+
+function extractLocalUrl(text: string): string | null {
+  const match = text.match(/Local:\s+(http:\/\/[^\s]+)/);
+  return match?.[1] ?? null;
+}
+
+async function startHost(devServerUrl = "http://127.0.0.1:5173/") {
+  if (hostStarted || hostStartPending) {
+    return;
+  }
+
+  hostStartPending = true;
+  const ready = await waitForRenderer(devServerUrl);
+  hostStartPending = false;
+
+  if (!ready || shuttingDown || hostStarted) {
     return;
   }
 
   hostStarted = true;
-  spawnDesktopProcess("desktop:host", ["run", "dev:host"]);
+  const child = spawn(process.execPath, ["run", "dev:host"], {
+    cwd: desktopDir,
+    env: {
+      ...process.env,
+      ARIA_DESKTOP_DEV_SERVER_URL: devServerUrl,
+    },
+    stdio: ["inherit", "pipe", "pipe"],
+  });
+  childProcesses.add(child);
+
+  forwardOutput(child, "desktop:host", child.stdout, (line) => console.log(line));
+  forwardOutput(child, "desktop:host", child.stderr, (line) => console.error(line));
+
+  child.on("exit", (code, signal) => {
+    childProcesses.delete(child);
+    if (shuttingDown) {
+      return;
+    }
+
+    if (signal) {
+      shutdown(1);
+      return;
+    }
+
+    shutdown(code ?? 0);
+  });
 }
 
 const renderer = spawnDesktopProcess("desktop:renderer", ["run", "dev:renderer"]);
@@ -111,13 +165,14 @@ renderer.stdout?.on("data", (chunk) => {
   }
 
   const text = chunk.toString();
-  if (text.includes("Local:") || text.includes("ready in")) {
-    startHost();
+  const localUrl = extractLocalUrl(text);
+  if (localUrl) {
+    void startHost(localUrl);
   }
 });
 
 startHostTimer = setTimeout(() => {
-  startHost();
+  void startHost();
 }, 2_000);
 
 process.on("SIGINT", () => shutdown(0));

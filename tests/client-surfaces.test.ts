@@ -3,10 +3,10 @@ import { describe, expect, test } from "bun:test";
 import {
   buildAccessClientConfig,
   createAriaChatController,
-  buildLocalAccessClientOptions,
   buildAccessClientTargetRoster,
   buildClientProjectThreadSummary,
 } from "@aria/access-client";
+import { buildLocalAccessClientOptions } from "@aria/access-client/local";
 import { mkdtemp, rm, writeFile } from "node:fs/promises";
 import { tmpdir } from "node:os";
 import { join } from "node:path";

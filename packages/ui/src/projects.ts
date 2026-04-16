@@ -9,7 +9,7 @@ import {
   type ThreadRecord,
   type ThreadStatus,
   type ThreadType,
-} from "@aria/projects";
+} from "@aria/projects/client";
 
 export type {
   ProjectRecord,
@@ -17,7 +17,7 @@ export type {
   TaskStatus,
   ThreadRecord,
   ThreadStatus,
-} from "@aria/projects";
+} from "@aria/projects/client";
 
 export interface ProjectThreadListItem {
   id: string;

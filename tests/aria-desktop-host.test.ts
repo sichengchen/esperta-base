@@ -197,7 +197,7 @@ describe("aria-desktop host scaffold", () => {
         devServerUrl: "http://127.0.0.1:5173/",
       }),
     ).toEqual({
-      preloadPath: "/tmp/aria-desktop/electron-preload.js",
+      preloadPath: "/tmp/aria-desktop/electron-preload.cjs",
       rendererEntry: { kind: "url", value: "http://127.0.0.1:5173/" },
       window: {
         width: 1440,

@@ -8,6 +8,7 @@
   "types": "./src/index.ts",
   "exports": {
     ".": "./src/index.ts",
+    "./client": "./src/client.ts",
     "./external-refs": "./src/external-refs.ts",
     "./planning": "./src/planning.ts",
     "./publish": "./src/publish.ts",

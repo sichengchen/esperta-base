@@ -2,12 +2,10 @@ import { createElement } from "react";
 import { createRoot, type Root } from "react-dom/client";
 import { resolveHostAccessClientTarget } from "@aria/access-client";
 import {
-  AriaDesktopApplicationRoot,
   acceptAriaDesktopAppShellToolCallForSession,
   answerAriaDesktopAppShellQuestion,
   approveAriaDesktopAppShellToolCall,
   connectAriaDesktopAppShellModel,
-  createAriaDesktopAppShellModel,
   loadAriaDesktopAppShellRecentSessions,
   openAriaDesktopAppShellSession,
   selectAriaDesktopAppShellEnvironment,
@@ -18,7 +16,9 @@ import {
   switchAriaDesktopAppShellServer,
   type AriaDesktopAppShellModel,
   type CreateAriaDesktopAppShellModelOptions,
-} from "./index.js";
+  createAriaDesktopAppShellModel,
+} from "./shell.js";
+import { AriaDesktopApplicationRoot } from "./root.js";
 
 export interface AriaDesktopRendererTarget {
   serverId: string;

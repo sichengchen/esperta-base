@@ -6,7 +6,7 @@ import {
   type ProjectRecord,
   type ThreadRecord,
   type ThreadType,
-} from "@aria/projects";
+} from "@aria/projects/client";
 
 export const ariaMobileApp = {
   id: "aria-mobile",

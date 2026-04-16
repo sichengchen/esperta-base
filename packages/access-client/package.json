@@ -9,6 +9,7 @@
   "exports": {
     ".": "./src/index.ts",
     "./aria-thread": "./src/aria-thread.ts",
+    "./local": "./src/local.ts",
     "./projects": "./src/projects.ts",
     "./transport": "./src/transport.ts"
   }

@@ -1,0 +1,15 @@
+{
+  "name": "aria-server",
+  "private": true,
+  "description": "Thin Aria Server app entrypoint over the @aria/server composition root",
+  "type": "module",
+  "main": "./src/index.ts",
+  "exports": {
+    ".": "./src/index.ts",
+    "./process": "./src/process.ts"
+  },
+  "scripts": {
+    "dev": "bun ./src/main.ts",
+    "start": "bun ./src/main.ts"
+  }
+}

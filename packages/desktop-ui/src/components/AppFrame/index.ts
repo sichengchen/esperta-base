@@ -1,0 +1,16 @@
+export {
+  AppFrame,
+  AppFrameHeader,
+  AppFrameWorkbench,
+  AppFrameSidebar,
+  AppFrameCenter,
+  AppFrameRightRail,
+  AppFrameFooter,
+  type AppFrameProps,
+  type AppFrameHeaderProps,
+  type AppFrameWorkbenchProps,
+  type AppFrameSidebarProps,
+  type AppFrameCenterProps,
+  type AppFrameRightRailProps,
+  type AppFrameFooterProps,
+} from "./AppFrame";

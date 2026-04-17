@@ -1,0 +1,33 @@
+{
+  "name": "@aria/connectors-im",
+  "version": "0.0.0",
+  "private": true,
+  "description": "Aria IM-style chat connectors and shared Chat SDK bridge",
+  "type": "module",
+  "main": "./src/index.ts",
+  "types": "./src/index.ts",
+  "exports": {
+    ".": "./src/index.ts",
+    "./chat-sdk": "./src/chat-sdk/index.ts",
+    "./chat-sdk/adapter": "./src/chat-sdk/adapter.ts",
+    "./chat-sdk/client": "./src/chat-sdk/client.ts",
+    "./chat-sdk/formatter": "./src/chat-sdk/formatter.ts",
+    "./discord": "./src/discord/index.ts",
+    "./discord/config": "./src/discord/config.ts",
+    "./gchat": "./src/gchat/index.ts",
+    "./gchat/config": "./src/gchat/config.ts",
+    "./github": "./src/github/index.ts",
+    "./github/config": "./src/github/config.ts",
+    "./linear": "./src/linear/index.ts",
+    "./linear/config": "./src/linear/config.ts",
+    "./shared/stream-handler": "./src/shared/stream-handler.ts",
+    "./slack": "./src/slack/index.ts",
+    "./slack/config": "./src/slack/config.ts",
+    "./teams": "./src/teams/index.ts",
+    "./teams/config": "./src/teams/config.ts",
+    "./telegram": "./src/telegram/index.ts",
+    "./telegram/config": "./src/telegram/config.ts",
+    "./wechat": "./src/wechat/index.ts",
+    "./wechat/config": "./src/wechat/config.ts"
+  }
+}

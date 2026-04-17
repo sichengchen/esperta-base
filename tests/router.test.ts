@@ -1,6 +1,5 @@
 import { describe, test, expect, beforeEach } from "bun:test";
-import { ModelRouter } from "@aria/engine/router/index.js";
-import type { ModelRouterData } from "@aria/engine/router/index.js";
+import { ModelRouter, type ModelRouterData } from "@aria/gateway/router";
 
 const validConfig: ModelRouterData = {
   defaultModel: "sonnet",
@@ -42,27 +41,27 @@ describe("ModelRouter", () => {
     });
 
     test("rejects empty models array", () => {
-      expect(() =>
-        ModelRouter.fromConfig({ ...validConfig, models: [] })
-      ).toThrow("at least one model");
+      expect(() => ModelRouter.fromConfig({ ...validConfig, models: [] })).toThrow(
+        "at least one model",
+      );
     });
 
     test("rejects empty providers array", () => {
-      expect(() =>
-        ModelRouter.fromConfig({ ...validConfig, providers: [] })
-      ).toThrow("at least one provider");
+      expect(() => ModelRouter.fromConfig({ ...validConfig, providers: [] })).toThrow(
+        "at least one provider",
+      );
     });
 
     test("rejects missing default", () => {
-      expect(() =>
-        ModelRouter.fromConfig({ ...validConfig, defaultModel: "" })
-      ).toThrow("must specify a default");
+      expect(() => ModelRouter.fromConfig({ ...validConfig, defaultModel: "" })).toThrow(
+        "must specify a default",
+      );
     });
 
     test("rejects default not in models list", () => {
-      expect(() =>
-        ModelRouter.fromConfig({ ...validConfig, defaultModel: "missing" })
-      ).toThrow("not found in models list");
+      expect(() => ModelRouter.fromConfig({ ...validConfig, defaultModel: "missing" })).toThrow(
+        "not found in models list",
+      );
     });
 
     test("rejects duplicate model names", () => {
@@ -71,10 +70,14 @@ describe("ModelRouter", () => {
           ...validConfig,
           models: [
             { name: "a", provider: "anthropic", model: "gpt-4o" },
-            { name: "a", provider: "anthropic", model: "claude-sonnet-4-5-20250514" },
+            {
+              name: "a",
+              provider: "anthropic",
+              model: "claude-sonnet-4-5-20250514",
+            },
           ],
           defaultModel: "a",
-        })
+        }),
       ).toThrow("Duplicate");
     });
 
@@ -84,7 +87,7 @@ describe("ModelRouter", () => {
           defaultModel: "a",
           providers: [{ id: "p1", type: "anthropic" as any, apiKeyEnvVar: "X" }],
           models: [{ name: "a", provider: "unknown-provider", model: "m" }],
-        })
+        }),
       ).toThrow("unknown provider");
     });
   });
@@ -101,8 +104,8 @@ describe("ModelRouter", () => {
       expect(router.getActiveModelName()).toBe("gpt4o");
     });
 
-    test("throws on unknown model", () => {
-      expect(router.switchModel("nonexistent")).rejects.toThrow("not found");
+    test("throws on unknown model", async () => {
+      await expect(router.switchModel("nonexistent")).rejects.toThrow("not found");
     });
   });
 
@@ -149,6 +152,82 @@ describe("ModelRouter", () => {
     });
   });
 
+  describe("MiniMax provider", () => {
+    const minimaxConfig: ModelRouterData = {
+      defaultModel: "minimax-chat",
+      providers: [
+        {
+          id: "minimax",
+          type: "minimax" as any,
+          apiKeyEnvVar: "MINIMAX_API_KEY",
+          baseUrl: "https://api.minimaxi.com/v1",
+        },
+      ],
+      models: [
+        {
+          name: "minimax-chat",
+          provider: "minimax",
+          model: "MiniMax-M2.5",
+          temperature: 0.2,
+          maxTokens: 2048,
+        },
+        {
+          name: "minimax-embed",
+          provider: "minimax",
+          model: "MiniMax-Embedding",
+          type: "embedding",
+        },
+      ],
+    };
+
+    test("resolves provider metadata and OpenAI-compatible base URL", () => {
+      const router = ModelRouter.fromConfig(minimaxConfig);
+      const provider = router.getProvider("minimax");
+      expect(provider.type).toBe("minimax");
+      expect(provider.apiKeyEnvVar).toBe("MINIMAX_API_KEY");
+
+      process.env.MINIMAX_API_KEY = "minimax-test-key";
+      try {
+        const model = router.getModel("minimax-chat");
+        expect(model.provider).toBe("minimax");
+        expect(model.baseUrl).toBe("https://api.minimaxi.com/v1");
+        expect(router.getStreamOptions("minimax-chat").apiKey).toBe("minimax-test-key");
+      } finally {
+        delete process.env.MINIMAX_API_KEY;
+      }
+    });
+
+    test("uses the MiniMax /v1 base URL without duplicating the version prefix", async () => {
+      const router = ModelRouter.fromConfig(minimaxConfig);
+      process.env.MINIMAX_API_KEY = "minimax-test-key";
+      const originalFetch = globalThis.fetch;
+      const calls: string[] = [];
+
+      globalThis.fetch = (async (input: RequestInfo | URL) => {
+        calls.push(String(input));
+        return new Response(
+          JSON.stringify({
+            data: [{ embedding: [0.1, 0.2, 0.3], index: 0 }],
+          }),
+          {
+            status: 200,
+            headers: { "Content-Type": "application/json" },
+          },
+        );
+      }) as typeof fetch;
+
+      try {
+        const result = await router.embed(["hello minimax"]);
+        expect(calls).toEqual(["https://api.minimaxi.com/v1/embeddings"]);
+        expect(result.vectors).toEqual([[0.1, 0.2, 0.3]]);
+        expect(result.dimensions).toBe(3);
+      } finally {
+        globalThis.fetch = originalFetch;
+        delete process.env.MINIMAX_API_KEY;
+      }
+    });
+  });
+
   describe("CRUD — models", () => {
     let router: ModelRouter;
 
@@ -171,7 +250,7 @@ describe("ModelRouter", () => {
           name: "new-model",
           provider: "unknown",
           model: "m",
-        })
+        }),
       ).rejects.toThrow("not found");
     });
 
@@ -181,7 +260,7 @@ describe("ModelRouter", () => {
           name: "sonnet",
           provider: "anthropic",
           model: "claude-sonnet-4-5-20250514",
-        })
+        }),
       ).rejects.toThrow("already exists");
     });
 
@@ -191,9 +270,7 @@ describe("ModelRouter", () => {
     });
 
     test("cannot remove default model", async () => {
-      await expect(router.removeModel("sonnet")).rejects.toThrow(
-        "Cannot remove the default"
-      );
+      await expect(router.removeModel("sonnet")).rejects.toThrow("Cannot remove the default");
     });
 
     test("resets active to default when active model is removed", async () => {
@@ -231,7 +308,7 @@ describe("ModelRouter", () => {
           id: "anthropic",
           type: "anthropic" as any,
           apiKeyEnvVar: "X",
-        })
+        }),
       ).rejects.toThrow("already exists");
     });
 
@@ -246,9 +323,7 @@ describe("ModelRouter", () => {
     });
 
     test("cannot remove provider referenced by a model", async () => {
-      await expect(router.removeProvider("anthropic")).rejects.toThrow(
-        "still referenced by model"
-      );
+      await expect(router.removeProvider("anthropic")).rejects.toThrow("still referenced by model");
     });
   });
 
@@ -285,9 +360,9 @@ describe("ModelRouter", () => {
       expect(router.getTierConfig().eco).toBe("gpt4o");
     });
 
-    test("setTierModel throws on unknown model", () => {
+    test("setTierModel throws on unknown model", async () => {
       const router = ModelRouter.fromConfig(validConfig);
-      expect(router.setTierModel("eco", "nonexistent")).rejects.toThrow("not found");
+      await expect(router.setTierModel("eco", "nonexistent")).rejects.toThrow("not found");
     });
 
     test("getTierModel returns correct model for configured tier", () => {
@@ -367,10 +442,15 @@ describe("ModelRouter", () => {
         ModelRouter.fromConfig({
           ...validConfig,
           models: [
-            { name: "sonnet", provider: "anthropic", model: "claude-sonnet-4-5-20250514", fallback: "nonexistent" },
+            {
+              name: "sonnet",
+              provider: "anthropic",
+              model: "claude-sonnet-4-5-20250514",
+              fallback: "nonexistent",
+            },
             { name: "gpt4o", provider: "openai", model: "gpt-4o" },
           ],
-        })
+        }),
       ).toThrow("does not exist");
     });
 
@@ -379,10 +459,20 @@ describe("ModelRouter", () => {
         ModelRouter.fromConfig({
           ...validConfig,
           models: [
-            { name: "sonnet", provider: "anthropic", model: "claude-sonnet-4-5-20250514", fallback: "gpt4o" },
-            { name: "gpt4o", provider: "openai", model: "gpt-4o", fallback: "sonnet" },
+            {
+              name: "sonnet",
+              provider: "anthropic",
+              model: "claude-sonnet-4-5-20250514",
+              fallback: "gpt4o",
+            },
+            {
+              name: "gpt4o",
+              provider: "openai",
+              model: "gpt-4o",
+              fallback: "sonnet",
+            },
           ],
-        })
+        }),
       ).toThrow("Circular fallback");
     });
 
@@ -390,7 +480,12 @@ describe("ModelRouter", () => {
       const router = ModelRouter.fromConfig({
         ...validConfig,
         models: [
-          { name: "sonnet", provider: "anthropic", model: "claude-sonnet-4-5-20250514", fallback: "gpt4o" },
+          {
+            name: "sonnet",
+            provider: "anthropic",
+            model: "claude-sonnet-4-5-20250514",
+            fallback: "gpt4o",
+          },
           { name: "gpt4o", provider: "openai", model: "gpt-4o" },
         ],
       });

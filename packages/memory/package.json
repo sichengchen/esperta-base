@@ -1,0 +1,21 @@
+{
+  "name": "@aria/memory",
+  "version": "0.0.0",
+  "private": true,
+  "description": "Aria memory layers, retrieval utilities, and skills surface",
+  "type": "module",
+  "main": "./src/index.ts",
+  "types": "./src/index.ts",
+  "exports": {
+    ".": "./src/index.ts",
+    "./chunker": "./src/chunker.ts",
+    "./manager": "./src/manager.ts",
+    "./skills": "./src/skills.ts",
+    "./skills/assets": "./src/skills/assets.ts",
+    "./skills/loader": "./src/skills/loader.ts",
+    "./skills/prompt": "./src/skills/prompt.ts",
+    "./skills/registry": "./src/skills/registry.ts",
+    "./skills/types": "./src/skills/types.ts",
+    "./types": "./src/types.ts"
+  }
+}

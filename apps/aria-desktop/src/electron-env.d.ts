@@ -2,6 +2,7 @@ interface AriaDesktopRendererConfig {
   target: {
     serverId: string;
     baseUrl: string;
+    token?: string;
   };
   terminal?: {
     spawn: (id: string, cwd?: string) => Promise<{ pid: number }>;

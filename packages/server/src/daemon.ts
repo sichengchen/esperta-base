@@ -42,6 +42,17 @@ export interface CreateEngineDaemonControllerOptions {
   dependencies?: Partial<EngineDaemonDependencies>;
 }
 
+const ENGINE_STARTUP_TIMEOUT_MS = 15_000;
+const ENGINE_STARTUP_POLL_INTERVAL_MS = 250;
+const EXISTING_ENGINE_READY_TIMEOUT_MS = 3_000;
+
+type EngineReadinessState = "ready" | "dead" | "timeout";
+
+interface EngineReadinessResult {
+  state: EngineReadinessState;
+  url: string | null;
+}
+
 function defaultIsProcessAlive(pid: number): boolean {
   try {
     process.kill(pid, 0);
@@ -96,11 +107,65 @@ export function createEngineDaemonController(
     if (deps.existsSync(urlFile)) await deps.unlink(urlFile);
   }
 
+  async function waitForEngineReadiness(
+    pid: number,
+    timeoutMs: number,
+  ): Promise<EngineReadinessResult> {
+    const maxAttempts = Math.max(1, Math.ceil(timeoutMs / ENGINE_STARTUP_POLL_INTERVAL_MS));
+    let discoveredUrl: string | null = null;
+
+    for (let attempt = 0; attempt < maxAttempts; attempt += 1) {
+      if (!deps.isProcessAlive(pid)) {
+        return { state: "dead", url: discoveredUrl };
+      }
+
+      if (deps.existsSync(urlFile)) {
+        try {
+          const url = (await deps.readFile(urlFile, "utf-8")).trim();
+          if (url) {
+            discoveredUrl = url;
+            const response = await deps.fetch(`${url}/health`);
+            if (response.ok) {
+              return { state: "ready", url };
+            }
+          }
+        } catch {
+          // Best-effort polling while the runtime is still starting.
+        }
+      }
+
+      await deps.sleep(ENGINE_STARTUP_POLL_INTERVAL_MS);
+    }
+
+    return { state: "timeout", url: discoveredUrl };
+  }
+
+  async function stopPid(pid: number): Promise<void> {
+    if (!deps.isProcessAlive(pid)) return;
+
+    deps.kill(pid, "SIGTERM");
+
+    for (let index = 0; index < 50; index += 1) {
+      await deps.sleep(100);
+      if (!deps.isProcessAlive(pid)) return;
+    }
+
+    if (deps.isProcessAlive(pid)) {
+      deps.kill(pid, "SIGKILL");
+    }
+  }
+
   async function startEngine(): Promise<void> {
     const existingPid = await readPid();
     if (existingPid && deps.isProcessAlive(existingPid)) {
-      deps.log(`${RUNTIME_NAME} is already running (PID ${existingPid}).`);
-      return;
+      const readiness = await waitForEngineReadiness(existingPid, EXISTING_ENGINE_READY_TIMEOUT_MS);
+      if (readiness.state === "ready") {
+        deps.log(`${RUNTIME_NAME} is already running (PID ${existingPid}).`);
+        return;
+      }
+
+      deps.log(`${RUNTIME_NAME} process exists but is unreachable; restarting...`);
+      await stopPid(existingPid);
     }
 
     await cleanStaleFiles();
@@ -117,21 +182,22 @@ export function createEngineDaemonController(
       return;
     }
 
-    await deps.sleep(1500);
+    const readiness = await waitForEngineReadiness(child.pid, ENGINE_STARTUP_TIMEOUT_MS);
 
-    if (!deps.isProcessAlive(child.pid)) {
-      deps.error(`${RUNTIME_NAME} failed to start. Check logs: ${CLI_NAME} engine logs`);
+    if (readiness.state !== "ready") {
+      await stopPid(child.pid);
       await cleanStaleFiles();
+      const suffix =
+        readiness.state === "dead"
+          ? "The daemon exited before becoming ready."
+          : "The daemon did not become reachable in time.";
+      deps.error(`${RUNTIME_NAME} failed to start. ${suffix} Check logs: ${CLI_NAME} engine logs`);
       deps.exit(1);
       return;
     }
 
     deps.log(`${RUNTIME_NAME} started (PID ${child.pid}).`);
-
-    if (deps.existsSync(urlFile)) {
-      const url = await deps.readFile(urlFile, "utf-8");
-      deps.log(`Listening on ${url.trim()}`);
-    }
+    deps.log(`Listening on ${readiness.url}`);
   }
 
   async function stopEngine(): Promise<void> {
@@ -142,17 +208,7 @@ export function createEngineDaemonController(
       return;
     }
 
-    deps.kill(pid, "SIGTERM");
-
-    for (let index = 0; index < 50; index += 1) {
-      await deps.sleep(100);
-      if (!deps.isProcessAlive(pid)) break;
-    }
-
-    if (deps.isProcessAlive(pid)) {
-      deps.kill(pid, "SIGKILL");
-    }
-
+    await stopPid(pid);
     await cleanStaleFiles();
     deps.log(`${RUNTIME_NAME} stopped.`);
   }
@@ -202,7 +258,12 @@ export function createEngineDaemonController(
   async function ensureEngine(): Promise<void> {
     const existingPid = await readPid();
     if (existingPid && deps.isProcessAlive(existingPid)) {
-      return;
+      const readiness = await waitForEngineReadiness(existingPid, EXISTING_ENGINE_READY_TIMEOUT_MS);
+      if (readiness.state === "ready") {
+        return;
+      }
+      await stopPid(existingPid);
+      await cleanStaleFiles();
     }
     await startEngine();
   }

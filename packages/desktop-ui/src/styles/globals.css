@@ -1,4 +1,6 @@
 @import "tailwindcss";
+@source "../../**/*.{ts,tsx}";
+@source "../../../../apps/aria-desktop/src/**/*.{ts,tsx}";
 
 @theme {
   /* Light theme (default) */

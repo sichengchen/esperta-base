@@ -17,6 +17,9 @@ function createDaemonHarness() {
   let nextSpawnPid = 9001;
   let fetchStatus = "ok";
   let fetchThrows = false;
+  let fetchFailuresRemaining = 0;
+  let fetchCalls = 0;
+  const unreachableUrls = new Set<string>();
 
   const controller = createEngineDaemonController({
     discoveryPaths,
@@ -54,7 +57,15 @@ function createDaemonHarness() {
           alivePids.delete(pid);
         }
       },
-      async fetch() {
+      async fetch(url) {
+        fetchCalls += 1;
+        if (unreachableUrls.has(url)) {
+          throw new Error("unreachable");
+        }
+        if (fetchFailuresRemaining > 0) {
+          fetchFailuresRemaining -= 1;
+          throw new Error("unreachable");
+        }
         if (fetchThrows) {
           throw new Error("unreachable");
         }
@@ -95,6 +106,16 @@ function createDaemonHarness() {
     },
     setFetchThrows(value: boolean) {
       fetchThrows = value;
+    },
+    setFetchFailuresRemaining(value: number) {
+      fetchFailuresRemaining = value;
+    },
+    getFetchCalls() {
+      return fetchCalls;
+    },
+    setUnreachableUrls(urls: string[]) {
+      unreachableUrls.clear();
+      urls.forEach((url) => unreachableUrls.add(url));
     },
   };
 }
@@ -172,6 +193,38 @@ describe("server daemon controller", () => {
       "Aria Runtime: running (PID 777)",
       "URL: http://127.0.0.1:777",
       "Status: unreachable (may still be starting)",
+    ]);
+  });
+
+  test("waits for health before reporting a daemon as started", async () => {
+    const harness = createDaemonHarness();
+    harness.setFetchFailuresRemaining(2);
+
+    await harness.controller.startEngine();
+
+    expect(harness.logs).toEqual([
+      "Aria Runtime started (PID 9001).",
+      "Listening on http://127.0.0.1:9001",
+    ]);
+    expect(harness.getFetchCalls()).toBe(3);
+  });
+
+  test("recycles an unreachable existing daemon before ensuring a healthy one", async () => {
+    const harness = createDaemonHarness();
+    harness.files.set(harness.discoveryPaths.pidFile, "321\n");
+    harness.files.set(harness.discoveryPaths.urlFile, "http://127.0.0.1:321\n");
+    harness.alivePids.add(321);
+    harness.setUnreachableUrls(["http://127.0.0.1:321/health"]);
+
+    await harness.controller.ensureEngine();
+
+    expect(harness.killCalls).toEqual([
+      { pid: 321, signal: "SIGTERM" },
+    ]);
+    expect(harness.spawnCalls).toHaveLength(1);
+    expect(harness.logs).toEqual([
+      "Aria Runtime started (PID 9001).",
+      "Listening on http://127.0.0.1:9001",
     ]);
   });
 });

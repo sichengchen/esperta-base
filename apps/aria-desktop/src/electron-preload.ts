@@ -1,10 +1,36 @@
 const { contextBridge, ipcRenderer } = require("electron");
+const { existsSync, readFileSync } = require("node:fs");
+const { homedir } = require("node:os");
+const { join } = require("node:path");
+
+const DEFAULT_LOCAL_HTTP_URL = "http://127.0.0.1:7420/";
+
+function resolveRuntimeHome() {
+  return process.env.ARIA_HOME || join(homedir(), ".aria");
+}
+
+function readTrimmedFile(path) {
+  return existsSync(path) ? readFileSync(path, "utf-8").trim() : undefined;
+}
+
+function resolveDesktopTarget() {
+  const runtimeHome = resolveRuntimeHome();
+  const baseUrl =
+    process.env.ARIA_DESKTOP_SERVER_URL ||
+    readTrimmedFile(join(runtimeHome, "engine.url")) ||
+    DEFAULT_LOCAL_HTTP_URL;
+  const token =
+    process.env.ARIA_DESKTOP_SERVER_TOKEN || readTrimmedFile(join(runtimeHome, "engine.token"));
+
+  return {
+    serverId: process.env.ARIA_DESKTOP_SERVER_ID ?? "desktop",
+    baseUrl,
+    token,
+  };
+}
 
 contextBridge.exposeInMainWorld("ariaDesktop", {
-  target: {
-    serverId: process.env.ARIA_DESKTOP_SERVER_ID ?? "desktop",
-    baseUrl: process.env.ARIA_DESKTOP_SERVER_URL ?? "http://127.0.0.1:7420/",
-  },
+  target: resolveDesktopTarget(),
   terminal: {
     spawn: (id: string, cwd?: string) => ipcRenderer.invoke("terminal:spawn", id, cwd),
     write: (id: string, data: string) => ipcRenderer.invoke("terminal:write", id, data),

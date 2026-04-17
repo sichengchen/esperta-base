@@ -5,6 +5,7 @@
   "type": "module",
   "main": "./dist/main/index.js",
   "scripts": {
+    "prestart": "bun run build",
     "dev": "electron-vite dev",
     "build": "electron-vite build",
     "preview": "electron-vite preview",

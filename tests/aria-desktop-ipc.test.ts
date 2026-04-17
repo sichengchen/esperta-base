@@ -1,3 +1,4 @@
+import type { BrowserWindow } from "electron";
 import { describe, expect, test, vi } from "vitest";
 
 describe("registerDesktopIpc", () => {
@@ -9,7 +10,7 @@ describe("registerDesktopIpc", () => {
       selectedThreadId: null,
     };
     const importLocalProjectFromDialog = vi.fn(async () => importResult);
-    const focusedWindow = { id: "focused-window" };
+    const focusedWindow = { id: "focused-window" } as unknown as BrowserWindow;
 
     const { importLocalProjectThroughDesktopService } =
       await import("../apps/aria-desktop/src/main/desktop-ipc-handlers.js");

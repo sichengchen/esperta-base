@@ -1,4 +1,5 @@
 import { join } from "node:path";
+import { setupTerminalIPC } from "./ipc.js";
 
 export interface AriaDesktopElectronHostOptions {
   distDir: string;
@@ -77,6 +78,7 @@ export async function runAriaDesktopElectronHost(
   };
 
   await runtime.whenReady();
+  setupTerminalIPC();
   openWindow();
 
   runtime.onActivate(() => {

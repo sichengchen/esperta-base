@@ -1,0 +1,23 @@
+{
+  "name": "@aria/console",
+  "version": "0.0.0",
+  "private": true,
+  "description": "Aria server-local terminal UI and transport client",
+  "type": "module",
+  "main": "./src/index.ts",
+  "types": "./src/index.ts",
+  "exports": {
+    ".": "./src/index.ts",
+    "./App": "./src/App.tsx",
+    "./Input": "./src/Input.tsx",
+    "./MarkdownText": "./src/MarkdownText.tsx",
+    "./MessageBlock": "./src/MessageBlock.tsx",
+    "./ModelPicker": "./src/ModelPicker.tsx",
+    "./SessionPicker": "./src/SessionPicker.tsx",
+    "./StatusBar": "./src/StatusBar.tsx",
+    "./ToolApproval": "./src/ToolApproval.tsx",
+    "./UserQuestion": "./src/UserQuestion.tsx",
+    "./commands": "./src/commands.ts",
+    "./client": "./src/client.ts"
+  }
+}

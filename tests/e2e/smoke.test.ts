@@ -1,118 +1,107 @@
-import { describe, test, expect, afterEach } from "bun:test";
-import { ConfigManager } from "@aria/engine/config/index.js";
-import { ModelRouter } from "@aria/engine/router/index.js";
-import { Agent } from "@aria/engine/agent/index.js";
-import { MemoryManager } from "@aria/engine/memory/index.js";
-import { getBuiltinTools, createWebFetchTool } from "@aria/engine/tools/index.js";
-import { createMemoryWriteTool } from "@aria/engine/tools/memory-write.js";
-import { createMemorySearchTool } from "@aria/engine/tools/memory-search.js";
-import { createMemoryReadTool } from "@aria/engine/tools/memory-read.js";
-import { createMemoryDeleteTool } from "@aria/engine/tools/memory-delete.js";
-import { rm } from "node:fs/promises";
-import { join } from "node:path";
+import { afterEach, describe, expect, test } from "bun:test";
+import { mkdtemp, rm } from "node:fs/promises";
 import { tmpdir } from "node:os";
+import { join } from "node:path";
 
-const testHome = join(tmpdir(), "aria-e2e-smoke-" + Date.now());
+import { AriaDesktopAppShell } from "aria-desktop";
+import {
+  AriaMobileApplicationShell,
+  createAriaMobileApplicationBootstrap,
+  createAriaMobileApplicationRoot,
+} from "aria-mobile";
+import {
+  createAriaDesktopApplicationBootstrap,
+  createAriaDesktopApplicationRoot,
+} from "aria-desktop";
+import { createAriaServerHostBootstrap } from "aria-server";
+
+let testHome: string;
 
 afterEach(async () => {
-  await rm(testHome, { recursive: true, force: true });
+  if (testHome) {
+    await rm(testHome, { recursive: true, force: true });
+  }
 });
 
 describe("E2E smoke test", () => {
-  test("full system initialization — config, router, memory, agent", async () => {
-    // 1. Config initializes with defaults
-    const config = new ConfigManager(testHome);
-    const ariaConfig = await config.load();
-    expect(ariaConfig.identity.name).toBe("Esperta Aria");
+  test("server, desktop, and mobile compose around one architecture", async () => {
+    testHome = await mkdtemp(join(tmpdir(), "aria-e2e-smoke-"));
 
-    // 2. Memory initializes
-    const memoryDir = join(testHome, ariaConfig.runtime.memory.directory);
-    const memory = new MemoryManager(memoryDir);
-    await memory.init();
+    const serverHost = createAriaServerHostBootstrap(testHome);
 
-    const memoryContext = await memory.loadContext();
-
-    // 3. Router loads from config data (v3 merged schema)
-    const router = ModelRouter.fromConfig({
-      providers: ariaConfig.providers,
-      models: ariaConfig.models,
-      defaultModel: ariaConfig.defaultModel,
+    const desktopTarget = {
+      serverId: "home",
+      baseUrl: "http://127.0.0.1:7420/",
+      primaryBaseUrl: "http://127.0.0.1:7420/",
+      secondaryBaseUrl: "https://gateway.example.test/home",
+    };
+    const mobileTarget = {
+      serverId: "published",
+      baseUrl: "https://gateway.example.test/home",
+      secondaryBaseUrl: "https://gateway.example.test/home",
+      preferredAccessMode: "secondary" as const,
+    };
+    const desktop = createAriaDesktopApplicationBootstrap({
+      target: desktopTarget,
+      initialThread: {
+        project: { name: "Aria" },
+        thread: {
+          threadId: "thread-1",
+          title: "Desktop thread",
+          status: "running",
+          threadType: "local_project",
+          environmentId: "wt/main",
+          agentId: "codex",
+        },
+      },
     });
-    expect(router.listModels().length).toBeGreaterThan(0);
-
-    // 4. Agent initializes with all components
-    const tools = [
-      ...getBuiltinTools(),
-      createWebFetchTool(),
-      createMemoryWriteTool(memory),
-      createMemorySearchTool(memory),
-      createMemoryReadTool(memory),
-      createMemoryDeleteTool(memory),
-    ];
-    const agent = new Agent({
-      router,
-      tools,
-      systemPrompt: ariaConfig.identity.systemPrompt,
+    const mobile = createAriaMobileApplicationBootstrap({
+      target: mobileTarget,
+      initialThread: {
+        project: { name: "Aria" },
+        thread: {
+          threadId: "thread-1",
+          title: "Remote review",
+          status: "idle",
+          threadType: "remote_project",
+          agentId: "codex",
+        },
+      },
     });
 
-    expect(agent.getMessages()).toHaveLength(0);
-
-    // 5. Verify tool definitions are available for LLM
-    // (We can't call agent.chat() without a real LLM, but we can verify the setup is correct)
-    expect(tools).toHaveLength(13); // read, write, edit, exec, exec_status, exec_kill, web_search, reaction, web_fetch, memory_write, memory_search, memory_read, memory_delete
-    expect(tools.map((t) => t.name)).toEqual([
-      "read",
-      "write",
-      "edit",
-      "exec",
-      "exec_status",
-      "exec_kill",
-      "web_search",
-      "reaction",
-      "web_fetch",
-      "memory_write",
-      "memory_search",
-      "memory_read",
-      "memory_delete",
-    ]);
-  });
-
-  test("memory round-trip through the memory_write tool", async () => {
-    const config = new ConfigManager(testHome);
-    await config.load();
-
-    const memoryDir = join(testHome, "memory");
-    const memory = new MemoryManager(memoryDir);
-    await memory.init();
-
-    const writeTool = createMemoryWriteTool(memory);
-
-    // Save via tool
-    const saveResult = await writeTool.execute({
-      key: "test-fact",
-      content: "The user prefers concise answers.",
+    const desktopRoot = createAriaDesktopApplicationRoot({
+      target: desktopTarget,
+      initialThread: {
+        project: { name: "Aria" },
+        thread: {
+          threadId: "thread-1",
+          title: "Desktop thread",
+          status: "running",
+          threadType: "local_project",
+          environmentId: "wt/main",
+          agentId: "codex",
+        },
+      },
     });
-    expect(saveResult.isError).toBeUndefined();
-    expect(saveResult.content).toContain("Saved");
+    const mobileRoot = createAriaMobileApplicationRoot({
+      target: mobileTarget,
+      initialThread: {
+        project: { name: "Aria" },
+        thread: {
+          threadId: "thread-1",
+          title: "Remote review",
+          status: "idle",
+          threadType: "remote_project",
+          agentId: "codex",
+        },
+      },
+    });
 
-    // Verify via memory manager
-    const stored = await memory.get("test-fact");
-    expect(stored).toBe("The user prefers concise answers.");
-
-    // Search works
-    const results = await memory.search("concise");
-    expect(results).toHaveLength(1);
-  });
-
-  test("config persistence across manager instances", async () => {
-    // First instance creates defaults
-    const config1 = new ConfigManager(testHome);
-    const ariaConfig1 = await config1.load();
-    await config1.setConfig("activeModel", "custom-model");
-
-    // Second instance loads persisted config
-    const config2 = new ConfigManager(testHome);
-    const ariaConfig2 = await config2.load();
-    expect(ariaConfig2.runtime.activeModel).toBe("custom-model");
+    expect(serverHost.host.shellPackage).toBe("@aria/server");
+    expect(serverHost.discoveryPaths.pidFile).toBe(`${testHome}/engine.pid`);
+    expect(desktop.bootstrap.access.httpUrl).toBe("http://127.0.0.1:7420");
+    expect(mobile.bootstrap.access.httpUrl).toBe("https://gateway.example.test/home");
+    expect(desktopRoot.type).toBe(AriaDesktopAppShell);
+    expect(mobileRoot.type).toBe(AriaMobileApplicationShell);
   });
 });

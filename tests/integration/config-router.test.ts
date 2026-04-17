@@ -1,6 +1,6 @@
 import { describe, test, expect, beforeEach, afterEach } from "bun:test";
-import { ConfigManager } from "@aria/engine/config/index.js";
-import { ModelRouter } from "@aria/engine/router/index.js";
+import { ConfigManager } from "@aria/server/config";
+import { ModelRouter } from "@aria/gateway/router";
 import { rm, mkdir, writeFile } from "node:fs/promises";
 import { join } from "node:path";
 import { tmpdir } from "node:os";
@@ -39,12 +39,26 @@ describe("Config + Router integration", () => {
         memory: { enabled: true, directory: "memory" },
       },
       providers: [
-        { id: "anthropic", type: "anthropic", apiKeyEnvVar: "ANTHROPIC_API_KEY" },
+        {
+          id: "anthropic",
+          type: "anthropic",
+          apiKeyEnvVar: "ANTHROPIC_API_KEY",
+        },
         { id: "openai", type: "openai", apiKeyEnvVar: "OPENAI_API_KEY" },
       ],
       models: [
-        { name: "fast", provider: "anthropic", model: "claude-sonnet-4-5-20250514", temperature: 0.5 },
-        { name: "smart", provider: "openai", model: "gpt-4o", temperature: 0.3 },
+        {
+          name: "fast",
+          provider: "anthropic",
+          model: "claude-sonnet-4-5-20250514",
+          temperature: 0.5,
+        },
+        {
+          name: "smart",
+          provider: "openai",
+          model: "gpt-4o",
+          temperature: 0.3,
+        },
       ],
       defaultModel: "fast",
     };
@@ -75,7 +89,7 @@ describe("Config + Router integration", () => {
     await mkdir(testHome, { recursive: true });
     await writeFile(
       join(testHome, "IDENTITY.md"),
-      "# TestBot\n\n## Personality\nTest personality.\n\n## System Prompt\nYou are TestBot.\n"
+      "# TestBot\n\n## Personality\nTest personality.\n\n## System Prompt\nYou are TestBot.\n",
     );
 
     const config = new ConfigManager(testHome);

@@ -1,6 +1,6 @@
 import { describe, test, expect, afterEach } from "bun:test";
-import { ToolRegistry } from "@aria/engine/agent/index.js";
-import { getBuiltinTools, createWebFetchTool } from "@aria/engine/tools/index.js";
+import { ToolRegistry } from "@aria/agent-aria";
+import { createWebFetchTool, getBuiltinTools } from "@aria/tools";
 import { rm, mkdir } from "node:fs/promises";
 import { join } from "node:path";
 import { tmpdir } from "node:os";
@@ -20,7 +20,17 @@ describe("Agent flow integration", () => {
     }
 
     // Verify all tools are registered
-    expect(registry.listNames()).toEqual(["read", "write", "edit", "exec", "exec_status", "exec_kill", "web_search", "reaction", "web_fetch"]);
+    expect(registry.listNames()).toEqual([
+      "read",
+      "write",
+      "edit",
+      "exec",
+      "exec_status",
+      "exec_kill",
+      "web_search",
+      "reaction",
+      "web_fetch",
+    ]);
 
     // Tool definitions are valid for LLM context
     const defs = registry.getToolDefinitions();

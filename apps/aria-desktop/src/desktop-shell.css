@@ -1,0 +1,642 @@
+:root {
+  color-scheme: light;
+  --aria-bg: #f5f7fa;
+  --aria-panel: #fbfcfd;
+  --aria-panel-muted: #f0f3f6;
+  --aria-panel-active: #e9eef4;
+  --aria-border: #d9e1e8;
+  --aria-border-strong: #c6d0da;
+  --aria-text: #17212b;
+  --aria-text-muted: #647181;
+  --aria-accent: #1d4ed8;
+  --aria-accent-soft: rgba(29, 78, 216, 0.1);
+  --aria-success: #0f766e;
+  --aria-success-soft: rgba(15, 118, 110, 0.12);
+  --aria-danger: #b42318;
+  --aria-danger-soft: rgba(180, 35, 24, 0.08);
+  --aria-shadow: 0 1px 0 rgba(15, 23, 42, 0.03);
+  --aria-font-sans: "SF Pro Text", "IBM Plex Sans", "Segoe UI", sans-serif;
+  --aria-font-mono: "SF Mono", "JetBrains Mono", "IBM Plex Mono", monospace;
+}
+
+html,
+body,
+#root {
+  height: 100%;
+}
+
+body {
+  margin: 0;
+  background: var(--aria-bg);
+  color: var(--aria-text);
+  font-family: var(--aria-font-sans);
+  -webkit-font-smoothing: antialiased;
+}
+
+button,
+input,
+select,
+textarea {
+  font: inherit;
+}
+
+.aria-desktop-shell {
+  display: flex;
+  min-height: 100%;
+  min-width: 0;
+  flex-direction: column;
+}
+
+.aria-desktop-top-chrome {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) minmax(280px, auto) auto;
+  align-items: center;
+  gap: 16px;
+  min-height: 56px;
+  border-bottom: 1px solid var(--aria-border);
+  background: var(--aria-panel);
+  padding: 0 16px;
+  box-shadow: var(--aria-shadow);
+}
+
+.aria-desktop-brand {
+  display: flex;
+  min-width: 0;
+  align-items: center;
+  gap: 12px;
+}
+
+.aria-desktop-brand-mark {
+  display: flex;
+  height: 28px;
+  width: 28px;
+  flex-shrink: 0;
+  align-items: center;
+  justify-content: center;
+  border-radius: 8px;
+  background: linear-gradient(180deg, #2563eb 0%, #1d4ed8 100%);
+  color: #fff;
+  font-size: 14px;
+  font-weight: 700;
+}
+
+.aria-desktop-brand-copy h1,
+.aria-desktop-sidebar section h3,
+.aria-desktop-center section h3,
+.aria-desktop-right-rail section h3 {
+  margin: 0;
+  font-size: 11px;
+  font-weight: 700;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+}
+
+.aria-desktop-brand-copy p {
+  margin: 2px 0 0;
+  color: var(--aria-text-muted);
+  font-size: 12px;
+}
+
+.aria-desktop-top-meta {
+  display: flex;
+  min-width: 0;
+  flex-direction: column;
+  gap: 4px;
+}
+
+.aria-desktop-pill-row {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 6px;
+}
+
+.aria-desktop-status-line {
+  color: var(--aria-text-muted);
+  font-size: 12px;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.aria-desktop-pill {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  border: 1px solid var(--aria-border);
+  border-radius: 6px;
+  background: transparent;
+  padding: 4px 8px;
+  color: var(--aria-text-muted);
+  font-size: 12px;
+  line-height: 1;
+}
+
+.aria-desktop-pill.is-live {
+  border-color: rgba(15, 118, 110, 0.24);
+  background: var(--aria-success-soft);
+  color: var(--aria-success);
+}
+
+.aria-desktop-pill.is-offline {
+  border-color: rgba(180, 35, 24, 0.2);
+  background: var(--aria-danger-soft);
+  color: var(--aria-danger);
+}
+
+.aria-desktop-select-field {
+  display: flex;
+  min-width: 160px;
+  flex-direction: column;
+  gap: 4px;
+  color: var(--aria-text-muted);
+  font-size: 11px;
+  letter-spacing: 0.05em;
+  text-transform: uppercase;
+}
+
+.aria-desktop-select-field select,
+.aria-desktop-input,
+.aria-desktop-composer-input {
+  border: 1px solid var(--aria-border);
+  border-radius: 6px;
+  background: #fff;
+  color: var(--aria-text);
+}
+
+.aria-desktop-select-field select,
+.aria-desktop-input {
+  min-height: 32px;
+  padding: 0 10px;
+}
+
+.aria-desktop-workbench {
+  display: grid;
+  min-height: 0;
+  flex: 1;
+  grid-template-columns: 280px minmax(0, 1fr) 320px;
+}
+
+.aria-desktop-sidebar,
+.aria-desktop-center,
+.aria-desktop-right-rail {
+  display: flex;
+  min-height: 0;
+  min-width: 0;
+  flex-direction: column;
+  background: var(--aria-panel);
+}
+
+.aria-desktop-sidebar {
+  border-right: 1px solid var(--aria-border);
+}
+
+.aria-desktop-right-rail {
+  border-left: 1px solid var(--aria-border);
+}
+
+.aria-desktop-sidebar section,
+.aria-desktop-center section,
+.aria-desktop-right-rail section {
+  display: flex;
+  min-height: 0;
+  min-width: 0;
+  flex-direction: column;
+  gap: 12px;
+  padding: 12px 14px;
+}
+
+.aria-desktop-sidebar section + section,
+.aria-desktop-center section + section,
+.aria-desktop-right-rail section + section {
+  border-top: 1px solid var(--aria-border);
+}
+
+.aria-desktop-center section[data-slot="stream"] {
+  flex: 1;
+}
+
+.aria-desktop-space-list,
+.aria-desktop-project-groups,
+.aria-desktop-inspector,
+.aria-desktop-stream {
+  display: flex;
+  min-height: 0;
+  flex-direction: column;
+  gap: 8px;
+}
+
+.aria-desktop-space-list {
+  gap: 2px;
+}
+
+.aria-desktop-sidebar-shell,
+.aria-desktop-editor-shell {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+
+.aria-desktop-tab-strip {
+  display: flex;
+  align-items: stretch;
+  gap: 0;
+  overflow: hidden;
+  border-bottom: 1px solid var(--aria-border);
+}
+
+.aria-desktop-tab {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  min-height: 32px;
+  border: 0;
+  border-right: 1px solid var(--aria-border);
+  background: transparent;
+  padding: 0 12px;
+  color: var(--aria-text-muted);
+  font-size: 12px;
+  cursor: pointer;
+}
+
+.aria-desktop-tab:hover {
+  background: var(--aria-panel-muted);
+  color: var(--aria-text);
+}
+
+.aria-desktop-tab.is-active {
+  background: var(--aria-panel-active);
+  color: var(--aria-text);
+}
+
+.aria-desktop-pane-caption {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 8px;
+  color: var(--aria-text-muted);
+  font-size: 11px;
+  letter-spacing: 0.05em;
+  text-transform: uppercase;
+}
+
+.aria-desktop-pane-header {
+  display: flex;
+  align-items: start;
+  justify-content: space-between;
+  gap: 16px;
+  border-bottom: 1px solid var(--aria-border);
+  padding-bottom: 8px;
+}
+
+.aria-desktop-pane-header--compact {
+  align-items: center;
+  padding-bottom: 10px;
+}
+
+.aria-desktop-space-item {
+  display: flex;
+  width: 100%;
+  align-items: center;
+  justify-content: space-between;
+  gap: 8px;
+  border: 0;
+  border-left: 2px solid transparent;
+  background: transparent;
+  padding: 8px 10px;
+  color: var(--aria-text-muted);
+  text-align: left;
+  cursor: pointer;
+}
+
+.aria-desktop-space-item span:first-child {
+  font-size: 13px;
+  font-weight: 500;
+}
+
+.aria-desktop-space-item:hover {
+  background: var(--aria-panel-muted);
+  color: var(--aria-text);
+}
+
+.aria-desktop-space-item.is-active {
+  border-left-color: var(--aria-accent);
+  background: var(--aria-accent-soft);
+  color: var(--aria-text);
+}
+
+.aria-desktop-space-indicator {
+  display: inline-flex;
+  height: 6px;
+  width: 6px;
+  flex-shrink: 0;
+  border-radius: 999px;
+  background: var(--aria-accent);
+}
+
+.aria-desktop-project-groups,
+.aria-desktop-thread-list,
+.aria-desktop-stream-list,
+.aria-desktop-session-list {
+  margin: 0;
+  padding: 0;
+  list-style: none;
+}
+
+.aria-desktop-project-group {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+}
+
+.aria-desktop-project-group-header,
+.aria-desktop-card-eyebrow,
+.aria-desktop-eyebrow,
+.aria-desktop-message-role,
+.aria-desktop-message-tool,
+.aria-desktop-definition-list dt {
+  color: var(--aria-text-muted);
+  font-size: 11px;
+  font-weight: 600;
+  letter-spacing: 0.05em;
+  text-transform: uppercase;
+}
+
+.aria-desktop-thread-list {
+  display: flex;
+  flex-direction: column;
+}
+
+.aria-desktop-thread-button {
+  display: flex;
+  width: 100%;
+  flex-direction: column;
+  align-items: flex-start;
+  gap: 2px;
+  border: 0;
+  border-radius: 6px;
+  background: transparent;
+  padding: 8px 10px;
+  text-align: left;
+  cursor: pointer;
+}
+
+.aria-desktop-thread-button:hover {
+  background: var(--aria-panel-muted);
+}
+
+.aria-desktop-thread-button.is-active {
+  background: var(--aria-panel-active);
+}
+
+.aria-desktop-thread-title {
+  color: var(--aria-text);
+  font-size: 13px;
+  font-weight: 500;
+}
+
+.aria-desktop-thread-meta,
+.aria-desktop-card p,
+.aria-desktop-stream-item p,
+.aria-desktop-empty-copy,
+.aria-desktop-empty-state p,
+.aria-desktop-definition-list dd,
+.aria-desktop-session-item p {
+  color: var(--aria-text-muted);
+  font-size: 12px;
+  line-height: 1.5;
+}
+
+.aria-desktop-thread-header-copy {
+  display: flex;
+  min-width: 0;
+  flex-direction: column;
+  gap: 8px;
+}
+
+.aria-desktop-stream-summary,
+.aria-desktop-button-row {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 6px;
+}
+
+.aria-desktop-card,
+.aria-desktop-empty-state,
+.aria-desktop-session-item {
+  border: 1px solid var(--aria-border);
+  border-radius: 8px;
+  background: #fff;
+}
+
+.aria-desktop-card {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+  padding: 10px 12px;
+}
+
+.aria-desktop-card strong,
+.aria-desktop-empty-state strong,
+.aria-desktop-session-item strong {
+  color: var(--aria-text);
+  font-size: 13px;
+  font-weight: 600;
+}
+
+.aria-desktop-card p,
+.aria-desktop-stream-item p,
+.aria-desktop-empty-copy,
+.aria-desktop-empty-state p,
+.aria-desktop-session-item p {
+  margin: 0;
+}
+
+.aria-desktop-card--soft {
+  background: var(--aria-panel-muted);
+}
+
+.aria-desktop-card--lead {
+  border-color: rgba(29, 78, 216, 0.18);
+}
+
+.aria-desktop-card--error {
+  border-color: rgba(180, 35, 24, 0.22);
+  background: #fff7f6;
+}
+
+.aria-desktop-stream-list {
+  display: flex;
+  min-height: 0;
+  flex: 1;
+  flex-direction: column;
+  overflow: auto;
+  border: 1px solid var(--aria-border);
+  background: #fff;
+}
+
+.aria-desktop-stream-item {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+  border-bottom: 1px solid var(--aria-border);
+  padding: 10px 12px;
+}
+
+.aria-desktop-stream-item:last-child {
+  border-bottom: 0;
+}
+
+.aria-desktop-stream-item-head {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 8px;
+}
+
+.aria-desktop-stream-item.is-assistant {
+  background: rgba(29, 78, 216, 0.02);
+}
+
+.aria-desktop-stream-item.is-error {
+  background: rgba(180, 35, 24, 0.03);
+}
+
+.aria-desktop-empty-state {
+  display: flex;
+  min-height: 160px;
+  flex: 1;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: 6px;
+  border-style: dashed;
+  text-align: center;
+  padding: 18px;
+}
+
+.aria-desktop-inspector-stack {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+
+.aria-desktop-definition-list {
+  display: grid;
+  gap: 8px;
+}
+
+.aria-desktop-definition-list div {
+  display: grid;
+  gap: 2px;
+}
+
+.aria-desktop-definition-list dd {
+  margin: 0;
+  color: var(--aria-text);
+}
+
+.aria-desktop-inline-form {
+  display: flex;
+  gap: 8px;
+}
+
+.aria-desktop-input {
+  flex: 1;
+}
+
+.aria-desktop-session-list {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+
+.aria-desktop-session-item {
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: 10px;
+  padding: 10px 12px;
+}
+
+.aria-desktop-button {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 8px;
+  min-height: 30px;
+  border: 1px solid var(--aria-border);
+  border-radius: 6px;
+  background: #fff;
+  color: var(--aria-text);
+  padding: 0 10px;
+  cursor: pointer;
+}
+
+.aria-desktop-button:hover {
+  background: var(--aria-panel-muted);
+}
+
+.aria-desktop-button--primary {
+  border-color: rgba(29, 78, 216, 0.25);
+  background: var(--aria-accent);
+  color: #fff;
+}
+
+.aria-desktop-button--primary:hover {
+  background: #1e40af;
+}
+
+.aria-desktop-button--danger {
+  color: var(--aria-danger);
+}
+
+.aria-desktop-status-strip {
+  display: grid;
+  grid-template-columns: auto minmax(0, 1fr);
+  align-items: stretch;
+  gap: 12px;
+  min-height: 112px;
+  border-top: 1px solid var(--aria-border);
+  background: var(--aria-panel);
+  padding: 12px 14px;
+}
+
+.aria-desktop-composer-meta {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+}
+
+.aria-desktop-composer-form {
+  display: flex;
+  min-width: 0;
+  gap: 12px;
+}
+
+.aria-desktop-composer-input {
+  min-height: 88px;
+  flex: 1;
+  resize: vertical;
+  padding: 12px;
+}
+
+@media (max-width: 1240px) {
+  .aria-desktop-top-chrome,
+  .aria-desktop-status-strip {
+    grid-template-columns: minmax(0, 1fr);
+  }
+
+  .aria-desktop-workbench {
+    grid-template-columns: 240px minmax(0, 1fr) 280px;
+  }
+
+  .aria-desktop-pane-header {
+    flex-direction: column;
+    align-items: stretch;
+  }
+
+  .aria-desktop-composer-form,
+  .aria-desktop-inline-form {
+    flex-direction: column;
+  }
+}

@@ -1,5 +1,5 @@
 import { describe, test, expect } from "bun:test";
-import type { WebhookTask, AutomationConfig } from "@aria/engine/config/types.js";
+import type { AutomationConfig, WebhookTask } from "@aria/automation";
 
 describe("Webhook task types", () => {
   test("WebhookTask has required fields", () => {
@@ -33,9 +33,7 @@ describe("Webhook task types", () => {
   test("AutomationConfig includes webhookTasks", () => {
     const config: AutomationConfig = {
       cronTasks: [],
-      webhookTasks: [
-        { name: "test", slug: "test", prompt: "test", enabled: true },
-      ],
+      webhookTasks: [{ name: "test", slug: "test", prompt: "test", enabled: true }],
     };
     expect(config.webhookTasks).toHaveLength(1);
   });
@@ -62,10 +60,7 @@ describe("Webhook prompt interpolation", () => {
   });
 
   test("replaces multiple occurrences", () => {
-    const result = interpolatePrompt(
-      "Event: {{payload}} — Summary of {{payload}}",
-      '{"x":1}',
-    );
+    const result = interpolatePrompt("Event: {{payload}} — Summary of {{payload}}", '{"x":1}');
     expect(result).toBe('Event: {"x":1} — Summary of {"x":1}');
   });
 
@@ -91,8 +86,11 @@ describe("Webhook bearer-token-only authentication", () => {
     if (webhookConfig?.token) {
       const authHeader = req.headers.get("authorization") ?? "";
       const bearerToken = authHeader.startsWith("Bearer ") ? authHeader.slice(7) : "";
-      if (!bearerToken || bearerToken.length !== webhookConfig.token.length ||
-          !timingSafeEqual(Buffer.from(bearerToken), Buffer.from(webhookConfig.token))) {
+      if (
+        !bearerToken ||
+        bearerToken.length !== webhookConfig.token.length ||
+        !timingSafeEqual(Buffer.from(bearerToken), Buffer.from(webhookConfig.token))
+      ) {
         return new Response(JSON.stringify({ error: "Unauthorized" }), {
           status: 401,
           headers: { "content-type": "application/json" },
@@ -207,7 +205,12 @@ describe("Webhook bearer-token-only authentication", () => {
 
 describe("Webhook slug routing", () => {
   const tasks: WebhookTask[] = [
-    { name: "Deploy Notify", slug: "deploy-notify", prompt: "{{payload}}", enabled: true },
+    {
+      name: "Deploy Notify",
+      slug: "deploy-notify",
+      prompt: "{{payload}}",
+      enabled: true,
+    },
     {
       name: "Alert Handler",
       slug: "alert",
@@ -298,26 +301,20 @@ describe("Webhook URL pattern matching", () => {
 describe("Payload truncation", () => {
   test("short payloads unchanged", () => {
     const payload = '{"event":"test"}';
-    const truncated = payload.length > 10000
-      ? payload.slice(0, 10000) + "...(truncated)"
-      : payload;
+    const truncated = payload.length > 10000 ? payload.slice(0, 10000) + "...(truncated)" : payload;
     expect(truncated).toBe(payload);
   });
 
   test("long payloads truncated", () => {
     const payload = "x".repeat(20000);
-    const truncated = payload.length > 10000
-      ? payload.slice(0, 10000) + "...(truncated)"
-      : payload;
+    const truncated = payload.length > 10000 ? payload.slice(0, 10000) + "...(truncated)" : payload;
     expect(truncated).toHaveLength(10000 + "...(truncated)".length);
     expect(truncated.endsWith("...(truncated)")).toBe(true);
   });
 
   test("exactly 10000 chars unchanged", () => {
     const payload = "x".repeat(10000);
-    const truncated = payload.length > 10000
-      ? payload.slice(0, 10000) + "...(truncated)"
-      : payload;
+    const truncated = payload.length > 10000 ? payload.slice(0, 10000) + "...(truncated)" : payload;
     expect(truncated).toHaveLength(10000);
   });
 });

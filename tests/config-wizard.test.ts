@@ -1,6 +1,6 @@
 import { describe, test, expect } from "bun:test";
-import type { ModelConfig, ProviderConfig } from "../src/engine/router/types.js";
-import type { ModelTier } from "../src/engine/router/task-types.js";
+import type { ModelTier } from "@aria/gateway/router/task-types";
+import type { ModelConfig, ProviderConfig } from "@aria/gateway/router/types";
 
 /**
  * Tests for wizard save logic — multi-model config generation.
@@ -241,7 +241,30 @@ describe("wizard config generation", () => {
     });
 
     expect(result.providers[0].baseUrl).toBe("http://localhost:8080");
-    expect(result.providers[0].type).toBe("openai-compat");
+    expect(String(result.providers[0].type)).toBe("openai-compat");
+  });
+
+  test("MiniMax provider writes the official OpenAI-compatible defaults", () => {
+    const result = buildWizardConfig({
+      providerId: "minimax",
+      providerType: "openai-compat",
+      model: "MiniMax-M2.5",
+      apiKeyEnvVar: "MINIMAX_API_KEY",
+      apiKey: "key",
+      baseUrl: "https://api.minimaxi.com/v1",
+    });
+
+    expect(result.providers).toHaveLength(1);
+    expect(result.providers[0]).toMatchObject({
+      id: "minimax",
+      type: "openai-compat",
+      apiKeyEnvVar: "MINIMAX_API_KEY",
+      baseUrl: "https://api.minimaxi.com/v1",
+    });
+    expect(result.models[0]).toMatchObject({
+      provider: "minimax",
+      model: "MiniMax-M2.5",
+    });
   });
 
   test("no eco model skips modelTiers", () => {

@@ -9,11 +9,13 @@ Use this file to bootstrap any coding agent into the current Esperta Aria workfl
 3. Read the canonical Aria docs in `docs/` that match the area you are changing.
 4. Start with these platform docs unless the task is narrowly scoped elsewhere:
    - `docs/product/aria-platform.md`
-   - `docs/system/runtime-model.md`
-   - `docs/system/prompt-engine.md`
-   - `docs/system/tool-runtime.md`
-   - `docs/system/automation.md`
-   - `docs/interfaces/interaction-protocol.md`
+   - `docs/architecture/core/overview.md`
+   - `docs/architecture/runtime/runtime.md`
+   - `docs/architecture/runtime/prompt-engine.md`
+   - `docs/architecture/runtime/tool-runtime.md`
+   - `docs/architecture/runtime/automation.md`
+   - `docs/architecture/runtime/interaction-protocol.md`
+   - `docs/architecture/surfaces/server.md`
 
 ## Source Of Truth
 
@@ -32,7 +34,7 @@ Use this file to bootstrap any coding agent into the current Esperta Aria workfl
 
 ## Verification
 
-- Run `bun run typecheck` before closing substantial changes.
-- Run `bun test` before closing substantial changes.
+- Run `bun run check` before closing substantial changes.
+- Run `bun run test` before closing substantial changes.
 - Run `bun run build` before closing substantial changes.
 - If a task is docs-only or otherwise exempt, state that explicitly in the handoff.

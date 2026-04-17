@@ -3,7 +3,6 @@ import { existsSync, readFileSync } from "node:fs";
 import { join } from "node:path";
 import { fileURLToPath } from "node:url";
 
-import { ariaDesktopApp, ariaDesktopHost } from "aria-desktop";
 import { ariaMobileApp, ariaMobileHost } from "aria-mobile";
 
 const REPO_DIR = fileURLToPath(new URL("..", import.meta.url));
@@ -16,13 +15,19 @@ function readRepoJson<T>(relativePath: string): T {
   return JSON.parse(readRepoFile(relativePath)) as T;
 }
 
-const desktopLocalSeams = ["@aria/desktop-bridge", "@aria/desktop-git"];
-const futureClientShellSeams = [
+const removedDesktopSeams = [
   "@aria/desktop",
-  "@aria/mobile",
+  "@aria/desktop-bridge",
+  "@aria/desktop-git",
+  "@aria/desktop-ui",
+  "aria-desktop",
   "packages/desktop",
-  "packages/mobile",
+  "packages/desktop-bridge",
+  "packages/desktop-git",
+  "packages/desktop-ui",
+  "apps/aria-desktop",
 ];
+const futureClientShellSeams = ["@aria/mobile", "packages/mobile"];
 const currentBootstrapFiles = [
   "package.json",
   "packages/cli/src/index.ts",
@@ -39,21 +44,10 @@ const coreRuntimeBootstrapFiles = [
 
 const futureClientPackages = [
   {
-    packageName: "@aria/desktop",
-    packageJsonPath: "packages/desktop/package.json",
-    sourcePath: "packages/desktop/src/index.ts",
-    appWrapperPath: "apps/aria-desktop/src/index.ts",
-    appHostPath: "apps/aria-desktop/src/host.ts",
-    appAssemblyPath: "apps/aria-desktop/src/app.ts",
-    expectedHostId: "aria-desktop",
-    expectedShellPackage: "@aria/desktop",
-  },
-  {
     packageName: "@aria/mobile",
     packageJsonPath: "packages/mobile/package.json",
     sourcePath: "packages/mobile/src/index.ts",
     appWrapperPath: "apps/aria-mobile/src/index.ts",
-    expectedHostId: "aria-mobile",
     expectedShellPackage: "@aria/mobile",
   },
 ] as const;
@@ -73,11 +67,11 @@ type WorkspacePackageJson = {
 };
 
 describe("cli and runtime stability", () => {
-  test("keeps desktop-local seams out of current server bootstrap paths", () => {
+  test("keeps removed desktop seams out of current server bootstrap paths", () => {
     for (const relativePath of coreRuntimeBootstrapFiles) {
       const source = readRepoFile(relativePath);
-      for (const desktopLocalSeam of desktopLocalSeams) {
-        expect(source).not.toContain(desktopLocalSeam);
+      for (const seam of removedDesktopSeams) {
+        expect(source).not.toContain(seam);
       }
     }
   });
@@ -123,22 +117,17 @@ describe("cli and runtime stability", () => {
     expect(rootPackage.bin?.aria).toBe("dist/index.mjs");
     expect(rootPackage.scripts?.dev).toBe("bun run dev:server");
     expect(rootPackage.scripts?.["dev:server"]).toBe("cd apps/aria-server && bun run dev");
-    expect(rootPackage.scripts?.["dev:desktop"]).toBe("cd apps/aria-desktop && bun run dev");
+    expect(rootPackage.scripts?.["dev:desktop"]).toBeUndefined();
     expect(rootPackage.scripts?.["dev:mobile"]).toBe("cd apps/aria-mobile && bun run dev");
     expect(rootPackage.scripts?.build).toBe("vp run repo:build");
   });
 
-  test("keeps desktop and mobile app seams client-facing", () => {
-    const desktopSource = readRepoFile("apps/aria-desktop/src/index.ts");
+  test("keeps the mobile app seam client-facing", () => {
     const mobileSource = readRepoFile("apps/aria-mobile/src/index.ts");
 
-    expect(ariaDesktopApp.sharedPackages).not.toContain("@aria/runtime");
-    expect(ariaDesktopApp.sharedPackages).not.toContain("@aria/server");
     expect(ariaMobileApp.sharedPackages).not.toContain("@aria/runtime");
     expect(ariaMobileApp.sharedPackages).not.toContain("@aria/server");
-    expect(ariaDesktopHost.shellPackage).toBe("@aria/desktop");
     expect(ariaMobileHost.shellPackage).toBe("@aria/mobile");
-    expect(ariaDesktopHost.contextPanels.map((panel) => panel.id)).toContain("environment");
     expect(ariaMobileHost.actionSections.map((section) => section.id)).toContain("remote-review");
 
     for (const disallowedImport of [
@@ -147,7 +136,6 @@ describe("cli and runtime stability", () => {
       "packages/runtime",
       "packages/server",
     ]) {
-      expect(desktopSource).not.toContain(disallowedImport);
       expect(mobileSource).not.toContain(disallowedImport);
     }
   });
@@ -171,19 +159,7 @@ describe("cli and runtime stability", () => {
       expect(manifest.types).toBe("./src/index.ts");
       expect(manifest.bin).toBeUndefined();
       expect(manifest.exports?.["."]).toBe("./src/index.ts");
-
-      if (candidate.packageName === "@aria/desktop") {
-        const appHostSource = readRepoFile(candidate.appHostPath);
-        const appAssemblySource = readRepoFile(candidate.appAssemblyPath);
-
-        expect(appWrapperSource).toContain(`export * from "${candidate.expectedShellPackage}";`);
-        expect(appWrapperSource).toContain('export * from "./host.js";');
-        expect(appWrapperSource).toContain('export * from "./app.js";');
-        expect(appHostSource).toContain(`id: "${candidate.expectedHostId}"`);
-        expect(appHostSource).toContain(`shellPackage: "${candidate.expectedShellPackage}"`);
-        expect(appAssemblySource).toContain(`id: "${candidate.expectedHostId}"`);
-        expect(appAssemblySource).toContain(`shellPackage: "${candidate.expectedShellPackage}"`);
-      }
+      expect(appWrapperSource).toContain(`export * from "${candidate.expectedShellPackage}";`);
 
       for (const disallowedImport of [
         "@aria/runtime",

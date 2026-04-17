@@ -29,7 +29,7 @@ export const ariaMobileApp = {
     memory: "server-only",
     automation: "server-only",
     localExecution: "unsupported",
-    codingAgents: "server-or-desktop-only",
+    codingAgents: "server-only",
   },
   serverSwitcher: {
     label: "Server",

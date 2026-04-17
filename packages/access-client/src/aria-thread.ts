@@ -153,6 +153,7 @@ export interface AriaChatControllerOptions {
 export interface AriaChatController {
   getState(): AriaChatState;
   connect(): Promise<AriaChatState>;
+  createSession?(): Promise<AriaChatState>;
   sendMessage(message: string): Promise<AriaChatState>;
   stop(): Promise<AriaChatState>;
   listSessions(): Promise<AriaChatSessionSummary[]>;
@@ -340,6 +341,42 @@ export function createAriaChatController(
         appendMessage({
           role: "error",
           content: `Failed to connect to Aria Server: ${errorMessage(error)}`,
+        });
+        return setState({
+          connected: false,
+          sessionStatus: "disconnected",
+          lastError: errorMessage(error),
+        });
+      }
+    },
+    async createSession() {
+      try {
+        const ping = await client.health.ping.query();
+        const created = await client.session.create.mutate({
+          connectorType: options.connectorType,
+          prefix: options.prefix,
+        });
+        const sessionId = created.session.id;
+        const controls = await loadSessionControls(client, sessionId);
+
+        return setState({
+          connected: true,
+          ...controls,
+          modelName: ping.model,
+          agentName: ping.agentName,
+          sessionId,
+          sessionStatus: "created",
+          messages: [],
+          streamingText: "",
+          isStreaming: false,
+          pendingApproval: null,
+          pendingQuestion: null,
+          lastError: null,
+        });
+      } catch (error) {
+        appendMessage({
+          role: "error",
+          content: `Failed to start a new Aria chat: ${errorMessage(error)}`,
         });
         return setState({
           connected: false,

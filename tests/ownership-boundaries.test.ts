@@ -1,6 +1,5 @@
 import { describe, expect, test } from "bun:test";
 
-import { ariaDesktopApp } from "@aria/desktop";
 import { ariaMobileApp } from "@aria/mobile";
 import { ariaServerApp } from "@aria/server";
 
@@ -14,15 +13,7 @@ describe("architecture ownership boundaries", () => {
       connectors: "server-only",
       inboxApprovals: "server-only",
       remoteJobs: "server-only",
-      projectLocalExecution: "desktop-only",
-    });
-  });
-
-  test("separates desktop local execution from server-hosted Aria surfaces", () => {
-    expect(ariaDesktopApp.executionPlanes).toEqual({
-      aria: "server",
-      remoteProjects: "server",
-      localProjects: "desktop",
+      projectLocalExecution: "unsupported",
     });
   });
 
@@ -33,7 +24,7 @@ describe("architecture ownership boundaries", () => {
       memory: "server-only",
       automation: "server-only",
       localExecution: "unsupported",
-      codingAgents: "server-or-desktop-only",
+      codingAgents: "server-only",
     });
   });
 });

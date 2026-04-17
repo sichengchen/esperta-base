@@ -193,6 +193,28 @@ When `Projects` is active, the sidebar should show:
 
 The sidebar should not display environment selection for threads.
 
+### Workspace and environment management
+
+Workspace and environment management must be available from the desktop shell itself.
+
+Rules:
+
+- creating a workspace must not require dropping to the CLI
+- creating an environment must not require dropping to the CLI
+- workspace management must not replace the unified project-thread tree in the sidebar
+- environment switching for a thread still belongs in the active thread view
+- the inspector may host workspace and environment inventory plus creation forms
+
+Recommended operator path:
+
+1. create or open a project thread
+2. create a workspace from the desktop shell
+3. create an environment attached to that workspace
+4. switch the active thread onto that environment
+
+The desktop may use desktop-local persistence for workspace and environment drafts,
+but server-hosted Aria state remains server-owned.
+
 ## Center work area
 
 The center work area changes by active space and screen.
@@ -312,13 +334,7 @@ type DesktopShellState = {
   activeServerId: string;
   activeSpaceId: "aria" | "projects";
   activeScreenId: string;
-  activeContextPanelId:
-    | "review"
-    | "changes"
-    | "environment"
-    | "job"
-    | "approvals"
-    | "artifacts";
+  activeContextPanelId: "review" | "changes" | "environment" | "job" | "approvals" | "artifacts";
   activeThreadContext?: {
     threadId: string;
     projectLabel?: string;
@@ -353,6 +369,9 @@ The desktop must expose pure transition functions for every visible interaction:
 - `approveToolCall(toolCallId, approved)`
 - `acceptToolCallForSession(toolCallId)`
 - `answerQuestion(questionId, answer)`
+- `createProjectThread(input)`
+- `createWorkspace(input)`
+- `createEnvironment(input)`
 
 If a control exists in the UI, it must be backed by one of these transitions or an equally explicit replacement.
 

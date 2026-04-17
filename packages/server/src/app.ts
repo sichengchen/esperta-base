@@ -46,7 +46,7 @@ export const ariaServerApp = {
     connectors: "server-only",
     inboxApprovals: "server-only",
     remoteJobs: "server-only",
-    projectLocalExecution: "desktop-only",
+    projectLocalExecution: "unsupported",
   },
 } as const;
 

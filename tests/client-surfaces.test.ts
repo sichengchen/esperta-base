@@ -17,7 +17,6 @@ import {
   describeUiEngineEvent,
 } from "@aria/ui";
 
-import { ariaDesktopApplication, createAriaDesktopApplicationBootstrap } from "aria-desktop";
 import { ariaMobileApplication, createAriaMobileApplicationBootstrap } from "aria-mobile";
 
 describe("client surfaces", () => {
@@ -71,46 +70,21 @@ describe("client surfaces", () => {
     const roster = buildAccessClientTargetRoster(
       [
         { serverId: "home", baseUrl: "https://aria.home.example/" },
-        { serverId: "desktop", baseUrl: "http://127.0.0.1:7420/" },
+        { serverId: "mobile", baseUrl: "https://aria.mobile.example/" },
       ],
-      "desktop",
+      "mobile",
     );
     expect(createProjectServerRoster(roster.targets)).toMatchObject({
-      selectedServerId: "desktop",
+      selectedServerId: "mobile",
       selectedItem: {
-        id: "desktop",
-        label: "desktop",
+        id: "mobile",
+        label: "mobile",
         isSelected: true,
       },
     });
   });
 
-  test("keeps desktop and mobile as thin product shells over shared client seams", () => {
-    const desktop = createAriaDesktopApplicationBootstrap({
-      target: { serverId: "desktop", baseUrl: "http://127.0.0.1:7420/" },
-      servers: [
-        {
-          label: "Home Server",
-          target: { serverId: "desktop", baseUrl: "http://127.0.0.1:7420/" },
-        },
-        {
-          label: "Published Gateway",
-          target: { serverId: "published", baseUrl: "https://gateway.example.test/" },
-        },
-      ],
-      activeServerId: "desktop",
-      initialThread: {
-        project: { name: "Aria" },
-        thread: {
-          threadId: "thread-1",
-          title: "Desktop thread",
-          status: "running",
-          threadType: "local_project",
-          environmentId: "wt/main",
-          agentId: "codex",
-        },
-      },
-    });
+  test("keeps mobile as a thin product shell over shared client seams", () => {
     const mobile = createAriaMobileApplicationBootstrap({
       target: { serverId: "mobile", baseUrl: "https://aria.example.test/" },
       servers: [
@@ -135,14 +109,6 @@ describe("client surfaces", () => {
         },
       },
     });
-
-    expect(ariaDesktopApplication.shellPackage).toBe("@aria/desktop");
-    expect(desktop.bootstrap.access).toMatchObject({
-      serverId: "desktop",
-      httpUrl: "http://127.0.0.1:7420",
-      wsUrl: "ws://127.0.0.1:7420",
-    });
-    expect(desktop.bootstrap.activeServerLabel).toBe("Home Server");
 
     expect(ariaMobileApplication.shellPackage).toBe("@aria/mobile");
     expect(mobile.bootstrap.access).toMatchObject({

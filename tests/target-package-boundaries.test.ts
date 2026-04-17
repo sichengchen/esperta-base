@@ -7,9 +7,6 @@ const ROOT = fileURLToPath(new URL("..", import.meta.url));
 const TARGET_ENTRYPOINT_PACKAGE_DIRS = [
   "packages/access-client/src",
   "packages/agents-coding/src",
-  "packages/desktop-bridge/src",
-  "packages/desktop-git/src",
-  "packages/desktop/src",
   "packages/connectors-im/src",
   "packages/console/src",
   "packages/handoff/src",
@@ -25,11 +22,7 @@ const TARGET_ENTRYPOINT_PACKAGE_DIRS = [
   "packages/ui/src",
   "packages/workspaces/src",
 ] as const;
-const THIN_SHELL_DIRS = [
-  "apps/aria-desktop/src",
-  "apps/aria-mobile/src",
-  "apps/aria-server/src",
-] as const;
+const THIN_SHELL_DIRS = ["apps/aria-mobile/src", "apps/aria-server/src"] as const;
 const SOURCE_EXTENSIONS = new Set([".ts", ".tsx", ".js", ".mjs", ".cjs"]);
 const SIBLING_PACKAGE_SRC_IMPORT = /\.\.\/\.\.\/[^/]+\/src\//;
 

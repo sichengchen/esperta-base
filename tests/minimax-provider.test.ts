@@ -3,6 +3,8 @@ import {
   fetchModelList,
   lookupModelMeta,
   MINIMAX_API_KEY_ENV_VAR,
+  MINIMAX_ANTHROPIC_BASE_URL,
+  MINIMAX_ANTHROPIC_PROVIDER_ID,
   MINIMAX_BASE_URL,
   MINIMAX_PROVIDER_ID,
 } from "../packages/cli/src/shared/fetch-models.js";
@@ -17,7 +19,17 @@ afterEach(() => {
 describe("MiniMax CLI provider support", () => {
   test("exposes a first-class MiniMax preset in provider options", () => {
     const minimax = PROVIDER_OPTIONS.find((provider) => provider.id === MINIMAX_PROVIDER_ID);
+    const minimaxAnthropic = PROVIDER_OPTIONS.find(
+      (provider) => provider.id === MINIMAX_ANTHROPIC_PROVIDER_ID,
+    );
     expect(minimax).toBeDefined();
+    expect(minimaxAnthropic).toBeDefined();
+    expect(minimaxAnthropic).toMatchObject({
+      id: MINIMAX_ANTHROPIC_PROVIDER_ID,
+      type: "anthropic",
+      apiKeyEnvVar: MINIMAX_API_KEY_ENV_VAR,
+      baseUrl: MINIMAX_ANTHROPIC_BASE_URL,
+    });
     expect(minimax).toMatchObject({
       id: MINIMAX_PROVIDER_ID,
       type: "openai-compat",
@@ -57,7 +69,10 @@ describe("MiniMax CLI provider support", () => {
 
   test("returns MiniMax context metadata for supported models", () => {
     expect(lookupModelMeta("openai-compat", "MiniMax-M2.5", MINIMAX_PROVIDER_ID)).toEqual({
-      maxTokens: 204_800,
+      maxTokens: 196_608,
+    });
+    expect(lookupModelMeta("anthropic", "MiniMax-M2.7", MINIMAX_ANTHROPIC_PROVIDER_ID)).toEqual({
+      maxTokens: 196_608,
     });
     expect(lookupModelMeta("openai-compat", "gpt-4o-mini", MINIMAX_PROVIDER_ID)).toEqual(null);
   });

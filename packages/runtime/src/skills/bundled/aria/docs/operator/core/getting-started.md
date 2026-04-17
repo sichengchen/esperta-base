@@ -14,6 +14,7 @@ bun run dev:server
 
 If `ARIA_HOME/config.json` does not exist, Aria opens onboarding first.
 If you plan to use MiniMax, have `MINIMAX_API_KEY` ready for the provider setup step.
+For the general SDK-style path, prefer the `MiniMax ... (Anthropic-compatible)` preset during onboarding or in `aria config`.
 
 ## App Dev Loops
 

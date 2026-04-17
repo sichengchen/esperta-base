@@ -59,7 +59,7 @@ Resolution order remains:
 `config.json` owns:
 
 - runtime defaults and active model
-- provider and model registry, including OpenAI-compatible presets such as MiniMax
+- provider and model registry, including Anthropic-compatible and OpenAI-compatible MiniMax presets
 - tool approval defaults
 - tool reporting policy
 - heartbeat configuration

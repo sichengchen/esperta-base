@@ -4,7 +4,11 @@ import {
   fetchModelList,
   lookupModelMeta,
   MINIMAX_API_KEY_ENV_VAR,
+  MINIMAX_ANTHROPIC_BASE_URL,
+  MINIMAX_ANTHROPIC_PROVIDER_ID,
   MINIMAX_BASE_URL,
+  MINIMAX_INTL_ANTHROPIC_BASE_URL,
+  MINIMAX_INTL_ANTHROPIC_PROVIDER_ID,
   MINIMAX_PROVIDER_ID,
   MINIMAX_INTL_PROVIDER_ID,
   MINIMAX_INTL_BASE_URL,
@@ -45,6 +49,40 @@ interface ModelPickerProps {
 
 const VISIBLE_MODELS = 8;
 
+function getManualModelHints(provider?: ProviderOption): string[] {
+  if (!provider) {
+    return [];
+  }
+
+  if (
+    provider.id === MINIMAX_PROVIDER_ID ||
+    provider.id === MINIMAX_INTL_PROVIDER_ID ||
+    provider.id === MINIMAX_ANTHROPIC_PROVIDER_ID ||
+    provider.id === MINIMAX_INTL_ANTHROPIC_PROVIDER_ID
+  ) {
+    const isAnthropicCompat =
+      provider.id === MINIMAX_ANTHROPIC_PROVIDER_ID ||
+      provider.id === MINIMAX_INTL_ANTHROPIC_PROVIDER_ID;
+    return [
+      isAnthropicCompat
+        ? "MiniMax docs currently recommend Anthropic-compatible access for general SDK usage."
+        : "MiniMax OpenAI-compatible model listing may return HTTP 404 on some accounts/endpoints.",
+      "Enter the model ID manually, for example: MiniMax-M2.7 or MiniMax-M2.5.",
+      `Use ${
+        provider.id === MINIMAX_INTL_PROVIDER_ID ||
+        provider.id === MINIMAX_INTL_ANTHROPIC_PROVIDER_ID
+          ? "MiniMax Intl"
+          : "MiniMax CN"
+      } only if it matches your MiniMax account/endpoint.`,
+      isAnthropicCompat
+        ? "MiniMax Anthropic-compatible access is for chat/text models only."
+        : "Use the OpenAI-compatible MiniMax preset for Codex/OpenAI-style tools.",
+    ];
+  }
+
+  return [];
+}
+
 export function ModelPicker({
   title,
   description,
@@ -69,6 +107,7 @@ export function ModelPicker({
   const [manualModel, setManualModel] = useState("");
 
   const provider = providers[providerIdx];
+  const manualModelHints = getManualModelHints(provider);
   const isCompat = provider?.type === "openai-compat";
   const isCustomCompat = isCompat && (provider?.compatMode ?? "custom") === "custom";
   const hasApiKey = !!provider?.apiKey;
@@ -376,6 +415,12 @@ export function ModelPicker({
           ) : (
             <>
               {fetchError && <Text dimColor>Could not fetch models: {fetchError}</Text>}
+              {manualModelHints.map((hint) => (
+                <Text key={hint} dimColor>
+                  {hint}
+                </Text>
+              ))}
+              {manualModelHints.length > 0 && <Text />}
               <Text>Enter model ID manually:</Text>
               <Box>
                 <Text color="blue">Model: </Text>
@@ -405,9 +450,23 @@ export const PROVIDER_OPTIONS: ProviderOption[] = [
   { id: "openrouter", type: "openrouter", label: "OpenRouter", apiKeyEnvVar: "OPENROUTER_API_KEY" },
   { id: "nvidia", type: "nvidia", label: "Nvidia NIM", apiKeyEnvVar: "NVIDIA_API_KEY" },
   {
+    id: MINIMAX_ANTHROPIC_PROVIDER_ID,
+    type: "anthropic",
+    label: "MiniMax CN (Anthropic-compatible, recommended)",
+    apiKeyEnvVar: MINIMAX_API_KEY_ENV_VAR,
+    baseUrl: MINIMAX_ANTHROPIC_BASE_URL,
+  },
+  {
+    id: MINIMAX_INTL_ANTHROPIC_PROVIDER_ID,
+    type: "anthropic",
+    label: "MiniMax Intl (Anthropic-compatible, recommended)",
+    apiKeyEnvVar: MINIMAX_API_KEY_ENV_VAR,
+    baseUrl: MINIMAX_INTL_ANTHROPIC_BASE_URL,
+  },
+  {
     id: MINIMAX_PROVIDER_ID,
     type: "openai-compat",
-    label: "MiniMax CN (official OpenAI-compatible)",
+    label: "MiniMax CN (OpenAI-compatible)",
     apiKeyEnvVar: MINIMAX_API_KEY_ENV_VAR,
     baseUrl: MINIMAX_BASE_URL,
     compatMode: "preset",
@@ -415,7 +474,7 @@ export const PROVIDER_OPTIONS: ProviderOption[] = [
   {
     id: MINIMAX_INTL_PROVIDER_ID,
     type: "openai-compat",
-    label: "MiniMax Intl (official OpenAI-compatible)",
+    label: "MiniMax Intl (OpenAI-compatible)",
     apiKeyEnvVar: MINIMAX_API_KEY_ENV_VAR,
     baseUrl: MINIMAX_INTL_BASE_URL,
     compatMode: "preset",

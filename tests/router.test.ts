@@ -226,6 +226,102 @@ describe("ModelRouter", () => {
         delete process.env.MINIMAX_API_KEY;
       }
     });
+
+    test("clamps MiniMax maxTokens to the provider-supported ceiling", () => {
+      const router = ModelRouter.fromConfig({
+        ...minimaxConfig,
+        models: [
+          {
+            name: "minimax-chat",
+            provider: "minimax",
+            model: "MiniMax-M2.7",
+            temperature: 0.2,
+            maxTokens: 204_800,
+          },
+        ],
+      });
+
+      process.env.MINIMAX_API_KEY = "minimax-test-key";
+      try {
+        expect(router.getModel("minimax-chat").maxTokens).toBe(196_608);
+        expect(router.getStreamOptions("minimax-chat").maxTokens).toBe(196_608);
+      } finally {
+        delete process.env.MINIMAX_API_KEY;
+      }
+    });
+
+    test("supports MiniMax through the Anthropic-compatible endpoint", () => {
+      const router = ModelRouter.fromConfig({
+        defaultModel: "minimax-chat",
+        providers: [
+          {
+            id: "minimax-anthropic",
+            type: "anthropic" as any,
+            apiKeyEnvVar: "MINIMAX_API_KEY",
+            baseUrl: "https://api.minimaxi.com/anthropic",
+          },
+        ],
+        models: [
+          {
+            name: "minimax-chat",
+            provider: "minimax-anthropic",
+            model: "MiniMax-M2.7",
+            temperature: 0.2,
+            maxTokens: 204_800,
+          },
+        ],
+      });
+
+      process.env.MINIMAX_API_KEY = "minimax-test-key";
+      try {
+        const model = router.getModel("minimax-chat");
+        expect(model.api).toBe("anthropic-messages");
+        expect(model.provider).toBe("anthropic");
+        expect(model.baseUrl).toBe("https://api.minimaxi.com/anthropic");
+        expect(model.maxTokens).toBe(196_608);
+        expect(router.getStreamOptions("minimax-chat").apiKey).toBe("minimax-test-key");
+        expect(router.getStreamOptions("minimax-chat").maxTokens).toBe(196_608);
+      } finally {
+        delete process.env.MINIMAX_API_KEY;
+      }
+    });
+
+    test("rejects embeddings on Anthropic-compatible providers", async () => {
+      const router = ModelRouter.fromConfig({
+        defaultModel: "minimax-chat",
+        providers: [
+          {
+            id: "minimax-anthropic",
+            type: "anthropic" as any,
+            apiKeyEnvVar: "MINIMAX_API_KEY",
+            baseUrl: "https://api.minimaxi.com/anthropic",
+          },
+        ],
+        models: [
+          {
+            name: "minimax-chat",
+            provider: "minimax-anthropic",
+            model: "MiniMax-M2.7",
+            temperature: 0.2,
+          },
+          {
+            name: "minimax-embed",
+            provider: "minimax-anthropic",
+            model: "MiniMax-Embedding",
+            type: "embedding",
+          },
+        ],
+      });
+
+      process.env.MINIMAX_API_KEY = "minimax-test-key";
+      try {
+        await expect(router.embed(["hello minimax"])).rejects.toThrow(
+          "Embedding is not supported for Anthropic-compatible providers",
+        );
+      } finally {
+        delete process.env.MINIMAX_API_KEY;
+      }
+    });
   });
 
   describe("CRUD — models", () => {

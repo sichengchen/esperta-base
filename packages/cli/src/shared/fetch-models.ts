@@ -8,8 +8,29 @@ export const MINIMAX_API_KEY_ENV_VAR = "MINIMAX_API_KEY";
 export const MINIMAX_BASE_URL = "https://api.minimaxi.com/v1";
 export const MINIMAX_INTL_PROVIDER_ID = "minimax-intl";
 export const MINIMAX_INTL_BASE_URL = "https://api.minimax.io/v1";
-const MINIMAX_MODEL_CONTEXT_TOKENS = 204_800;
+export const MINIMAX_ANTHROPIC_PROVIDER_ID = "minimax-anthropic";
+export const MINIMAX_ANTHROPIC_BASE_URL = "https://api.minimaxi.com/anthropic";
+export const MINIMAX_INTL_ANTHROPIC_PROVIDER_ID = "minimax-intl-anthropic";
+export const MINIMAX_INTL_ANTHROPIC_BASE_URL = "https://api.minimax.io/anthropic";
+const MINIMAX_MODEL_MAX_OUTPUT_TOKENS = 196_608;
 const MINIMAX_MODEL_PREFIX = "MiniMax-";
+
+function isMiniMaxOpenAICompatibleProvider(providerId?: string): boolean {
+  return providerId === MINIMAX_PROVIDER_ID || providerId === MINIMAX_INTL_PROVIDER_ID;
+}
+
+function isMiniMaxAnthropicProvider(providerId?: string): boolean {
+  return (
+    providerId === MINIMAX_ANTHROPIC_PROVIDER_ID ||
+    providerId === MINIMAX_INTL_ANTHROPIC_PROVIDER_ID
+  );
+}
+
+function isMiniMaxProvider(providerId?: string): boolean {
+  return (
+    isMiniMaxOpenAICompatibleProvider(providerId) || isMiniMaxAnthropicProvider(providerId)
+  );
+}
 
 /** Fetch available model IDs from a provider's API. */
 export async function fetchModelList(
@@ -19,7 +40,11 @@ export async function fetchModelList(
   providerId?: string,
 ): Promise<string[]> {
   if (providerType === "anthropic") {
-    const res = await fetch("https://api.anthropic.com/v1/models", {
+    if (isMiniMaxAnthropicProvider(providerId)) {
+      return [];
+    }
+    const url = (baseUrl || "https://api.anthropic.com").replace(/\/$/, "");
+    const res = await fetch(`${url.endsWith("/v1") ? url : `${url}/v1`}/models`, {
       headers: { "x-api-key": apiKey, "anthropic-version": "2023-06-01" },
     });
     if (!res.ok) throw new Error(`HTTP ${res.status}`);
@@ -60,7 +85,7 @@ export async function fetchModelList(
   }
   // openai-compat
   const resolvedBaseUrl =
-    (providerId === MINIMAX_PROVIDER_ID || providerId === MINIMAX_INTL_PROVIDER_ID) && !baseUrl
+    isMiniMaxOpenAICompatibleProvider(providerId) && !baseUrl
       ? providerId === MINIMAX_INTL_PROVIDER_ID
         ? MINIMAX_INTL_BASE_URL
         : MINIMAX_BASE_URL
@@ -81,11 +106,8 @@ export function lookupModelMeta(
   modelId: string,
   providerId?: string,
 ): { maxTokens: number } | null {
-  if (
-    (providerId === MINIMAX_PROVIDER_ID || providerId === MINIMAX_INTL_PROVIDER_ID) &&
-    modelId.startsWith(MINIMAX_MODEL_PREFIX)
-  ) {
-    return { maxTokens: MINIMAX_MODEL_CONTEXT_TOKENS };
+  if (isMiniMaxProvider(providerId) && modelId.startsWith(MINIMAX_MODEL_PREFIX)) {
+    return { maxTokens: MINIMAX_MODEL_MAX_OUTPUT_TOKENS };
   }
   try {
     const models = (getModels as (p: string) => { id: string; maxTokens: number }[])(providerType);

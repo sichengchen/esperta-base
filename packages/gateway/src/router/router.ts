@@ -8,6 +8,10 @@ import { DEFAULT_TASK_TIER } from "./task-types.js";
 const OPENAI_COMPAT_BASE_URL = "https://api.openai.com";
 const MINIMAX_OPENAI_COMPAT_BASE_URL = "https://api.minimaxi.com/v1";
 const MINIMAX_INTL_OPENAI_COMPAT_BASE_URL = "https://api.minimax.io/v1";
+const MINIMAX_ANTHROPIC_BASE_URL = "https://api.minimaxi.com/anthropic";
+const MINIMAX_INTL_ANTHROPIC_BASE_URL = "https://api.minimax.io/anthropic";
+const MINIMAX_MODEL_PREFIX = "MiniMax-";
+const MINIMAX_MAX_OUTPUT_TOKENS = 196_608;
 
 function normalizeBaseUrl(baseUrl: string): string {
   return baseUrl.replace(/\/+$/, "");
@@ -26,12 +30,42 @@ function resolveOpenAICompatibleBaseUrl(provider: ProviderConfig): string {
   return OPENAI_COMPAT_BASE_URL;
 }
 
+function isMiniMaxAnthropicProvider(provider: ProviderConfig): boolean {
+  return provider.id === "minimax-anthropic" || provider.id === "minimax-intl-anthropic";
+}
+
+function resolveAnthropicCompatibleBaseUrl(provider: ProviderConfig): string {
+  if (provider.baseUrl) {
+    return normalizeBaseUrl(provider.baseUrl);
+  }
+  if (provider.id === "minimax-intl-anthropic") {
+    return MINIMAX_INTL_ANTHROPIC_BASE_URL;
+  }
+  return MINIMAX_ANTHROPIC_BASE_URL;
+}
+
 function buildOpenAICompatibleUrl(baseUrl: string, endpoint: string): string {
   const normalizedBase = normalizeBaseUrl(baseUrl);
   if (normalizedBase.endsWith("/v1")) {
     return `${normalizedBase}/${endpoint}`;
   }
   return `${normalizedBase}/v1/${endpoint}`;
+}
+
+function clampMaxTokens(provider: ProviderConfig, cfg: ModelConfig): number | undefined {
+  if (
+    cfg.maxTokens !== undefined &&
+    (
+      provider.id === "minimax" ||
+      provider.id === "minimax-intl" ||
+      provider.type === "minimax" ||
+      isMiniMaxAnthropicProvider(provider)
+    ) &&
+    cfg.model.startsWith(MINIMAX_MODEL_PREFIX)
+  ) {
+    return Math.min(cfg.maxTokens, MINIMAX_MAX_OUTPUT_TOKENS);
+  }
+  return cfg.maxTokens;
 }
 
 export interface ModelRouterData {
@@ -160,6 +194,21 @@ export class ModelRouter {
     const cfg = this.getConfig(name);
     const provider = this.getProvider(cfg.provider);
     const apiKey = this.resolveApiKey(provider.apiKeyEnvVar);
+    const maxTokens = clampMaxTokens(provider, cfg);
+    if (provider.type === "anthropic" && isMiniMaxAnthropicProvider(provider)) {
+      return {
+        id: cfg.model,
+        name: cfg.model,
+        api: "anthropic-messages" as const,
+        provider: "anthropic",
+        baseUrl: resolveAnthropicCompatibleBaseUrl(provider),
+        reasoning: false,
+        input: ["text"] as ("text" | "image")[],
+        cost: { input: 0, output: 0, cacheRead: 0, cacheWrite: 0 },
+        contextWindow: 204_800,
+        maxTokens: maxTokens ?? 4096,
+      } as Model<Api>;
+    }
     if (provider.baseUrl || provider.type === "minimax") {
       const baseUrl = resolveOpenAICompatibleBaseUrl(provider);
       return {
@@ -172,7 +221,7 @@ export class ModelRouter {
         input: ["text"] as ("text" | "image")[],
         cost: { input: 0, output: 0, cacheRead: 0, cacheWrite: 0 },
         contextWindow: 128000,
-        maxTokens: cfg.maxTokens ?? 4096,
+        maxTokens: maxTokens ?? 4096,
       } as Model<Api>;
     }
     return (getModel as (p: string, m: string) => Model<Api>)(provider.type, cfg.model);
@@ -198,6 +247,7 @@ export class ModelRouter {
     const cfg = this.getConfig(name);
     const provider = this.getProvider(cfg.provider);
     const apiKey = this.resolveApiKey(provider.apiKeyEnvVar);
+    const maxTokens = clampMaxTokens(provider, cfg);
     const opts: {
       temperature?: number;
       maxTokens?: number;
@@ -205,7 +255,7 @@ export class ModelRouter {
       thinking?: { enabled: boolean };
     } = {
       temperature: cfg.temperature,
-      maxTokens: cfg.maxTokens,
+      maxTokens,
       apiKey,
     };
     // Gemini 3 models require explicit thinking config for reliable thought signatures
@@ -442,6 +492,11 @@ export class ModelRouter {
 
     // Dispatch based on provider type
     const providerType = provider.type as string;
+    if (providerType === "anthropic") {
+      throw new Error(
+        "Embedding is not supported for Anthropic-compatible providers. Configure an OpenAI-compatible embedding model instead.",
+      );
+    }
     if (providerType === "google" || providerType === "google-vertex") {
       return this.embedGoogle(cfg.model, apiKey, texts, provider.baseUrl);
     }

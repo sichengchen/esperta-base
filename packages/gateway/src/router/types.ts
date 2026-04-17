@@ -10,7 +10,7 @@ export interface ProviderConfig {
   type: ProviderType;
   /** Environment variable name that holds the API key */
   apiKeyEnvVar: string;
-  /** Base URL for OpenAI-compatible providers with custom endpoints */
+  /** Optional custom base URL for compatible provider endpoints */
   baseUrl?: string;
 }
 

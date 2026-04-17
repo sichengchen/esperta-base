@@ -20,6 +20,7 @@ const EXCLUDED_PREFIXES = [
 
 async function listFiles(relativeDir: string): Promise<string[]> {
   const absoluteDir = join(ROOT, relativeDir);
+  try {
   const entries = await readdir(absoluteDir, { withFileTypes: true });
   const files = await Promise.all(
     entries.map(async (entry) => {
@@ -34,6 +35,12 @@ async function listFiles(relativeDir: string): Promise<string[]> {
     }),
   );
   return files.flat();
+  } catch (error) {
+    if ((error as NodeJS.ErrnoException).code === "ENOENT") {
+      return [];
+    }
+    throw error;
+  }
 }
 
 async function collectSourceFiles(): Promise<string[]> {

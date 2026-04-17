@@ -8,33 +8,23 @@ const desktopBuilderConfigPath = new URL(
 );
 
 describe("aria-desktop packaging surface", () => {
-  test("declares dev, host, renderer, smoke-build, and distribution scripts for the desktop app", async () => {
+  test("declares electron-vite dev/build and distribution scripts for the desktop app", async () => {
     const packageJson = JSON.parse(await readFile(desktopPackageJsonPath, "utf-8")) as {
       main?: string;
       scripts?: Record<string, string>;
     };
 
-    expect(packageJson.main).toBe("./dist/electron-main.js");
+    expect(packageJson.main).toBe("./dist/main/index.js");
     expect(packageJson.scripts).toMatchObject({
-      dev: "bun ./scripts/dev.ts",
-      "dev:renderer": "vite --config ./vite.config.ts",
-      "dev:host":
-        "bun run build:host && ARIA_DESKTOP_DEV_SERVER_URL=http://127.0.0.1:5173 ./node_modules/.bin/electron ./dist/electron-main.js",
-      "build:renderer": "vite build --config ./vite.config.ts",
-      "build:host":
-        "bun build ./src/electron-main.ts --outfile ./dist/electron-main.js --target node --external electron && bun build ./src/electron-preload.ts --outfile ./dist/electron-preload.cjs --target node --format cjs --external electron",
-      build: "bun run build:renderer && bun run build:host",
-      "smoke:build":
-        "bun run build && bun -e \"for (const path of ['./dist/electron-main.js', './dist/electron-preload.cjs', './dist/renderer/index.html']) { if (!(await Bun.file(path).exists())) throw new Error('Missing ' + path) }\"",
-      "package:dir":
-        "bun run build && bunx electron-builder --config ./electron-builder.json --dir",
-      "dist:mac":
-        "bun run build && bunx electron-builder --config ./electron-builder.json --mac dmg zip",
-      "dist:linux":
-        "bun run build && bunx electron-builder --config ./electron-builder.json --linux AppImage zip",
-      "dist:win":
-        "bun run build && bunx electron-builder --config ./electron-builder.json --win nsis zip",
-      start: "bun run build && ./node_modules/.bin/electron ./dist/electron-main.js",
+      prestart: "bun run build",
+      dev: "electron-vite dev",
+      build: "electron-vite build",
+      preview: "electron-vite preview",
+      "package:dir": "bun run build && electron-builder --config ./electron-builder.json --dir",
+      "dist:mac": "bun run build && electron-builder --config ./electron-builder.json --mac dmg zip",
+      "dist:linux": "bun run build && electron-builder --config ./electron-builder.json --linux AppImage zip",
+      "dist:win": "bun run build && electron-builder --config ./electron-builder.json --win nsis zip",
+      start: "electron .",
     });
   });
 
@@ -56,8 +46,8 @@ describe("aria-desktop packaging surface", () => {
         output: "release",
       },
       files: [
-        "dist/electron-main.js",
-        "dist/electron-preload.cjs",
+        "dist/main/**/*",
+        "dist/preload/**/*",
         "dist/renderer/**/*",
         "package.json",
       ],

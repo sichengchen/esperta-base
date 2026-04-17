@@ -140,7 +140,8 @@ describe("aria-desktop React shell", () => {
     const rendered = AriaDesktopApplicationRoot({
       model,
     });
-    expect(rendered.type).toBe(AriaDesktopAppShell);
+    expect(isValidElement(rendered)).toBeTrue();
+    expect(asElementWithProps(rendered).props.model).toBe(model);
     const shellRendered = AriaDesktopAppShell({ model });
     expect(asElementWithProps(shellRendered).props["data-app-shell"]).toBe("aria-desktop");
   });

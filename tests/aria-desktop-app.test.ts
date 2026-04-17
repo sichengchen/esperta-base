@@ -349,7 +349,8 @@ describe("aria-desktop app assembly", () => {
       onSendAriaMessage() {},
       onStopAriaSession() {},
     });
-    expect(manualRoot.type).toBe(AriaDesktopAppShell);
+    expect(isValidElement(manualRoot)).toBeTrue();
+    expect(asElementWithProps(manualRoot).props.model).toBe(model);
     const rendered = AriaDesktopAppShell({ model });
     const renderedProps = asElementWithProps(rendered);
     expect(renderedProps.props["data-app-shell"]).toBe("aria-desktop");

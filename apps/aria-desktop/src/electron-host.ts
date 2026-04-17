@@ -61,6 +61,7 @@ export function createAriaDesktopElectronHostBootstrap(
 export async function runAriaDesktopElectronHost(
   runtime: AriaDesktopElectronRuntime,
   options: AriaDesktopElectronHostOptions,
+  setupIpc: () => void = setupTerminalIPC,
 ): Promise<AriaDesktopElectronHostBootstrap> {
   const host = createAriaDesktopElectronHostBootstrap(options);
 
@@ -78,7 +79,7 @@ export async function runAriaDesktopElectronHost(
   };
 
   await runtime.whenReady();
-  setupTerminalIPC();
+  setupIpc();
   openWindow();
 
   runtime.onActivate(() => {

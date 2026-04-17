@@ -69,6 +69,25 @@ export const PROVIDER_TYPES: {
   },
 ];
 
+export function getProviderDeletionBlockReason(
+  config: Pick<AriaConfigFile, "models">,
+  providerId: string,
+): string | null {
+  const referencedBy = config.models.filter((model) => model.provider === providerId);
+  if (referencedBy.length === 0) {
+    return null;
+  }
+
+  const preview = referencedBy
+    .slice(0, 3)
+    .map((model) => model.name)
+    .join(", ");
+  const extra =
+    referencedBy.length > 3 ? `, +${referencedBy.length - 3} more` : "";
+
+  return `Can't delete "${providerId}" while models still use it: ${preview}${extra}. Delete or reassign those models first.`;
+}
+
 interface ProviderManagerProps {
   config: AriaConfigFile;
   homeDir: string;
@@ -81,6 +100,7 @@ export function ProviderManager({ config, homeDir, onSave, onBack }: ProviderMan
   const [selected, setSelected] = useState(0);
   const [typeIdx, setTypeIdx] = useState(0);
   const [removeTarget, setRemoveTarget] = useState<string>("");
+  const [notice, setNotice] = useState("");
   const [secrets, setSecrets] = useState<SecretsFile | null>(null);
 
   // Known-type API key input
@@ -103,19 +123,23 @@ export function ProviderManager({ config, homeDir, onSave, onBack }: ProviderMan
     // --- LIST ---
     if (substep === "list") {
       if (key.escape) {
+        setNotice("");
         onBack();
         return;
       }
       if (key.upArrow) {
+        setNotice("");
         setSelected((s) => Math.max(0, s - 1));
         return;
       }
       if (key.downArrow) {
+        setNotice("");
         setSelected((s) => Math.min(listItems.length - 1, s + 1));
         return;
       }
 
       if (key.return) {
+        setNotice("");
         if (selected === providers.length) {
           setSubstep("add-type");
           setTypeIdx(0);
@@ -123,10 +147,14 @@ export function ProviderManager({ config, homeDir, onSave, onBack }: ProviderMan
         }
       }
 
-      if (input === "d" && selected < providers.length) {
+      if ((input === "d" || key.delete) && selected < providers.length) {
         const target = providers[selected];
-        const referencedBy = config.models.filter((m) => m.provider === target.id);
-        if (referencedBy.length > 0) return;
+        const blockReason = getProviderDeletionBlockReason(config, target.id);
+        if (blockReason) {
+          setNotice(blockReason);
+          return;
+        }
+        setNotice("");
         setRemoveTarget(target.id);
         setSubstep("confirm-remove");
         return;
@@ -200,6 +228,7 @@ export function ProviderManager({ config, homeDir, onSave, onBack }: ProviderMan
           await onSave(updated);
         };
         saveAll().then(() => {
+          setNotice("");
           setSubstep("list");
           setSelected(updated.providers.length - 1);
         });
@@ -272,6 +301,7 @@ export function ProviderManager({ config, homeDir, onSave, onBack }: ProviderMan
           await onSave(updated);
         };
         saveAll().then(() => {
+          setNotice("");
           setSubstep("list");
           setSelected(updated.providers.length - 1);
         });
@@ -296,6 +326,7 @@ export function ProviderManager({ config, homeDir, onSave, onBack }: ProviderMan
     // --- CONFIRM REMOVE ---
     if (substep === "confirm-remove") {
       if (key.escape || input === "n") {
+        setNotice("");
         setSubstep("list");
         return;
       }
@@ -305,6 +336,7 @@ export function ProviderManager({ config, homeDir, onSave, onBack }: ProviderMan
           providers: config.providers.filter((p) => p.id !== removeTarget),
         };
         onSave(updated).then(() => {
+          setNotice("");
           setSelected(0);
           setSubstep("list");
         });
@@ -331,6 +363,7 @@ export function ProviderManager({ config, homeDir, onSave, onBack }: ProviderMan
           ))}
           <Text />
           <Text dimColor>↑↓ navigate | Enter select | d delete | Esc back</Text>
+          {notice !== "" && <Text color="yellow">{notice}</Text>}
         </>
       )}
 

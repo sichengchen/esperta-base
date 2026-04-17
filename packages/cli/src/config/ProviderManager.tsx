@@ -7,6 +7,8 @@ import {
   MINIMAX_API_KEY_ENV_VAR,
   MINIMAX_BASE_URL,
   MINIMAX_PROVIDER_ID,
+  MINIMAX_INTL_PROVIDER_ID,
+  MINIMAX_INTL_BASE_URL,
 } from "../shared/fetch-models.js";
 
 type Substep = "list" | "add-type" | "add-apikey" | "add-fields" | "confirm-remove";
@@ -54,9 +56,16 @@ const PROVIDER_TYPES: {
   {
     id: MINIMAX_PROVIDER_ID,
     type: "openai-compat",
-    label: "MiniMax",
+    label: "MiniMax CN",
     defaultEnvVar: MINIMAX_API_KEY_ENV_VAR,
     baseUrl: MINIMAX_BASE_URL,
+  },
+  {
+    id: MINIMAX_INTL_PROVIDER_ID,
+    type: "openai-compat",
+    label: "MiniMax Intl",
+    defaultEnvVar: MINIMAX_API_KEY_ENV_VAR,
+    baseUrl: MINIMAX_INTL_BASE_URL,
   },
   {
     id: "openai-compat",

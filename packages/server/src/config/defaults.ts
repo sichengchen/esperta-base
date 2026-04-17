@@ -2,6 +2,7 @@ import { PRODUCT_NAME } from "../brand.js";
 import type { AriaConfigFile, HeartbeatConfig } from "./types.js";
 
 export const MINIMAX_OPENAI_BASE_URL = "https://api.minimaxi.com/v1";
+export const MINIMAX_INTL_OPENAI_BASE_URL = "https://api.minimax.io/v1";
 export const MINIMAX_API_KEY_ENV_VAR = "MINIMAX_API_KEY";
 
 export const CRON_DEFAULT_TOOLS = [

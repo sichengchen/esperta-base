@@ -7,6 +7,7 @@ import { DEFAULT_TASK_TIER } from "./task-types.js";
 
 const OPENAI_COMPAT_BASE_URL = "https://api.openai.com";
 const MINIMAX_OPENAI_COMPAT_BASE_URL = "https://api.minimaxi.com/v1";
+const MINIMAX_INTL_OPENAI_COMPAT_BASE_URL = "https://api.minimax.io/v1";
 
 function normalizeBaseUrl(baseUrl: string): string {
   return baseUrl.replace(/\/+$/, "");
@@ -18,6 +19,9 @@ function resolveOpenAICompatibleBaseUrl(provider: ProviderConfig): string {
   }
   if (provider.type === "minimax") {
     return MINIMAX_OPENAI_COMPAT_BASE_URL;
+  }
+  if (provider.id === "minimax-intl") {
+    return MINIMAX_INTL_OPENAI_COMPAT_BASE_URL;
   }
   return OPENAI_COMPAT_BASE_URL;
 }
@@ -443,7 +447,12 @@ export class ModelRouter {
     }
     // OpenAI-compatible: openai, openrouter, nvidia, openai-compat, minimax, etc.
     const baseUrl =
-      provider.baseUrl ?? (providerType === "minimax" ? MINIMAX_OPENAI_COMPAT_BASE_URL : undefined);
+      provider.baseUrl ??
+      (providerType === "minimax"
+        ? MINIMAX_OPENAI_COMPAT_BASE_URL
+        : provider.id === "minimax-intl"
+          ? MINIMAX_INTL_OPENAI_COMPAT_BASE_URL
+          : undefined);
     return this.embedOpenAI(cfg.model, apiKey, texts, baseUrl);
   }
 

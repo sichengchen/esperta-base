@@ -6,6 +6,8 @@ import {
   MINIMAX_API_KEY_ENV_VAR,
   MINIMAX_BASE_URL,
   MINIMAX_PROVIDER_ID,
+  MINIMAX_INTL_PROVIDER_ID,
+  MINIMAX_INTL_BASE_URL,
 } from "./fetch-models.js";
 
 type Substep = "provider" | "credentials" | "fetching" | "model";
@@ -405,9 +407,17 @@ export const PROVIDER_OPTIONS: ProviderOption[] = [
   {
     id: MINIMAX_PROVIDER_ID,
     type: "openai-compat",
-    label: "MiniMax (official OpenAI-compatible)",
+    label: "MiniMax CN (official OpenAI-compatible)",
     apiKeyEnvVar: MINIMAX_API_KEY_ENV_VAR,
     baseUrl: MINIMAX_BASE_URL,
+    compatMode: "preset",
+  },
+  {
+    id: MINIMAX_INTL_PROVIDER_ID,
+    type: "openai-compat",
+    label: "MiniMax Intl (official OpenAI-compatible)",
+    apiKeyEnvVar: MINIMAX_API_KEY_ENV_VAR,
+    baseUrl: MINIMAX_INTL_BASE_URL,
     compatMode: "preset",
   },
   {

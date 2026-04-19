@@ -238,6 +238,9 @@ Shows:
 - active agent when known
 - live stream of messages and runs
 
+The `Projects > Active Thread` conversation surface reuses the same centered transcript lane and composer treatment as `Aria > Chat`.
+Thread-specific project metadata stays in the compact thread header and inspector rather than introducing a second chat layout.
+
 ### `Aria > Chat`
 
 Shows:

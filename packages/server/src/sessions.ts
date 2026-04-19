@@ -21,6 +21,7 @@ export class SessionManager {
       connectorId: prefix,
       createdAt: Date.now(),
       lastActiveAt: Date.now(),
+      title: null,
     };
     if (this.store) {
       this.store.upsertSession(session);
@@ -88,6 +89,29 @@ export class SessionManager {
     } else {
       this.sessions.set(sessionId, session);
     }
+    return session;
+  }
+
+  setTitle(sessionId: string, title: string): Session {
+    const normalizedTitle = title.trim();
+    if (!normalizedTitle) {
+      throw new Error("Session title cannot be empty");
+    }
+
+    if (this.store) {
+      const updated = this.store.setSessionTitle(sessionId, normalizedTitle);
+      if (!updated) {
+        throw new Error(`Session not found: ${sessionId}`);
+      }
+      return updated;
+    }
+
+    const session = this.sessions.get(sessionId);
+    if (!session) {
+      throw new Error(`Session not found: ${sessionId}`);
+    }
+    session.title = normalizedTitle;
+    this.sessions.set(sessionId, session);
     return session;
   }
 

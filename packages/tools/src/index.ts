@@ -40,6 +40,7 @@ export { askUserTool } from "./ask-user.js";
 export { createReadSkillTool } from "./read-skill.js";
 export { createSkillManageTool } from "./skill-manage.js";
 export { createNotifyTool } from "./notify.js";
+export { createSessionTitleTool } from "./session-title.js";
 
 export function getBuiltinTools(): ToolImpl[] {
   return [

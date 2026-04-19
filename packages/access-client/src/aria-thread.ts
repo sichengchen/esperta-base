@@ -27,6 +27,7 @@ export interface AriaChatSessionSummary {
   connectorId: string;
   archived: boolean;
   lastActiveAt?: number;
+  title?: string | null;
   preview?: string;
   summary?: string;
   score?: number;
@@ -72,6 +73,7 @@ export interface AriaChatClient {
           connectorType: string;
           connectorId: string;
           lastActiveAt?: number;
+          title?: string | null;
         }>
       >;
     };
@@ -82,6 +84,7 @@ export interface AriaChatClient {
           connectorType: string;
           connectorId: string;
           lastActiveAt: number;
+          title?: string | null;
           preview: string;
           summary: string;
         }>
@@ -94,6 +97,7 @@ export interface AriaChatClient {
           connectorType: string;
           connectorId: string;
           lastActiveAt: number;
+          title?: string | null;
           preview: string;
           summary: string;
           score: number;
@@ -215,9 +219,7 @@ function extractMessageContent(content: unknown): string {
 }
 
 function stripHiddenContextEnvelope(content: string): string {
-  return content
-    .replace(/^<memory_context>\n[\s\S]*?\n<\/memory_context>\n\n/, "")
-    .trim();
+  return content.replace(/^<memory_context>\n[\s\S]*?\n<\/memory_context>\n\n/, "").trim();
 }
 
 function normalizeHistoryMessages(messages: unknown[]): AriaChatMessage[] {
@@ -244,6 +246,7 @@ function normalizeLiveSession(entry: {
   connectorType: string;
   connectorId: string;
   lastActiveAt?: number;
+  title?: string | null;
 }): AriaChatSessionSummary {
   return {
     sessionId: entry.id,
@@ -251,6 +254,7 @@ function normalizeLiveSession(entry: {
     connectorId: entry.connectorId,
     archived: false,
     lastActiveAt: entry.lastActiveAt,
+    title: entry.title ?? null,
   };
 }
 
@@ -259,6 +263,7 @@ function normalizeArchivedSession(entry: {
   connectorType: string;
   connectorId: string;
   lastActiveAt: number;
+  title?: string | null;
   preview: string;
   summary: string;
   score?: number;
@@ -269,6 +274,7 @@ function normalizeArchivedSession(entry: {
     connectorId: entry.connectorId,
     archived: true,
     lastActiveAt: entry.lastActiveAt,
+    title: entry.title ?? null,
     preview: stripHiddenContextEnvelope(entry.preview),
     summary: stripHiddenContextEnvelope(entry.summary),
     score: entry.score,

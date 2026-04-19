@@ -108,6 +108,7 @@ CREATE TABLE IF NOT EXISTS sessions (
   connector_id TEXT NOT NULL,
   created_at INTEGER NOT NULL,
   last_active_at INTEGER NOT NULL,
+  title TEXT,
   destroyed_at INTEGER
 );
 
@@ -267,6 +268,7 @@ function normalizeSessionRow(row: Record<string, unknown> | null | undefined): S
     connectorId: String(row.connector_id),
     createdAt: Number(row.created_at),
     lastActiveAt: Number(row.last_active_at),
+    title: row.title != null ? String(row.title) : null,
   };
 }
 
@@ -286,6 +288,7 @@ export class OperationalStore {
     this.db.exec(SCHEMA_SQL);
     ensureAriaDomainModelSchema(this.db);
     this.ensureColumn("sessions", "destroyed_at", "INTEGER");
+    this.ensureColumn("sessions", "title", "TEXT");
     this.ensureColumn("automation_runs", "attempt_number", "INTEGER NOT NULL DEFAULT 1");
     this.ensureColumn("automation_runs", "max_attempts", "INTEGER NOT NULL DEFAULT 1");
     this.ensureColumn(
@@ -396,13 +399,14 @@ export class OperationalStore {
     db.prepare(
       `
       INSERT INTO sessions (
-        session_id, connector_type, connector_id, created_at, last_active_at, destroyed_at
-      ) VALUES (?, ?, ?, ?, ?, NULL)
+        session_id, connector_type, connector_id, created_at, last_active_at, title, destroyed_at
+      ) VALUES (?, ?, ?, ?, ?, ?, NULL)
       ON CONFLICT(session_id) DO UPDATE SET
         connector_type = excluded.connector_type,
         connector_id = excluded.connector_id,
         created_at = excluded.created_at,
         last_active_at = excluded.last_active_at,
+        title = COALESCE(excluded.title, sessions.title),
         destroyed_at = NULL
     `,
     ).run(
@@ -411,6 +415,7 @@ export class OperationalStore {
       session.connectorId,
       session.createdAt,
       session.lastActiveAt,
+      session.title ?? null,
     );
   }
 
@@ -418,7 +423,7 @@ export class OperationalStore {
     const row = this.getDb()
       .prepare(
         `
-        SELECT session_id, connector_type, connector_id, created_at, last_active_at
+        SELECT session_id, connector_type, connector_id, created_at, last_active_at, title
         FROM sessions
         WHERE session_id = ?
           AND destroyed_at IS NULL
@@ -433,7 +438,7 @@ export class OperationalStore {
     const rows = this.getDb()
       .prepare(
         `
-        SELECT session_id, connector_type, connector_id, created_at, last_active_at
+        SELECT session_id, connector_type, connector_id, created_at, last_active_at, title
         FROM sessions
         WHERE destroyed_at IS NULL
         ORDER BY last_active_at DESC, created_at DESC
@@ -448,7 +453,7 @@ export class OperationalStore {
     const rows = this.getDb()
       .prepare(
         `
-        SELECT session_id, connector_type, connector_id, created_at, last_active_at
+        SELECT session_id, connector_type, connector_id, created_at, last_active_at, title
         FROM sessions
         WHERE session_id LIKE ?
           AND destroyed_at IS NULL
@@ -464,7 +469,7 @@ export class OperationalStore {
     const row = this.getDb()
       .prepare(
         `
-        SELECT session_id, connector_type, connector_id, created_at, last_active_at
+        SELECT session_id, connector_type, connector_id, created_at, last_active_at, title
         FROM sessions
         WHERE session_id LIKE ?
           AND destroyed_at IS NULL
@@ -475,6 +480,26 @@ export class OperationalStore {
       .get(`${prefix}:%`) as Record<string, unknown> | undefined;
 
     return normalizeSessionRow(row);
+  }
+
+  setSessionTitle(sessionId: string, title: string): Session | undefined {
+    const normalizedTitle = title.trim();
+    if (!normalizedTitle) {
+      throw new Error("Session title cannot be empty");
+    }
+
+    this.getDb()
+      .prepare(
+        `
+        UPDATE sessions
+        SET title = ?
+        WHERE session_id = ?
+          AND destroyed_at IS NULL
+      `,
+      )
+      .run(normalizedTitle, sessionId);
+
+    return this.getSession(sessionId);
   }
 
   destroySession(sessionId: string): boolean {

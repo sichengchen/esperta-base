@@ -42,10 +42,41 @@ describe("OperationalStore", () => {
       connectorId: "tui",
       createdAt: 100,
       lastActiveAt: 200,
+      title: null,
     });
     expect(reopened.getLatest("tui")?.id).toBe("tui:test-session");
     expect(reopened.getSessionMessages("tui:test-session")).toHaveLength(2);
     expect((reopened.getSessionMessages("tui:test-session")[0] as any).content).toBe("hello");
+
+    reopened.close();
+  });
+
+  test("persists session titles across restarts", async () => {
+    const store = new OperationalStore(testDir);
+    await store.init();
+
+    store.upsertSession({
+      id: "tui:titled-session",
+      connectorType: "tui",
+      connectorId: "tui",
+      createdAt: 100,
+      lastActiveAt: 200,
+      title: "Original title",
+    });
+    store.setSessionTitle("tui:titled-session", "Updated title");
+    store.close();
+
+    const reopened = new OperationalStore(testDir);
+    await reopened.init();
+
+    expect(reopened.getSession("tui:titled-session")).toEqual({
+      id: "tui:titled-session",
+      connectorType: "tui",
+      connectorId: "tui",
+      createdAt: 100,
+      lastActiveAt: 200,
+      title: "Updated title",
+    });
 
     reopened.close();
   });

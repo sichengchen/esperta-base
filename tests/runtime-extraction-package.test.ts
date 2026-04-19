@@ -495,6 +495,7 @@ describe("phase-1 extraction package verification", () => {
       connectorId: "console",
       createdAt: 1,
       lastActiveAt: 2,
+      title: null,
     });
 
     store.putPromptCache({

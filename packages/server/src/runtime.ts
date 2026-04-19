@@ -28,6 +28,7 @@ import {
   createMemorySearchTool,
   createMemoryWriteTool,
   createNotifyTool,
+  createSessionTitleTool,
   createReadSkillTool,
   createSetEnvSecretTool,
   createSetEnvVariableTool,
@@ -201,6 +202,7 @@ export async function createRuntime(): Promise<EngineRuntime> {
     createSetEnvSecretTool(config),
     createSetEnvVariableTool(config),
     createNotifyTool(secrets),
+    createSessionTitleTool(),
     askUserTool,
     ...mcp.getTools(),
   ];

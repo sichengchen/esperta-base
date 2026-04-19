@@ -16,6 +16,7 @@ CREATE TABLE IF NOT EXISTS sessions (
   connector_id TEXT NOT NULL,
   created_at INTEGER NOT NULL,
   last_active_at INTEGER NOT NULL,
+  title TEXT,
   message_count INTEGER NOT NULL,
   preview TEXT NOT NULL,
   summary TEXT NOT NULL,
@@ -57,6 +58,7 @@ export interface ArchivedSessionRecord {
   connectorId: string;
   createdAt: number;
   lastActiveAt: number;
+  title?: string | null;
   messageCount: number;
   preview: string;
   summary: string;
@@ -166,11 +168,13 @@ function buildSummary(messages: ArchivedMessage[]): string {
 }
 
 function buildSearchDocument(
+  title: string,
   summary: string,
   preview: string,
   messages: ArchivedMessage[],
 ): string {
   const chunks: string[] = [];
+  if (title) chunks.push(title);
   if (summary) chunks.push(summary);
   if (preview) chunks.push(preview);
 
@@ -207,27 +211,41 @@ export class SessionArchiveManager {
     this.db.exec("PRAGMA journal_mode=WAL");
     this.db.exec("PRAGMA foreign_keys=ON");
     this.db.exec(SCHEMA_SQL);
+    this.ensureColumn("sessions", "title", "TEXT");
+  }
+
+  private ensureColumn(tableName: string, columnName: string, columnDefinition: string): void {
+    if (!this.db) return;
+    const columns = this.db.prepare(`PRAGMA table_info(${tableName})`).all() as Array<{
+      name: string;
+    }>;
+    if (columns.some((column) => column.name === columnName)) {
+      return;
+    }
+    this.db.exec(`ALTER TABLE ${tableName} ADD COLUMN ${columnName} ${columnDefinition}`);
   }
 
   async syncSession(session: Session, messages: readonly Message[]): Promise<void> {
     if (!this.db) return;
 
     const normalized = messages.map(normalizeMessage);
+    const title = session.title?.trim() ?? "";
     const preview = buildPreview(normalized);
     const summary = buildSummary(normalized);
-    const searchDoc = buildSearchDocument(summary, preview, normalized);
+    const searchDoc = buildSearchDocument(title, summary, preview, normalized);
     const now = Date.now();
 
     const upsertSession = this.db.prepare(`
       INSERT INTO sessions (
         session_id, connector_type, connector_id, created_at, last_active_at,
-        message_count, preview, summary, updated_at
-      ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)
+        title, message_count, preview, summary, updated_at
+      ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
       ON CONFLICT(session_id) DO UPDATE SET
         connector_type = excluded.connector_type,
         connector_id = excluded.connector_id,
         created_at = excluded.created_at,
         last_active_at = excluded.last_active_at,
+        title = COALESCE(excluded.title, sessions.title),
         message_count = excluded.message_count,
         preview = excluded.preview,
         summary = excluded.summary,
@@ -251,6 +269,7 @@ export class SessionArchiveManager {
         session.connectorId,
         session.createdAt,
         session.lastActiveAt,
+        title || null,
         normalized.length,
         preview,
         summary,
@@ -280,7 +299,7 @@ export class SessionArchiveManager {
   listArchived(limit = 20): ArchivedSessionRecord[] {
     if (!this.db) return [];
     const stmt = this.db.prepare(`
-      SELECT session_id, connector_type, connector_id, created_at, last_active_at,
+      SELECT session_id, connector_type, connector_id, created_at, last_active_at, title,
              message_count, preview, summary
       FROM sessions
       ORDER BY last_active_at DESC
@@ -292,6 +311,7 @@ export class SessionArchiveManager {
       connectorId: row.connector_id,
       createdAt: row.created_at,
       lastActiveAt: row.last_active_at,
+      title: row.title ?? null,
       messageCount: row.message_count,
       preview: row.preview,
       summary: row.summary,
@@ -301,7 +321,7 @@ export class SessionArchiveManager {
   getSession(sessionId: string): ArchivedSessionRecord | null {
     if (!this.db) return null;
     const stmt = this.db.prepare(`
-      SELECT session_id, connector_type, connector_id, created_at, last_active_at,
+      SELECT session_id, connector_type, connector_id, created_at, last_active_at, title,
              message_count, preview, summary
       FROM sessions
       WHERE session_id = ?
@@ -314,6 +334,7 @@ export class SessionArchiveManager {
       connectorId: row.connector_id,
       createdAt: row.created_at,
       lastActiveAt: row.last_active_at,
+      title: row.title ?? null,
       messageCount: row.message_count,
       preview: row.preview,
       summary: row.summary,
@@ -355,7 +376,7 @@ export class SessionArchiveManager {
     if (!sanitized) return [];
 
     const stmt = this.db.prepare(`
-      SELECT s.session_id, s.connector_type, s.connector_id, s.created_at, s.last_active_at,
+      SELECT s.session_id, s.connector_type, s.connector_id, s.created_at, s.last_active_at, s.title,
              s.message_count, s.preview, s.summary,
              snippet(session_search, 1, '[', ']', ' … ', 12) AS snippet,
              bm25(session_search) AS score
@@ -372,6 +393,7 @@ export class SessionArchiveManager {
       connectorId: row.connector_id,
       createdAt: row.created_at,
       lastActiveAt: row.last_active_at,
+      title: row.title ?? null,
       messageCount: row.message_count,
       preview: row.preview,
       summary: row.summary,

@@ -26,6 +26,7 @@ describe("SessionArchiveManager", () => {
       connectorId: "tui",
       createdAt: 100,
       lastActiveAt: 200,
+      title: "Deployment issue",
     };
     const messages: Message[] = [
       {
@@ -52,6 +53,7 @@ describe("SessionArchiveManager", () => {
 
     const history = await archive.getHistory(session.id);
     expect(history).toHaveLength(3);
+    expect(await archive.getSessionRecord(session.id)).toMatchObject({ title: "Deployment issue" });
     expect(history[0]).toMatchObject({ role: "user", content: "Find the latest deployment issue" });
     expect(history[2]).toMatchObject({
       role: "tool",
@@ -89,6 +91,7 @@ describe("SessionArchiveManager", () => {
       connectorId: "telegram:123",
       createdAt: 100,
       lastActiveAt: 200,
+      title: "Cron failure",
     };
     const messages: Message[] = [
       {
@@ -108,6 +111,7 @@ describe("SessionArchiveManager", () => {
     const results = await archive.search("cron failure", 5);
     expect(results).toHaveLength(1);
     expect(results[0]?.sessionId).toBe(session.id);
+    expect(results[0]?.title).toBe("Cron failure");
     expect(results[0]?.summary).toContain("Latest assistant");
     expect(results[0]?.snippet.length).toBeGreaterThan(0);
   });

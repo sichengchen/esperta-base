@@ -38,6 +38,7 @@ import {
   describeModeEffects,
   resolveCapabilityPolicyDecision,
 } from "@aria/policy";
+import { createSessionTitleTool } from "@aria/tools";
 import { createSessionToolEnvironment } from "@aria/tools/session-tool-environment";
 import { preprocessContextReferences } from "@aria/prompt/context-references";
 
@@ -516,7 +517,27 @@ export function createAppRouter(runtime: EngineRuntime) {
     let agent = sessionAgents.get(sessionId);
     if (!agent) {
       const promptState = getSessionPrompt(sessionId);
-      const sessionBaseTools = runtime.mcp.filterToolsForSession(runtime.tools, sessionId);
+      const sessionBaseTools = runtime.mcp
+        .filterToolsForSession(runtime.tools, sessionId)
+        .map((tool) =>
+          tool.name === "set_session_title"
+            ? createSessionTitleTool({
+                setTitle: async (title) => {
+                  const savedTitle = runtime.sessions.setTitle(sessionId, title).title?.trim();
+                  const refreshedSession = runtime.sessions.getSession(sessionId);
+                  const liveAgent = sessionAgents.get(sessionId);
+                  if (refreshedSession && liveAgent) {
+                    runtime.store.syncSessionMessages(refreshedSession.id, liveAgent.getMessages());
+                    await runtime.archive.syncSession(refreshedSession, liveAgent.getMessages());
+                  }
+                  if (!savedTitle) {
+                    throw new Error("Session title was not saved");
+                  }
+                  return savedTitle;
+                },
+              })
+            : tool,
+        );
       const toolEnvironment = createSessionToolEnvironment({
         baseTools: sessionBaseTools,
         checkpointManager: runtime.checkpoints,

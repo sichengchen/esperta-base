@@ -107,6 +107,7 @@ export interface Session {
   connectorId: string;
   createdAt: number;
   lastActiveAt: number;
+  title?: string | null;
 }
 
 /** Connector types supported by the Engine — single source of truth */

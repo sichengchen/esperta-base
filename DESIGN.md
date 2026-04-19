@@ -230,3 +230,49 @@ In desktop `Aria > Chat`, assistant messages render in a wide centered lane with
 User messages render in compact right-aligned bubbles.
 
 When a selected chat thread has no messages yet, the center pane shows only the centered composer with the send action.
+
+### 025. Desktop Aria Chat Shares One Conversation Lane And Shows Streaming Thinking State
+
+Scope: Desktop
+
+In active desktop `Aria > Chat`, the transcript and the composer must align to the same centered conversation lane so left and right workspace gutters stay visually consistent.
+
+While a response is streaming and assistant text has not fully settled, the assistant lane must show a neutral `Thinking` status with motion instead of leaving the stream visually blank.
+
+### 026. Desktop Aria Session Row Actions Reveal On Hover At The Right Edge
+
+Scope: Desktop
+
+In the desktop `Aria` session list, secondary row actions must stay icon-only and reveal on hover or focus instead of adding persistent text controls.
+
+When present, both actions live on the right edge of the row. `Pin` appears to the left of `Archive`, and pinning reorders that session to the top of the list.
+
+### 027. Untitled Desktop Aria Sessions Use New Session
+
+Scope: Desktop
+
+When a desktop `Aria` session has no explicit title and no usable summary-derived label yet, its fallback title is `New Session`.
+
+### 028. Desktop Ask User Prompts Sit Above The Composer And Reuse Composer Chrome
+
+Scope: Desktop
+
+In desktop `Aria > Chat`, pending `ask_user` prompts must render immediately above the composer instead of inside the transcript stream.
+
+Free-text answers reuse the same rounded neutral shell language as the composer, with the answer field and submit control aligned to that chrome.
+
+### 029. Desktop Approval Prompts Share The Composer-Adjacent Action Layer
+
+Scope: Desktop
+
+In desktop `Aria > Chat`, pending approvals render in the same composer-adjacent action layer as pending questions instead of inside the transcript stream.
+
+Approval controls use compact pill buttons with the primary action emphasized, while tool-call details stay in a restrained neutral shell.
+
+### 030. Desktop Tool Activity Uses Inline Process Rows Instead Of Cards
+
+Scope: Desktop
+
+In desktop `Aria > Chat`, tool and system activity inside the transcript render as compact inline process rows with a small leading icon and subdued copy.
+
+Routine tool activity must not use boxed card containers unless the interaction requires direct user action.

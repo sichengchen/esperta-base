@@ -1,130 +1,89 @@
-import { useState } from "react";
+import { useEffect, useRef } from "react";
 import type { AriaDesktopChatState } from "../../../shared/api.js";
 import { AriaMarkdown } from "./AriaMarkdown.js";
 import { AriaMessageItem } from "./AriaMessageItem.js";
+import { AriaStreamingIndicator } from "./AriaStreamingIndicator.js";
+import { useTransientScrollbar } from "./useTransientScrollbar.js";
 
 type AriaMessageStreamProps = {
   chat: AriaDesktopChatState;
-  onAcceptForSession: (toolCallId: string) => void;
-  onAnswerQuestion: (questionId: string, answer: string) => void;
-  onApproveToolCall: (toolCallId: string, approved: boolean) => void;
 };
 
-export function AriaMessageStream({
-  chat,
-  onAcceptForSession,
-  onAnswerQuestion,
-  onApproveToolCall,
-}: AriaMessageStreamProps) {
-  const [answer, setAnswer] = useState("");
+export function AriaMessageStream({ chat }: AriaMessageStreamProps) {
+  const { onScroll, scrollRef: streamRef, showScrollbar } = useTransientScrollbar<HTMLDivElement>();
+  const autoScrollRef = useRef(true);
+
+  function scrollToBottom(): void {
+    const streamElement = streamRef.current;
+    if (!streamElement) {
+      return;
+    }
+
+    streamElement.scrollTop = streamElement.scrollHeight;
+    showScrollbar();
+  }
+
+  useEffect(() => {
+    autoScrollRef.current = true;
+    scrollToBottom();
+    const rafId = window.requestAnimationFrame(() => {
+      scrollToBottom();
+    });
+
+    return () => {
+      window.cancelAnimationFrame(rafId);
+    };
+  }, [chat.sessionId]);
+
+  useEffect(() => {
+    if (!autoScrollRef.current) {
+      return;
+    }
+
+    scrollToBottom();
+  }, [
+    chat.isStreaming,
+    chat.messages.length,
+    chat.pendingApproval?.toolCallId,
+    chat.pendingQuestion?.questionId,
+    chat.streamingText,
+  ]);
 
   return (
-    <div className="aria-message-stream">
-      {chat.messages.map((message) => (
-        <AriaMessageItem key={message.id} message={message} />
-      ))}
+    <div
+      ref={streamRef}
+      className="aria-message-stream desktop-scroll-region"
+      onScroll={() => {
+        onScroll();
+        const streamElement = streamRef.current;
+        if (!streamElement) {
+          return;
+        }
 
-      {chat.streamingText ? (
-        <article className="aria-message aria-message-assistant is-streaming">
-          <div className="aria-message-assistant-content">
-            <div className="aria-streaming-status" aria-live="polite">
-              <span className="aria-streaming-status-label">Thinking</span>
-              <span className="aria-streaming-status-dots" aria-hidden="true">
-                <span />
-                <span />
-                <span />
-              </span>
-            </div>
-            <AriaMarkdown content={chat.streamingText} />
-          </div>
-        </article>
-      ) : chat.isStreaming ? (
-        <article className="aria-message aria-message-assistant is-streaming">
-          <div className="aria-message-assistant-content">
-            <div className="aria-streaming-status" aria-live="polite">
-              <span className="aria-streaming-status-label">Thinking</span>
-              <span className="aria-streaming-status-dots" aria-hidden="true">
-                <span />
-                <span />
-                <span />
-              </span>
-            </div>
-          </div>
-        </article>
-      ) : null}
+        const distanceFromBottom =
+          streamElement.scrollHeight - streamElement.scrollTop - streamElement.clientHeight;
+        autoScrollRef.current = distanceFromBottom < 24;
+      }}
+    >
+      <div className="aria-message-stream-lane">
+        {chat.messages.map((message) => (
+          <AriaMessageItem key={message.id} message={message} />
+        ))}
 
-      {chat.pendingApproval ? (
-        <section className="aria-inline-card">
-          <div className="aria-inline-card-title">{chat.pendingApproval.toolName}</div>
-          <pre className="aria-inline-card-copy">
-            {JSON.stringify(chat.pendingApproval.args, null, 2)}
-          </pre>
-          <div className="aria-inline-card-actions">
-            <button
-              type="button"
-              className="aria-inline-card-button"
-              onClick={() => onApproveToolCall(chat.pendingApproval!.toolCallId, true)}
-            >
-              Approve
-            </button>
-            <button
-              type="button"
-              className="aria-inline-card-button"
-              onClick={() => onAcceptForSession(chat.pendingApproval!.toolCallId)}
-            >
-              Allow session
-            </button>
-            <button
-              type="button"
-              className="aria-inline-card-button"
-              onClick={() => onApproveToolCall(chat.pendingApproval!.toolCallId, false)}
-            >
-              Deny
-            </button>
-          </div>
-        </section>
-      ) : null}
-
-      {chat.pendingQuestion ? (
-        <section className="aria-inline-card">
-          <div className="aria-inline-card-title">{chat.pendingQuestion.question}</div>
-          {chat.pendingQuestion.options?.length ? (
-            <div className="aria-inline-card-actions">
-              {chat.pendingQuestion.options.map((option) => (
-                <button
-                  key={option}
-                  type="button"
-                  className="aria-inline-card-button"
-                  onClick={() => onAnswerQuestion(chat.pendingQuestion!.questionId, option)}
-                >
-                  {option}
-                </button>
-              ))}
+        {chat.streamingText ? (
+          <article className="aria-message aria-message-assistant is-streaming">
+            <div className="aria-message-assistant-content">
+              <AriaMarkdown content={chat.streamingText} />
             </div>
-          ) : (
-            <div className="aria-inline-card-answer">
-              <input
-                className="aria-inline-card-input"
-                value={answer}
-                onChange={(event) => setAnswer(event.target.value)}
-              />
-              <button
-                type="button"
-                className="aria-inline-card-button"
-                onClick={() => {
-                  if (!answer.trim()) {
-                    return;
-                  }
-                  onAnswerQuestion(chat.pendingQuestion!.questionId, answer.trim());
-                  setAnswer("");
-                }}
-              >
-                Submit
-              </button>
+          </article>
+        ) : chat.isStreaming ? (
+          <article className="aria-message aria-message-assistant is-streaming">
+            <div className="aria-message-assistant-content">
+              <AriaStreamingIndicator phase="thinking" />
             </div>
-          )}
-        </section>
-      ) : null}
+          </article>
+        ) : null}
+      </div>
     </div>
   );
 }

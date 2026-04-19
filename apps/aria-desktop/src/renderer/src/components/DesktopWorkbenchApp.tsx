@@ -1,4 +1,5 @@
 import {
+  ArrowUp,
   ChevronDown,
   ChevronRight,
   Clock3,
@@ -24,7 +25,9 @@ import { DesktopSidebarSectionHeader } from "./DesktopSidebarSectionHeader.js";
 import { DesktopThreadListItem } from "./DesktopThreadListItem.js";
 import { AriaChatThreadSection } from "./AriaChatThreadSection.js";
 import { AriaChatComposer } from "./AriaChatComposer.js";
+import { formatToolDisplayName } from "./AriaMessageItem.js";
 import { AriaMessageStream } from "./AriaMessageStream.js";
+import { useTransientScrollbar } from "./useTransientScrollbar.js";
 
 const EMPTY_SHELL_STATE: AriaDesktopProjectShellState = {
   collapsedProjectIds: [],
@@ -55,6 +58,7 @@ const EMPTY_ARIA_STATE: AriaDesktopAriaShellState = {
     sessionId: null,
     sessionStatus: "disconnected",
     streamingText: "",
+    streamingPhase: null,
   },
   chatSessions: [],
   connectorSessions: [],
@@ -73,6 +77,7 @@ const EMPTY_ARIA_STATE: AriaDesktopAriaShellState = {
     sessionId: null,
     sessionStatus: "disconnected",
     streamingText: "",
+    streamingPhase: null,
   },
   selectedAriaScreen: null,
   selectedAriaSessionId: null,
@@ -105,7 +110,7 @@ function formatRelativeUpdatedAt(updatedAt?: number | null): string | null {
 function isEmptyChat(
   state: AriaDesktopAriaShellState["chat"] | AriaDesktopAriaShellState["connectors"],
 ): boolean {
-  return state.messages.length === 0 && !state.streamingText;
+  return state.messages.length === 0 && !state.streamingText && !state.isStreaming;
 }
 
 function isAriaServerConnected(state: AriaDesktopAriaShellState): boolean {
@@ -113,7 +118,9 @@ function isAriaServerConnected(state: AriaDesktopAriaShellState): boolean {
 }
 
 function getActiveAriaSessionTitle(
-  sessions: AriaDesktopAriaShellState["chatSessions"] | AriaDesktopAriaShellState["connectorSessions"],
+  sessions:
+    | AriaDesktopAriaShellState["chatSessions"]
+    | AriaDesktopAriaShellState["connectorSessions"],
   sessionId: string | null,
 ): string | null {
   if (!sessionId) {
@@ -126,7 +133,10 @@ function getActiveAriaSessionTitle(
 function summarizeConnectorStatuses(
   sessions: AriaDesktopAriaShellState["connectorSessions"],
 ): Array<{ connectorType: string; count: number; lastActiveAt: number | null }> {
-  const byType = new Map<string, { connectorType: string; count: number; lastActiveAt: number | null }>();
+  const byType = new Map<
+    string,
+    { connectorType: string; count: number; lastActiveAt: number | null }
+  >();
 
   for (const session of sessions) {
     const existing = byType.get(session.connectorType);
@@ -145,7 +155,9 @@ function summarizeConnectorStatuses(
     }
   }
 
-  return Array.from(byType.values()).sort((left, right) => (right.lastActiveAt ?? 0) - (left.lastActiveAt ?? 0));
+  return Array.from(byType.values()).sort(
+    (left, right) => (right.lastActiveAt ?? 0) - (left.lastActiveAt ?? 0),
+  );
 }
 
 function buildOptimisticMessage(content: string) {
@@ -228,11 +240,16 @@ export function ProjectSidebar({
   selectedProjectId,
   selectedThreadId,
 }: ProjectSidebarProps) {
+  const { onScroll, scrollRef } = useTransientScrollbar<HTMLDivElement>();
   const collapsedProjectIdSet = new Set(collapsedProjectIds);
 
   return (
     <div className="desktop-sidebar">
-      <div className="desktop-sidebar-primary">
+      <div
+        ref={scrollRef}
+        className="desktop-sidebar-primary desktop-scroll-region"
+        onScroll={onScroll}
+      >
         {projects.map((project, index) => {
           const isCollapsed = collapsedProjectIdSet.has(project.projectId);
           const isSelectedProject = project.projectId === selectedProjectId;
@@ -318,29 +335,41 @@ export function ProjectSidebar({
 type AriaSidebarProps = {
   ariaState: AriaDesktopAriaShellState;
   ariaServerConnected: boolean;
+  pinnedSessionIds?: string[];
+  onArchiveChatSession: (sessionId: string) => void;
   onCreateChat: () => void;
   onOpenSettings: () => void;
   onSearchChatSessions: (query: string) => void;
   onSelectChatSession: (sessionId: string) => void;
   onSelectConnectorScreen: () => void;
   onSelectScreen: (screen: AriaDesktopAriaScreen) => void;
+  onTogglePinnedChatSession: (sessionId: string) => void;
   settingsActive: boolean;
 };
 
 export function AriaSidebar({
   ariaState,
   ariaServerConnected,
+  pinnedSessionIds = [],
+  onArchiveChatSession,
   onCreateChat,
   onOpenSettings,
   onSearchChatSessions,
   onSelectChatSession,
   onSelectConnectorScreen,
   onSelectScreen,
+  onTogglePinnedChatSession,
   settingsActive,
 }: AriaSidebarProps) {
+  const { onScroll, scrollRef } = useTransientScrollbar<HTMLDivElement>();
+
   return (
     <div className="desktop-sidebar">
-      <div className="desktop-sidebar-primary">
+      <div
+        ref={scrollRef}
+        className="desktop-sidebar-primary desktop-scroll-region"
+        onScroll={onScroll}
+      >
         <div className="desktop-sidebar-section">
           <DesktopSidebarButton
             active={ariaState.selectedAriaScreen === "automations"}
@@ -363,13 +392,18 @@ export function AriaSidebar({
         <AriaChatThreadSection
           disabled={!ariaServerConnected}
           formatMeta={formatRelativeUpdatedAt}
+          pinnedSessionIds={pinnedSessionIds}
+          onArchiveSession={onArchiveChatSession}
           onCreateChat={onCreateChat}
           onSelectSession={onSelectChatSession}
+          onTogglePinnedSession={onTogglePinnedChatSession}
           selectedSessionId={ariaState.selectedAriaSessionId}
-          sessions={ariaState.chatSessions.map((session) => ({
-            ...session,
-            preview: null,
-          }))}
+          sessions={ariaState.chatSessions
+            .filter((session) => !session.archived)
+            .map((session) => ({
+              ...session,
+              preview: null,
+            }))}
         />
       </div>
 
@@ -426,9 +460,108 @@ function AriaInspectorSurface({
   );
 }
 
+function AriaPendingQuestionPrompt({
+  pendingQuestion,
+  onAnswerQuestion,
+}: {
+  onAnswerQuestion: (questionId: string, answer: string) => void;
+  pendingQuestion: NonNullable<AriaDesktopAriaShellState["chat"]["pendingQuestion"]>;
+}) {
+  const [answer, setAnswer] = useState("");
+
+  const hasOptions = Boolean(pendingQuestion.options?.length);
+
+  return (
+    <section className="aria-question-prompt">
+      <div className="aria-question-prompt-title">{pendingQuestion.question}</div>
+      {hasOptions ? (
+        <div className="aria-question-prompt-options">
+          {pendingQuestion.options!.map((option) => (
+            <button
+              key={option}
+              type="button"
+              className="aria-question-prompt-option"
+              onClick={() => onAnswerQuestion(pendingQuestion.questionId, option)}
+            >
+              {option}
+            </button>
+          ))}
+        </div>
+      ) : (
+        <form
+          className="aria-question-prompt-shell"
+          onSubmit={(event) => {
+            event.preventDefault();
+            if (!answer.trim()) {
+              return;
+            }
+            onAnswerQuestion(pendingQuestion.questionId, answer.trim());
+            setAnswer("");
+          }}
+        >
+          <input
+            className="aria-question-prompt-input"
+            value={answer}
+            onChange={(event) => setAnswer(event.target.value)}
+            placeholder="Type your answer"
+          />
+          <div className="aria-question-prompt-footer">
+            <button type="submit" className="aria-chat-composer-submit" aria-label="Submit answer">
+              <ArrowUp aria-hidden="true" />
+            </button>
+          </div>
+        </form>
+      )}
+    </section>
+  );
+}
+
+function AriaPendingApprovalPrompt({
+  onAcceptForSession,
+  onApproveToolCall,
+  pendingApproval,
+}: {
+  onAcceptForSession: (toolCallId: string) => void;
+  onApproveToolCall: (toolCallId: string, approved: boolean) => void;
+  pendingApproval: NonNullable<AriaDesktopAriaShellState["chat"]["pendingApproval"]>;
+}) {
+  return (
+    <section className="aria-action-prompt">
+      <div className="aria-action-prompt-title">
+        {formatToolDisplayName(pendingApproval.toolName)}
+      </div>
+      <pre className="aria-action-prompt-copy">{JSON.stringify(pendingApproval.args, null, 2)}</pre>
+      <div className="aria-action-prompt-footer">
+        <button
+          type="button"
+          className="aria-action-prompt-button"
+          onClick={() => onApproveToolCall(pendingApproval.toolCallId, false)}
+        >
+          Deny
+        </button>
+        <button
+          type="button"
+          className="aria-action-prompt-button"
+          onClick={() => onAcceptForSession(pendingApproval.toolCallId)}
+        >
+          Allow session
+        </button>
+        <button
+          type="button"
+          className="aria-action-prompt-button is-primary"
+          onClick={() => onApproveToolCall(pendingApproval.toolCallId, true)}
+        >
+          Approve
+        </button>
+      </div>
+    </section>
+  );
+}
+
 export function AriaChatView({
   chat,
   emptyPlaceholder,
+  isArchived = false,
   onAcceptForSession,
   onAnswerQuestion,
   onApproveToolCall,
@@ -436,6 +569,7 @@ export function AriaChatView({
 }: {
   chat: AriaDesktopAriaShellState["chat"];
   emptyPlaceholder: string;
+  isArchived?: boolean;
   onAcceptForSession: (toolCallId: string) => void;
   onAnswerQuestion: (questionId: string, answer: string) => void;
   onApproveToolCall: (toolCallId: string, approved: boolean) => void;
@@ -483,13 +617,25 @@ export function AriaChatView({
 
   return (
     <div className="aria-chat-view">
-      <AriaMessageStream
-        chat={effectiveChat}
-        onAcceptForSession={onAcceptForSession}
-        onAnswerQuestion={onAnswerQuestion}
-        onApproveToolCall={onApproveToolCall}
-      />
-      <AriaChatComposer onSend={handleSendMessage} placeholder={emptyPlaceholder} />
+      <AriaMessageStream chat={effectiveChat} />
+      {chat.pendingApproval ? (
+        <AriaPendingApprovalPrompt
+          pendingApproval={chat.pendingApproval}
+          onAcceptForSession={onAcceptForSession}
+          onApproveToolCall={onApproveToolCall}
+        />
+      ) : null}
+      {chat.pendingQuestion ? (
+        <AriaPendingQuestionPrompt
+          pendingQuestion={chat.pendingQuestion}
+          onAnswerQuestion={onAnswerQuestion}
+        />
+      ) : null}
+      {isArchived ? (
+        <div className="aria-chat-readonly-label">archived session</div>
+      ) : (
+        <AriaChatComposer onSend={handleSendMessage} placeholder={emptyPlaceholder} />
+      )}
     </div>
   );
 }
@@ -598,9 +744,7 @@ function ConnectorsView({
       <div className="thread-empty-state">
         <div className="thread-empty-state-content">
           <h2 className="thread-empty-state-title">Connectors</h2>
-          <p className="thread-empty-state-copy">
-            No connector activity yet.
-          </p>
+          <p className="thread-empty-state-copy">No connector activity yet.</p>
         </div>
       </div>
     );
@@ -659,6 +803,7 @@ function getSelectedThread(
 export function DesktopWorkbenchApp() {
   const [activeSpace, setActiveSpace] = useState<DesktopSpace>("projects");
   const [ariaState, setAriaState] = useState<AriaDesktopAriaShellState>(EMPTY_ARIA_STATE);
+  const [pinnedAriaSessionIds, setPinnedAriaSessionIds] = useState<string[]>([]);
   const [settingsOpen, setSettingsOpen] = useState(false);
   const [shellState, setShellState] = useState<AriaDesktopProjectShellState>(EMPTY_SHELL_STATE);
 
@@ -693,6 +838,18 @@ export function DesktopWorkbenchApp() {
     return () => {
       isDisposed = true;
     };
+  }, []);
+
+  useEffect(() => {
+    if (!window.ariaDesktop) {
+      return;
+    }
+
+    return window.ariaDesktop.onAriaShellStateChanged((nextAriaState) => {
+      startTransition(() => {
+        setAriaState(nextAriaState);
+      });
+    });
   }, []);
 
   async function applyProjectShellState(
@@ -770,8 +927,22 @@ export function DesktopWorkbenchApp() {
     void applyAriaShellState(() => window.ariaDesktop.createAriaChatSession());
   }
 
+  function archiveAriaChat(sessionId: string): void {
+    void applyAriaShellState(() => window.ariaDesktop.archiveAriaChatSession(sessionId));
+  }
+
   function selectAriaChat(sessionId: string): void {
     void applyAriaShellState(() => window.ariaDesktop.selectAriaChatSession(sessionId));
+  }
+
+  function togglePinnedAriaSession(sessionId: string): void {
+    startTransition(() => {
+      setPinnedAriaSessionIds((current) =>
+        current.includes(sessionId)
+          ? current.filter((entry) => entry !== sessionId)
+          : [...current, sessionId],
+      );
+    });
   }
 
   function selectAriaScreen(screen: AriaDesktopAriaScreen): void {
@@ -846,6 +1017,10 @@ export function DesktopWorkbenchApp() {
     ariaState.chatSessions,
     ariaState.selectedAriaSessionId,
   );
+  const activeAriaChatSession =
+    ariaState.chatSessions.find(
+      (session) => session.sessionId === ariaState.selectedAriaSessionId,
+    ) ?? null;
   const activeConnectorTitle = getActiveAriaSessionTitle(
     ariaState.connectorSessions,
     ariaState.connectors.sessionId,
@@ -872,9 +1047,7 @@ export function DesktopWorkbenchApp() {
   return (
     <DesktopBaseLayout
       bottomBar={
-        activeSpace === "projects" && selectedThread ? (
-          <ThreadTerminalSurface />
-        ) : undefined
+        activeSpace === "projects" && selectedThread ? <ThreadTerminalSurface /> : undefined
       }
       bottomBarTitle={activeSpace === "projects" ? "Terminal" : "Compose"}
       center={
@@ -904,6 +1077,7 @@ export function DesktopWorkbenchApp() {
           <AriaChatView
             chat={ariaState.chat}
             emptyPlaceholder="Message Aria"
+            isArchived={Boolean(activeAriaChatSession?.archived)}
             onAcceptForSession={(toolCallId) =>
               void applyAriaShellState(() =>
                 window.ariaDesktop.acceptAriaChatToolCallForSession(toolCallId),
@@ -941,12 +1115,15 @@ export function DesktopWorkbenchApp() {
           <AriaSidebar
             ariaState={ariaState}
             ariaServerConnected={ariaServerConnected}
+            pinnedSessionIds={pinnedAriaSessionIds}
+            onArchiveChatSession={archiveAriaChat}
             onCreateChat={createAriaChat}
             onOpenSettings={openSettings}
             onSearchChatSessions={searchChatSessions}
             onSelectChatSession={selectAriaChat}
             onSelectConnectorScreen={() => selectAriaScreen("connectors")}
             onSelectScreen={selectAriaScreen}
+            onTogglePinnedChatSession={togglePinnedAriaSession}
             settingsActive={settingsOpen}
           />
         )

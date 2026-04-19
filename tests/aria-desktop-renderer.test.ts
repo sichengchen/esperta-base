@@ -30,6 +30,7 @@ const SAMPLE_ARIA_STATE: AriaDesktopAriaShellState = {
     sessionId: "chat-1",
     sessionStatus: "resumed",
     streamingText: "",
+    streamingPhase: null,
   },
   chatSessions: [
     {
@@ -41,6 +42,16 @@ const SAMPLE_ARIA_STATE: AriaDesktopAriaShellState = {
       sessionId: "chat-1",
       summary: null,
       title: "Draft release notes",
+    },
+    {
+      archived: true,
+      connectorId: "desktop",
+      connectorType: "tui",
+      lastActiveAt: 99,
+      preview: "Older archived chat",
+      sessionId: "chat-archived",
+      summary: "Older archived chat",
+      title: "Archived chat",
     },
   ],
   connectorSessions: [],
@@ -59,6 +70,7 @@ const SAMPLE_ARIA_STATE: AriaDesktopAriaShellState = {
     sessionId: null,
     sessionStatus: "disconnected",
     streamingText: "",
+    streamingPhase: null,
   },
   selectedAriaScreen: null,
   selectedAriaSessionId: "chat-1",
@@ -71,12 +83,15 @@ describe("desktop aria renderer", () => {
       React.createElement(AriaSidebar, {
         ariaState: SAMPLE_ARIA_STATE,
         ariaServerConnected: true,
+        pinnedSessionIds: [],
+        onArchiveChatSession: () => {},
         onCreateChat: () => {},
         onOpenSettings: () => {},
         onSearchChatSessions: () => {},
         onSelectChatSession: () => {},
         onSelectConnectorScreen: () => {},
         onSelectScreen: () => {},
+        onTogglePinnedChatSession: () => {},
         settingsActive: false,
       }),
     );
@@ -85,6 +100,9 @@ describe("desktop aria renderer", () => {
     expect(html.indexOf("Connectors")).toBeLessThan(html.indexOf("Chat"));
     expect(html.indexOf("Chat")).toBeLessThan(html.indexOf("Settings"));
     expect(html).toContain("Draft release notes");
+    expect(html).not.toContain("Archived chat");
+    expect(html).toContain("Pin Draft release notes");
+    expect(html).toContain("Archive Draft release notes");
   });
 
   test("renders the empty chat state as a centered composer with send button", () => {
@@ -127,7 +145,141 @@ describe("desktop aria renderer", () => {
 
     expect(assistantHtml).toContain("aria-message-assistant-content");
     expect(assistantHtml).toContain("<strong>Bold</strong>");
+    expect(userHtml).toContain("aria-message-user-content");
     expect(userHtml).toContain("aria-message-user-bubble");
     expect(userHtml).toContain("A user message");
+  });
+
+  test("renders tool messages as compact system rows", () => {
+    const toolHtml = renderToStaticMarkup(
+      React.createElement(AriaMessageItem, {
+        message: {
+          content: "Calling ask_user...",
+          id: "tool-1",
+          role: "tool",
+          toolName: "ask_user",
+        },
+      }),
+    );
+
+    expect(toolHtml).toContain("aria-message-system-content");
+    expect(toolHtml).toContain("Question");
+    expect(toolHtml).toContain("Waiting for input");
+    expect(toolHtml).not.toContain("ask_user");
+  });
+
+  test("renders a thinking state instead of the empty composer while the first response is streaming", () => {
+    const html = renderToStaticMarkup(
+      React.createElement(AriaChatView, {
+        chat: {
+          ...SAMPLE_ARIA_STATE.chat,
+          isStreaming: true,
+          streamingPhase: "thinking",
+          streamingText: "",
+        },
+        emptyPlaceholder: "Message Aria",
+        onAcceptForSession: () => {},
+        onAnswerQuestion: () => {},
+        onApproveToolCall: () => {},
+        onSendMessage: () => {},
+      }),
+    );
+
+    expect(html).toContain("aria-streaming-status");
+    expect(html).toContain("Thinking");
+    expect(html).not.toContain("aria-chat-composer is-centered");
+  });
+
+  test("renders archived sessions as read-only with a new chat action", () => {
+    const html = renderToStaticMarkup(
+      React.createElement(AriaChatView, {
+        chat: {
+          ...SAMPLE_ARIA_STATE.chat,
+          messages: [
+            {
+              content: "Archived answer",
+              id: "assistant-archived",
+              role: "assistant",
+              toolName: null,
+            },
+          ],
+        },
+        emptyPlaceholder: "Message Aria",
+        isArchived: true,
+        onAcceptForSession: () => {},
+        onAnswerQuestion: () => {},
+        onApproveToolCall: () => {},
+        onSendMessage: () => {},
+      }),
+    );
+
+    expect(html).toContain("archived session");
+    expect(html).not.toContain("New chat");
+    expect(html).not.toContain("aria-chat-composer-shell");
+  });
+
+  test("renders pending ask-user prompts above the composer with composer-aligned chrome", () => {
+    const html = renderToStaticMarkup(
+      React.createElement(AriaChatView, {
+        chat: {
+          ...SAMPLE_ARIA_STATE.chat,
+          messages: [
+            {
+              content: "Calling ask_user...",
+              id: "tool-ask-user",
+              role: "tool",
+              toolName: "ask_user",
+            },
+          ],
+          pendingQuestion: {
+            question: "What would you like to call this session?",
+            questionId: "question-1",
+          },
+        },
+        emptyPlaceholder: "Message Aria",
+        onAcceptForSession: () => {},
+        onAnswerQuestion: () => {},
+        onApproveToolCall: () => {},
+        onSendMessage: () => {},
+      }),
+    );
+
+    expect(html).toContain("aria-question-prompt");
+    expect(html).toContain("What would you like to call this session?");
+    expect(html).toContain("aria-question-prompt-shell");
+    expect(html).toContain("Submit answer");
+  });
+
+  test("renders pending approvals above the composer with compact action buttons", () => {
+    const html = renderToStaticMarkup(
+      React.createElement(AriaChatView, {
+        chat: {
+          ...SAMPLE_ARIA_STATE.chat,
+          messages: [
+            {
+              content: "Calling ask_user...",
+              id: "tool-approval",
+              role: "tool",
+              toolName: "ask_user",
+            },
+          ],
+          pendingApproval: {
+            args: { title: "Functionality" },
+            toolCallId: "tool-call-1",
+            toolName: "ask_user",
+          },
+        },
+        emptyPlaceholder: "Message Aria",
+        onAcceptForSession: () => {},
+        onAnswerQuestion: () => {},
+        onApproveToolCall: () => {},
+        onSendMessage: () => {},
+      }),
+    );
+
+    expect(html).toContain("aria-action-prompt");
+    expect(html).toContain("Allow session");
+    expect(html).toContain("Approve");
+    expect(html).not.toContain("aria-inline-card");
   });
 });

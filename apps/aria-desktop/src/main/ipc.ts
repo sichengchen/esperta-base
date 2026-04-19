@@ -26,6 +26,12 @@ export function registerDesktopIpc(
     return;
   }
 
+  ariaService.subscribe((state) => {
+    for (const window of BrowserWindow.getAllWindows()) {
+      window.webContents.send(ariaDesktopChannels.ariaShellStateChanged, state);
+    }
+  });
+
   ipcMain.handle(ariaDesktopChannels.ping, () => "pong");
   ipcMain.handle(ariaDesktopChannels.getRuntimeInfo, () => getRuntimeInfo());
   ipcMain.handle(ariaDesktopChannels.getProjectShellState, () =>
@@ -40,6 +46,9 @@ export function registerDesktopIpc(
   );
   ipcMain.handle(ariaDesktopChannels.createAriaChatSession, () =>
     ariaService.createAriaChatSession(),
+  );
+  ipcMain.handle(ariaDesktopChannels.archiveAriaChatSession, (_event, sessionId: string) =>
+    ariaService.archiveAriaChatSession(sessionId),
   );
   ipcMain.handle(ariaDesktopChannels.selectProject, (_event, projectId: string) =>
     projectsService.selectProject(projectId),

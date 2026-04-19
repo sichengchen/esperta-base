@@ -57,6 +57,7 @@ function initialChatState(): AriaDesktopChatState {
     sessionId: null,
     sessionStatus: "disconnected",
     streamingText: "",
+    streamingPhase: null,
   };
 }
 
@@ -81,6 +82,7 @@ function normalizeChatState(state: AriaChatState): AriaDesktopChatState {
     sessionId: state.sessionId,
     sessionStatus: state.sessionStatus,
     streamingText: state.streamingText,
+    streamingPhase: state.isStreaming ? (state.streamingText ? "responding" : "thinking") : null,
   };
 }
 
@@ -104,6 +106,20 @@ function summarizeSession(
   session: AriaChatSessionSummary,
   index: number,
 ): AriaDesktopSessionSummary {
+  const explicitTitle = session.title?.trim();
+  if (explicitTitle) {
+    return {
+      archived: session.archived,
+      connectorId: session.connectorId,
+      connectorType: session.connectorType,
+      lastActiveAt: session.lastActiveAt ?? null,
+      preview: session.preview ?? null,
+      sessionId: session.sessionId,
+      summary: session.summary ?? null,
+      title: explicitTitle,
+    };
+  }
+
   const labelSource = session.summary ?? session.preview;
   const trimmedLabel = labelSource
     ?.replace(/\s+/g, " ")
@@ -112,11 +128,7 @@ function summarizeSession(
     .trim();
   const startedMatch = trimmedLabel?.match(/^Started:\s*(.+)$/i);
   const normalizedLabel = startedMatch
-    ? (startedMatch[1] ?? "")
-        .split(/\s+/)
-        .filter(Boolean)
-        .slice(0, 6)
-        .join(" ")
+    ? (startedMatch[1] ?? "").split(/\s+/).filter(Boolean).slice(0, 6).join(" ")
     : trimmedLabel;
   const cleanedLabel = normalizedLabel
     ?.replace(/^["'`]+|["'`]+$/g, "")
@@ -131,8 +143,7 @@ function summarizeSession(
     preview: session.preview ?? null,
     sessionId: session.sessionId,
     summary: session.summary ?? null,
-    title:
-      cleanedLabel && cleanedLabel.length > 0 ? cleanedLabel.slice(0, 28) : `Session ${index + 1}`,
+    title: cleanedLabel && cleanedLabel.length > 0 ? cleanedLabel.slice(0, 28) : "New Session",
   };
 }
 
@@ -142,7 +153,12 @@ function dedupeAndSortSessions(
   const sessionMap = new Map<string, AriaChatSessionSummary>();
   for (const session of sessions) {
     const existing = sessionMap.get(session.sessionId);
-    if (!existing || (session.lastActiveAt ?? 0) >= (existing.lastActiveAt ?? 0)) {
+    if (
+      !existing ||
+      (existing.archived && !session.archived) ||
+      (existing.archived === session.archived &&
+        (session.lastActiveAt ?? 0) >= (existing.lastActiveAt ?? 0))
+    ) {
       sessionMap.set(session.sessionId, session);
     }
   }
@@ -221,6 +237,7 @@ export class DesktopAriaService {
   private connectorsState: AriaDesktopChatState = initialChatState();
   private selectedAriaScreen: AriaDesktopAriaScreen | null = null;
   private selectedAriaSessionId: string | null = null;
+  private readonly listeners = new Set<(state: AriaDesktopAriaShellState) => void>();
   private automationsState: AriaDesktopAutomationState = {
     lastError: null,
     runs: [],
@@ -255,9 +272,9 @@ export class DesktopAriaService {
   private getChatController(): AriaChatController {
     if (!this.chatController) {
       this.chatController = this.chatControllerFactory(this.target, (state) => {
-        this.chatState = normalizeChatState(state);
+        this.setChatShellState("chat", normalizeChatState(state));
       });
-      this.chatState = normalizeChatState(this.chatController.getState());
+      this.setChatShellState("chat", normalizeChatState(this.chatController.getState()));
     }
     return this.chatController;
   }
@@ -265,9 +282,9 @@ export class DesktopAriaService {
   private getConnectorController(): AriaChatController {
     if (!this.connectorController) {
       this.connectorController = this.connectorControllerFactory(this.target, (state) => {
-        this.connectorsState = normalizeChatState(state);
+        this.setChatShellState("connectors", normalizeChatState(state));
       });
-      this.connectorsState = normalizeChatState(this.connectorController.getState());
+      this.setChatShellState("connectors", normalizeChatState(this.connectorController.getState()));
     }
     return this.connectorController;
   }
@@ -285,19 +302,37 @@ export class DesktopAriaService {
     };
   }
 
+  private notify(): void {
+    const snapshot = this.snapshot();
+    for (const listener of this.listeners) {
+      listener(snapshot);
+    }
+  }
+
+  subscribe(listener: (state: AriaDesktopAriaShellState) => void): () => void {
+    this.listeners.add(listener);
+    return () => {
+      this.listeners.delete(listener);
+    };
+  }
+
+  private setChatShellState(chatKey: "chat" | "connectors", nextState: AriaDesktopChatState): void {
+    if (chatKey === "chat") {
+      this.chatState = nextState;
+    } else {
+      this.connectorsState = nextState;
+    }
+    this.notify();
+  }
+
   private async runChatTurn(
     chatKey: "chat" | "connectors",
     message: string,
     sessionId: string,
   ): Promise<AriaDesktopAriaShellState> {
     const currentState = chatKey === "chat" ? this.chatState : this.connectorsState;
-    const setChatState = (nextState: AriaDesktopAriaShellState["chat"]) => {
-      if (chatKey === "chat") {
-        this.chatState = nextState;
-      } else {
-        this.connectorsState = nextState;
-      }
-    };
+    const setChatState = (nextState: AriaDesktopAriaShellState["chat"]) =>
+      this.setChatShellState(chatKey, nextState);
 
     setChatState(
       appendDesktopMessage(
@@ -306,6 +341,7 @@ export class DesktopAriaService {
           isStreaming: true,
           lastError: null,
           streamingText: "",
+          streamingPhase: "thinking",
         },
         {
           content: message,
@@ -344,7 +380,14 @@ export class DesktopAriaService {
                 streamed += event.delta;
                 setChatState({
                   ...baseState,
+                  streamingPhase: "responding",
                   streamingText: streamed,
+                });
+                break;
+              case "thinking_delta":
+                setChatState({
+                  ...baseState,
+                  streamingPhase: "thinking",
                 });
                 break;
               case "tool_start":
@@ -404,7 +447,7 @@ export class DesktopAriaService {
                     }),
                   );
                 }
-                finish({ isStreaming: false, streamingText: "" });
+                finish({ isStreaming: false, streamingPhase: null, streamingText: "" });
                 break;
               case "error":
                 setChatState(
@@ -417,6 +460,7 @@ export class DesktopAriaService {
                 finish({
                   isStreaming: false,
                   lastError: event.message,
+                  streamingPhase: null,
                   streamingText: "",
                 });
                 break;
@@ -435,6 +479,7 @@ export class DesktopAriaService {
             finish({
               isStreaming: false,
               lastError: messageText,
+              streamingPhase: null,
               streamingText: "",
             });
           },
@@ -454,7 +499,7 @@ export class DesktopAriaService {
                 }),
               );
             }
-            finish({ isStreaming: false, streamingText: "" });
+            finish({ isStreaming: false, streamingPhase: null, streamingText: "" });
           },
         },
       );
@@ -482,6 +527,7 @@ export class DesktopAriaService {
       isChatSession,
       query,
     );
+    this.notify();
   }
 
   private async refreshConnectorSessions(query?: string): Promise<void> {
@@ -490,11 +536,13 @@ export class DesktopAriaService {
       isConnectorSession,
       query,
     );
+    this.notify();
   }
 
   private async refreshAutomationRuns(): Promise<void> {
     if (!this.automationsState.selectedTaskId) {
       this.automationsState = { ...this.automationsState, runs: [] };
+      this.notify();
       return;
     }
 
@@ -508,12 +556,14 @@ export class DesktopAriaService {
         lastError: null,
         runs: runs.map(normalizeAutomationRun),
       };
+      this.notify();
     } catch (error) {
       this.automationsState = {
         ...this.automationsState,
         lastError: error instanceof Error ? error.message : String(error),
         runs: [],
       };
+      this.notify();
     }
   }
 
@@ -532,6 +582,7 @@ export class DesktopAriaService {
         selectedTaskId,
         tasks: nextTasks,
       };
+      this.notify();
       await this.refreshAutomationRuns();
     } catch (error) {
       this.automationsState = {
@@ -541,6 +592,7 @@ export class DesktopAriaService {
         selectedTaskId: null,
         tasks: [],
       };
+      this.notify();
     }
   }
 
@@ -602,6 +654,41 @@ export class DesktopAriaService {
     return this.snapshot();
   }
 
+  async archiveAriaChatSession(sessionId: string): Promise<AriaDesktopAriaShellState> {
+    await this.ensureBootstrapped();
+    const destroyed = await this.client.session.destroy.mutate({ sessionId });
+    if (!destroyed.destroyed) {
+      return this.snapshot();
+    }
+
+    await this.refreshChatSessions();
+
+    if (this.chatState.sessionId === sessionId || this.selectedAriaSessionId === sessionId) {
+      const nextLiveSessionId =
+        this.chatSessions.find((session) => !session.archived)?.sessionId ?? null;
+
+      if (nextLiveSessionId) {
+        await this.getChatController().openSession(nextLiveSessionId);
+        this.chatState = normalizeChatState(this.getChatController().getState());
+        this.selectedAriaSessionId = nextLiveSessionId;
+      } else {
+        this.chatState = {
+          ...initialChatState(),
+          agentName: this.chatState.agentName,
+          approvalMode: this.chatState.approvalMode,
+          connected: this.chatState.connected,
+          modelName: this.chatState.modelName,
+          securityMode: this.chatState.securityMode,
+          securityModeRemainingTTL: this.chatState.securityModeRemainingTTL,
+        };
+        this.selectedAriaSessionId = null;
+      }
+    }
+
+    this.selectedAriaScreen = null;
+    return this.snapshot();
+  }
+
   async selectAriaChatSession(sessionId: string): Promise<AriaDesktopAriaShellState> {
     await this.ensureBootstrapped();
     await this.getChatController().openSession(sessionId);
@@ -638,9 +725,9 @@ export class DesktopAriaService {
     }
     this.selectedAriaScreen = null;
     this.selectedAriaSessionId = this.chatState.sessionId;
-    const snapshot = await this.runChatTurn("chat", message, this.chatState.sessionId!);
+    await this.runChatTurn("chat", message, this.chatState.sessionId!);
     await this.refreshChatSessions();
-    return snapshot;
+    return this.snapshot();
   }
 
   async stopAriaChatSession(): Promise<AriaDesktopAriaShellState> {
@@ -718,9 +805,9 @@ export class DesktopAriaService {
       return this.snapshot();
     }
     this.selectedAriaScreen = "connectors";
-    const snapshot = await this.runChatTurn("connectors", message, this.connectorsState.sessionId);
+    await this.runChatTurn("connectors", message, this.connectorsState.sessionId);
     await this.refreshConnectorSessions();
-    return snapshot;
+    return this.snapshot();
   }
 
   async stopConnectorSession(): Promise<AriaDesktopAriaShellState> {

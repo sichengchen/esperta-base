@@ -14,6 +14,8 @@ const ariaDesktopApi: AriaDesktopApi = {
     ipcRenderer.invoke(ariaDesktopChannels.approveAriaChatToolCall, toolCallId, approved),
   approveConnectorToolCall: (toolCallId, approved) =>
     ipcRenderer.invoke(ariaDesktopChannels.approveConnectorToolCall, toolCallId, approved),
+  archiveAriaChatSession: (sessionId) =>
+    ipcRenderer.invoke(ariaDesktopChannels.archiveAriaChatSession, sessionId),
   createAriaChatSession: () => ipcRenderer.invoke(ariaDesktopChannels.createAriaChatSession),
   createThread: (projectId) => ipcRenderer.invoke(ariaDesktopChannels.createThread, projectId),
   getAriaShellState: () => ipcRenderer.invoke(ariaDesktopChannels.getAriaShellState),
@@ -22,6 +24,15 @@ const ariaDesktopApi: AriaDesktopApi = {
   getRuntimeInfo: () => ipcRenderer.invoke(ariaDesktopChannels.getRuntimeInfo),
   importLocalProjectFromDialog: () =>
     ipcRenderer.invoke(ariaDesktopChannels.importLocalProjectFromDialog),
+  onAriaShellStateChanged: (listener) => {
+    const wrapped = (_event: Electron.IpcRendererEvent, state: any) => {
+      listener(state);
+    };
+    ipcRenderer.on(ariaDesktopChannels.ariaShellStateChanged, wrapped);
+    return () => {
+      ipcRenderer.removeListener(ariaDesktopChannels.ariaShellStateChanged, wrapped);
+    };
+  },
   refreshAutomations: () => ipcRenderer.invoke(ariaDesktopChannels.refreshAutomations),
   searchAriaChatSessions: (query) =>
     ipcRenderer.invoke(ariaDesktopChannels.searchAriaChatSessions, query),

@@ -5,9 +5,11 @@ export const ariaDesktopChannels = {
   getRuntimeInfo: "aria-desktop:get-runtime-info",
   getProjectShellState: "aria-desktop:get-project-shell-state",
   getAriaShellState: "aria-desktop:get-aria-shell-state",
+  ariaShellStateChanged: "aria-desktop:aria-shell-state-changed",
   importLocalProjectFromDialog: "aria-desktop:import-local-project-from-dialog",
   createThread: "aria-desktop:create-thread",
   createAriaChatSession: "aria-desktop:create-aria-chat-session",
+  archiveAriaChatSession: "aria-desktop:archive-aria-chat-session",
   selectProject: "aria-desktop:select-project",
   selectThread: "aria-desktop:select-thread",
   selectAriaChatSession: "aria-desktop:select-aria-chat-session",
@@ -115,6 +117,7 @@ export interface AriaDesktopChatState {
   messages: AriaDesktopChatMessage[];
   streamingText: string;
   isStreaming: boolean;
+  streamingPhase: "thinking" | "responding" | null;
   pendingApproval: AriaDesktopPendingApproval | null;
   pendingQuestion: AriaDesktopPendingQuestion | null;
   lastError: string | null;
@@ -188,12 +191,14 @@ export interface AriaDesktopApi {
     toolCallId: string,
     approved: boolean,
   ) => Promise<AriaDesktopAriaShellState>;
+  archiveAriaChatSession: (sessionId: string) => Promise<AriaDesktopAriaShellState>;
   createAriaChatSession: () => Promise<AriaDesktopAriaShellState>;
   ping: () => Promise<string>;
   getRuntimeInfo: () => Promise<AriaDesktopRuntimeInfo>;
   getAriaShellState: () => Promise<AriaDesktopAriaShellState>;
   getProjectShellState: () => Promise<AriaDesktopProjectShellState>;
   importLocalProjectFromDialog: () => Promise<AriaDesktopProjectShellState>;
+  onAriaShellStateChanged: (listener: (state: AriaDesktopAriaShellState) => void) => () => void;
   createThread: (projectId: string) => Promise<AriaDesktopProjectShellState>;
   refreshAutomations: () => Promise<AriaDesktopAriaShellState>;
   searchAriaChatSessions: (query: string) => Promise<AriaDesktopAriaShellState>;

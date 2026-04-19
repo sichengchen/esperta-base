@@ -82,8 +82,7 @@ export function getProviderDeletionBlockReason(
     .slice(0, 3)
     .map((model) => model.name)
     .join(", ");
-  const extra =
-    referencedBy.length > 3 ? `, +${referencedBy.length - 3} more` : "";
+  const extra = referencedBy.length > 3 ? `, +${referencedBy.length - 3} more` : "";
 
   return `Can't delete "${providerId}" while models still use it: ${preview}${extra}. Delete or reassign those models first.`;
 }

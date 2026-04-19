@@ -218,9 +218,7 @@ describe("server daemon controller", () => {
 
     await harness.controller.ensureEngine();
 
-    expect(harness.killCalls).toEqual([
-      { pid: 321, signal: "SIGTERM" },
-    ]);
+    expect(harness.killCalls).toEqual([{ pid: 321, signal: "SIGTERM" }]);
     expect(harness.spawnCalls).toHaveLength(1);
     expect(harness.logs).toEqual([
       "Aria Runtime started (PID 9001).",

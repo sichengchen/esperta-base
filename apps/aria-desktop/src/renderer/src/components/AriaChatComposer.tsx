@@ -52,15 +52,15 @@ export function AriaChatComposer({
         />
         <div className="aria-chat-composer-footer">
           <div className="aria-chat-composer-tools">
-            <button type="button" className="aria-chat-composer-utility" aria-label="Composer tools">
+            <button
+              type="button"
+              className="aria-chat-composer-utility"
+              aria-label="Composer tools"
+            >
               <Plus aria-hidden="true" />
             </button>
           </div>
-          <button
-            type="submit"
-            className="aria-chat-composer-submit"
-            aria-label="Send message"
-          >
+          <button type="submit" className="aria-chat-composer-submit" aria-label="Send message">
             <ArrowUp aria-hidden="true" />
           </button>
         </div>

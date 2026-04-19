@@ -21,20 +21,20 @@ const EXCLUDED_PREFIXES = [
 async function listFiles(relativeDir: string): Promise<string[]> {
   const absoluteDir = join(ROOT, relativeDir);
   try {
-  const entries = await readdir(absoluteDir, { withFileTypes: true });
-  const files = await Promise.all(
-    entries.map(async (entry) => {
-      const relativePath = `${relativeDir}/${entry.name}`;
-      if (entry.isDirectory()) {
-        return listFiles(relativePath);
-      }
-      if (!SOURCE_EXTENSIONS.has(extname(entry.name))) {
-        return [];
-      }
-      return [relativePath];
-    }),
-  );
-  return files.flat();
+    const entries = await readdir(absoluteDir, { withFileTypes: true });
+    const files = await Promise.all(
+      entries.map(async (entry) => {
+        const relativePath = `${relativeDir}/${entry.name}`;
+        if (entry.isDirectory()) {
+          return listFiles(relativePath);
+        }
+        if (!SOURCE_EXTENSIONS.has(extname(entry.name))) {
+          return [];
+        }
+        return [relativePath];
+      }),
+    );
+    return files.flat();
   } catch (error) {
     if ((error as NodeJS.ErrnoException).code === "ENOENT") {
       return [];

@@ -55,12 +55,10 @@ function buildOpenAICompatibleUrl(baseUrl: string, endpoint: string): string {
 function clampMaxTokens(provider: ProviderConfig, cfg: ModelConfig): number | undefined {
   if (
     cfg.maxTokens !== undefined &&
-    (
-      provider.id === "minimax" ||
+    (provider.id === "minimax" ||
       provider.id === "minimax-intl" ||
       provider.type === "minimax" ||
-      isMiniMaxAnthropicProvider(provider)
-    ) &&
+      isMiniMaxAnthropicProvider(provider)) &&
     cfg.model.startsWith(MINIMAX_MODEL_PREFIX)
   ) {
     return Math.min(cfg.maxTokens, MINIMAX_MAX_OUTPUT_TOKENS);

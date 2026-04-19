@@ -31,6 +31,11 @@ export function registerDesktopIpc(
       window.webContents.send(ariaDesktopChannels.ariaShellStateChanged, state);
     }
   });
+  projectsService.subscribe((state) => {
+    for (const window of BrowserWindow.getAllWindows()) {
+      window.webContents.send(ariaDesktopChannels.projectShellStateChanged, state);
+    }
+  });
 
   ipcMain.handle(ariaDesktopChannels.ping, () => "pong");
   ipcMain.handle(ariaDesktopChannels.getRuntimeInfo, () => getRuntimeInfo());
@@ -44,6 +49,9 @@ export function registerDesktopIpc(
   ipcMain.handle(ariaDesktopChannels.createThread, (_event, projectId: string) =>
     projectsService.createThread(projectId),
   );
+  ipcMain.handle(ariaDesktopChannels.archiveProjectThread, (_event, threadId: string) =>
+    projectsService.archiveProjectThread(threadId),
+  );
   ipcMain.handle(ariaDesktopChannels.createAriaChatSession, () =>
     ariaService.createAriaChatSession(),
   );
@@ -55,6 +63,26 @@ export function registerDesktopIpc(
   );
   ipcMain.handle(ariaDesktopChannels.selectThread, (_event, projectId: string, threadId: string) =>
     projectsService.selectThread(projectId, threadId),
+  );
+  ipcMain.handle(
+    ariaDesktopChannels.setProjectThreadPinned,
+    (_event, threadId: string, pinned: boolean) =>
+      projectsService.setProjectThreadPinned(threadId, pinned),
+  );
+  ipcMain.handle(
+    ariaDesktopChannels.sendProjectThreadMessage,
+    (_event, threadId: string, message: string) =>
+      projectsService.sendProjectThreadMessage(threadId, message),
+  );
+  ipcMain.handle(
+    ariaDesktopChannels.switchProjectThreadEnvironment,
+    (_event, threadId: string, environmentId: string) =>
+      projectsService.switchProjectThreadEnvironment(threadId, environmentId),
+  );
+  ipcMain.handle(
+    ariaDesktopChannels.setProjectThreadModel,
+    (_event, threadId: string, modelId: string | null) =>
+      projectsService.setProjectThreadModel(threadId, modelId),
   );
   ipcMain.handle(ariaDesktopChannels.selectAriaChatSession, (_event, sessionId: string) =>
     ariaService.selectAriaChatSession(sessionId),

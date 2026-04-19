@@ -1,6 +1,7 @@
 import { mkdirSync } from "node:fs";
 import { dirname } from "node:path";
 import { PROJECTS_ENGINE_SCHEMA_SQL } from "../../../../packages/projects/src/schema.js";
+import type { AriaDesktopChatMessage } from "../shared/api.js";
 import type {
   EnvironmentRecord,
   ProjectRecord,
@@ -134,7 +135,11 @@ function normalizeShellStateRow(row: SqliteRow | null | undefined): DesktopShell
   }
 
   let collapsedProjectIds: string[] = [];
+  let pinnedThreadIds: string[] = [];
+  let archivedThreadIds: string[] = [];
   const rawCollapsedProjectIds = asOptionalText(row.collapsed_project_ids_json);
+  const rawPinnedThreadIds = asOptionalText(row.pinned_thread_ids_json);
+  const rawArchivedThreadIds = asOptionalText(row.archived_thread_ids_json);
 
   if (rawCollapsedProjectIds) {
     try {
@@ -150,11 +155,107 @@ function normalizeShellStateRow(row: SqliteRow | null | undefined): DesktopShell
     }
   }
 
+  if (rawPinnedThreadIds) {
+    try {
+      const parsed = JSON.parse(rawPinnedThreadIds) as unknown;
+
+      if (Array.isArray(parsed)) {
+        pinnedThreadIds = parsed
+          .filter((value): value is string => typeof value === "string")
+          .slice();
+      }
+    } catch {
+      pinnedThreadIds = [];
+    }
+  }
+
+  if (rawArchivedThreadIds) {
+    try {
+      const parsed = JSON.parse(rawArchivedThreadIds) as unknown;
+
+      if (Array.isArray(parsed)) {
+        archivedThreadIds = parsed
+          .filter((value): value is string => typeof value === "string")
+          .slice();
+      }
+    } catch {
+      archivedThreadIds = [];
+    }
+  }
+
   return {
+    archivedThreadIds,
     collapsedProjectIds,
+    pinnedThreadIds,
     selectedProjectId: asOptionalText(row.selected_project_id),
     selectedThreadId: asOptionalText(row.selected_thread_id),
     shellId: asText(row.shell_id),
+    updatedAt: Number(row.updated_at),
+  };
+}
+
+export interface DesktopProjectThreadMessageRow {
+  messageId: string;
+  threadId: string;
+  role: AriaDesktopChatMessage["role"];
+  content: string;
+  toolName: string | null;
+  createdAt: number;
+}
+
+export interface DesktopProjectThreadStateRow {
+  threadId: string;
+  backendSessionId: string | null;
+  lastError: string | null;
+  lastFilesChanged: string[];
+  selectedModelId: string | null;
+  updatedAt: number;
+}
+
+function normalizeProjectThreadMessageRow(
+  row: SqliteRow | null | undefined,
+): DesktopProjectThreadMessageRow | undefined {
+  if (!row) {
+    return undefined;
+  }
+
+  return {
+    content: asText(row.content),
+    createdAt: Number(row.created_at),
+    messageId: asText(row.message_id),
+    role: asText(row.role) as DesktopProjectThreadMessageRow["role"],
+    threadId: asText(row.thread_id),
+    toolName: asOptionalText(row.tool_name),
+  };
+}
+
+function normalizeProjectThreadStateRow(
+  row: SqliteRow | null | undefined,
+): DesktopProjectThreadStateRow | undefined {
+  if (!row) {
+    return undefined;
+  }
+
+  let lastFilesChanged: string[] = [];
+  const rawFilesChanged = asOptionalText(row.last_files_changed_json);
+
+  if (rawFilesChanged) {
+    try {
+      const parsed = JSON.parse(rawFilesChanged) as unknown;
+      if (Array.isArray(parsed)) {
+        lastFilesChanged = parsed.filter((value): value is string => typeof value === "string");
+      }
+    } catch {
+      lastFilesChanged = [];
+    }
+  }
+
+  return {
+    backendSessionId: asOptionalText(row.backend_session_id),
+    lastError: asOptionalText(row.last_error),
+    lastFilesChanged,
+    selectedModelId: asOptionalText(row.selected_model_id),
+    threadId: asText(row.thread_id),
     updatedAt: Number(row.updated_at),
   };
 }
@@ -180,9 +281,55 @@ export class DesktopProjectsStore {
         selected_project_id TEXT,
         selected_thread_id TEXT,
         collapsed_project_ids_json TEXT NOT NULL,
+        pinned_thread_ids_json TEXT NOT NULL DEFAULT '[]',
+        archived_thread_ids_json TEXT NOT NULL DEFAULT '[]',
         updated_at INTEGER NOT NULL
       );
+      CREATE TABLE IF NOT EXISTS desktop_project_thread_messages (
+        message_id TEXT PRIMARY KEY,
+        thread_id TEXT NOT NULL,
+        role TEXT NOT NULL,
+        content TEXT NOT NULL,
+        tool_name TEXT,
+        created_at INTEGER NOT NULL,
+        FOREIGN KEY (thread_id) REFERENCES projects_threads(thread_id) ON DELETE CASCADE
+      );
+      CREATE TABLE IF NOT EXISTS desktop_project_thread_state (
+        thread_id TEXT PRIMARY KEY,
+        backend_session_id TEXT,
+        last_error TEXT,
+        last_files_changed_json TEXT NOT NULL,
+        selected_model_id TEXT,
+        updated_at INTEGER NOT NULL,
+        FOREIGN KEY (thread_id) REFERENCES projects_threads(thread_id) ON DELETE CASCADE
+      );
+      CREATE INDEX IF NOT EXISTS idx_desktop_project_thread_messages_thread_created
+        ON desktop_project_thread_messages(thread_id, created_at);
     `);
+    try {
+      this.db.exec(`
+        ALTER TABLE desktop_project_thread_state
+        ADD COLUMN selected_model_id TEXT;
+      `);
+    } catch {
+      // Column already exists in upgraded databases.
+    }
+    try {
+      this.db.exec(`
+        ALTER TABLE desktop_shell_state
+        ADD COLUMN pinned_thread_ids_json TEXT NOT NULL DEFAULT '[]';
+      `);
+    } catch {
+      // Column already exists in upgraded databases.
+    }
+    try {
+      this.db.exec(`
+        ALTER TABLE desktop_shell_state
+        ADD COLUMN archived_thread_ids_json TEXT NOT NULL DEFAULT '[]';
+      `);
+    } catch {
+      // Column already exists in upgraded databases.
+    }
   }
 
   close(): void {
@@ -643,7 +790,8 @@ export class DesktopProjectsStore {
       this.getDb()
         .prepare(
           `
-            SELECT shell_id, selected_project_id, selected_thread_id, collapsed_project_ids_json, updated_at
+            SELECT shell_id, selected_project_id, selected_thread_id, collapsed_project_ids_json,
+                   pinned_thread_ids_json, archived_thread_ids_json, updated_at
             FROM desktop_shell_state
             LIMIT 1
           `,
@@ -657,12 +805,15 @@ export class DesktopProjectsStore {
       .prepare(
         `
           INSERT INTO desktop_shell_state (
-            shell_id, selected_project_id, selected_thread_id, collapsed_project_ids_json, updated_at
-          ) VALUES (?, ?, ?, ?, ?)
+            shell_id, selected_project_id, selected_thread_id, collapsed_project_ids_json,
+            pinned_thread_ids_json, archived_thread_ids_json, updated_at
+          ) VALUES (?, ?, ?, ?, ?, ?, ?)
           ON CONFLICT(shell_id) DO UPDATE SET
             selected_project_id = excluded.selected_project_id,
             selected_thread_id = excluded.selected_thread_id,
             collapsed_project_ids_json = excluded.collapsed_project_ids_json,
+            pinned_thread_ids_json = excluded.pinned_thread_ids_json,
+            archived_thread_ids_json = excluded.archived_thread_ids_json,
             updated_at = excluded.updated_at
         `,
       )
@@ -671,7 +822,83 @@ export class DesktopProjectsStore {
         shellState.selectedProjectId ?? null,
         shellState.selectedThreadId ?? null,
         JSON.stringify(shellState.collapsedProjectIds),
+        JSON.stringify(shellState.pinnedThreadIds),
+        JSON.stringify(shellState.archivedThreadIds),
         shellState.updatedAt,
+      );
+  }
+
+  listProjectThreadMessages(threadId: string): DesktopProjectThreadMessageRow[] {
+    return this.getDb()
+      .prepare(
+        `
+          SELECT message_id, thread_id, role, content, tool_name, created_at
+          FROM desktop_project_thread_messages
+          WHERE thread_id = ?
+          ORDER BY created_at ASC, rowid ASC
+        `,
+      )
+      .all(threadId)
+      .map((row) => normalizeProjectThreadMessageRow(row as SqliteRow))
+      .filter((row): row is DesktopProjectThreadMessageRow => Boolean(row));
+  }
+
+  appendProjectThreadMessage(message: DesktopProjectThreadMessageRow): void {
+    this.getDb()
+      .prepare(
+        `
+          INSERT INTO desktop_project_thread_messages (
+            message_id, thread_id, role, content, tool_name, created_at
+          ) VALUES (?, ?, ?, ?, ?, ?)
+        `,
+      )
+      .run(
+        message.messageId,
+        message.threadId,
+        message.role,
+        message.content,
+        message.toolName ?? null,
+        message.createdAt,
+      );
+  }
+
+  getProjectThreadState(threadId: string): DesktopProjectThreadStateRow | undefined {
+    return normalizeProjectThreadStateRow(
+      this.getDb()
+        .prepare(
+          `
+            SELECT thread_id, backend_session_id, last_error, last_files_changed_json, updated_at
+                   , selected_model_id
+            FROM desktop_project_thread_state
+            WHERE thread_id = ?
+          `,
+        )
+        .get(threadId) as SqliteRow | undefined,
+    );
+  }
+
+  upsertProjectThreadState(state: DesktopProjectThreadStateRow): void {
+    this.getDb()
+      .prepare(
+        `
+          INSERT INTO desktop_project_thread_state (
+            thread_id, backend_session_id, last_error, last_files_changed_json, selected_model_id, updated_at
+          ) VALUES (?, ?, ?, ?, ?, ?)
+          ON CONFLICT(thread_id) DO UPDATE SET
+            backend_session_id = excluded.backend_session_id,
+            last_error = excluded.last_error,
+            last_files_changed_json = excluded.last_files_changed_json,
+            selected_model_id = excluded.selected_model_id,
+            updated_at = excluded.updated_at
+        `,
+      )
+      .run(
+        state.threadId,
+        state.backendSessionId ?? null,
+        state.lastError ?? null,
+        JSON.stringify(state.lastFilesChanged),
+        state.selectedModelId ?? null,
+        state.updatedAt,
       );
   }
 }

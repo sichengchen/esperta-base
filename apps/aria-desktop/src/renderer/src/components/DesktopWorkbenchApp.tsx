@@ -1,20 +1,26 @@
 import {
+  Archive,
   ArrowUp,
+  Check,
   ChevronDown,
   ChevronRight,
   Clock3,
   FolderPlus,
+  GitBranch,
   MessageSquarePlus,
+  Pin,
   Plug2,
   Settings2,
+  Sparkles,
 } from "lucide-react";
-import { startTransition, useEffect, useState } from "react";
+import { startTransition, useEffect, useRef, useState, type ReactNode } from "react";
 import type {
   AriaDesktopAriaShellState,
   AriaDesktopAriaScreen,
   AriaDesktopProjectGroup,
   AriaDesktopProjectShellState,
   AriaDesktopProjectThreadItem,
+  AriaDesktopProjectThreadState,
 } from "../../../shared/api.js";
 import { DesktopBaseLayout, type DesktopBaseLayoutToolbarItem } from "./DesktopBaseLayout.js";
 import { DesktopSpaceTabs, type DesktopSpace } from "./DesktopSpaceTabs.js";
@@ -30,10 +36,13 @@ import { AriaMessageStream } from "./AriaMessageStream.js";
 import { useTransientScrollbar } from "./useTransientScrollbar.js";
 
 const EMPTY_SHELL_STATE: AriaDesktopProjectShellState = {
+  archivedThreadIds: [],
   collapsedProjectIds: [],
+  pinnedThreadIds: [],
   projects: [],
   selectedProjectId: null,
   selectedThreadId: null,
+  selectedThreadState: null,
 };
 
 const EMPTY_ARIA_STATE: AriaDesktopAriaShellState = {
@@ -169,13 +178,150 @@ function buildOptimisticMessage(content: string) {
   };
 }
 
+function ComposerContextMenu({
+  activeLabel,
+  align = "start",
+  icon,
+  menuLabel,
+  onSelect,
+  options,
+}: {
+  activeLabel: string;
+  align?: "end" | "start";
+  icon: ReactNode;
+  menuLabel: string;
+  onSelect: (id: string) => void;
+  options: Array<{
+    description?: string | null;
+    id: string;
+    label: string;
+    secondaryLabel?: string | null;
+    selected: boolean;
+  }>;
+}) {
+  const [open, setOpen] = useState(false);
+  const [openDirection, setOpenDirection] = useState<"down" | "up">("down");
+  const [maxMenuHeight, setMaxMenuHeight] = useState<number | null>(null);
+  const rootRef = useRef<HTMLDivElement | null>(null);
+
+  useEffect(() => {
+    if (!open) {
+      return;
+    }
+
+    const rootElement = rootRef.current;
+    if (rootElement) {
+      const rect = rootElement.getBoundingClientRect();
+      const viewportHeight = window.innerHeight;
+      const spaceBelow = viewportHeight - rect.bottom - 16;
+      const spaceAbove = rect.top - 16;
+      const shouldOpenUp = spaceBelow < 280 && spaceAbove > spaceBelow;
+      const sixRowMenuHeight = 6 * 58;
+      const availableHeight = shouldOpenUp ? spaceAbove - 20 : spaceBelow - 20;
+
+      setOpenDirection(shouldOpenUp ? "up" : "down");
+      setMaxMenuHeight(Math.max(160, Math.min(sixRowMenuHeight, availableHeight)));
+    }
+
+    function handlePointerDown(event: PointerEvent): void {
+      if (!rootRef.current?.contains(event.target as Node)) {
+        setOpen(false);
+      }
+    }
+
+    function handleEscape(event: KeyboardEvent): void {
+      if (event.key === "Escape") {
+        setOpen(false);
+      }
+    }
+
+    window.addEventListener("pointerdown", handlePointerDown);
+    window.addEventListener("keydown", handleEscape);
+    return () => {
+      window.removeEventListener("pointerdown", handlePointerDown);
+      window.removeEventListener("keydown", handleEscape);
+    };
+  }, [open]);
+
+  return (
+    <div
+      ref={rootRef}
+      className={`project-thread-composer-menu is-${align}${open ? " is-open" : ""}${
+        openDirection === "up" ? " opens-up" : ""
+      }`}
+    >
+      <button
+        type="button"
+        className="project-thread-composer-trigger"
+        aria-expanded={open}
+        aria-haspopup="menu"
+        aria-label={`${menuLabel}: ${activeLabel}`}
+        onClick={() => setOpen((current) => !current)}
+      >
+        {icon}
+        <span className="project-thread-composer-trigger-label">{activeLabel}</span>
+        <ChevronDown aria-hidden="true" />
+      </button>
+      {open ? (
+        <div className="project-thread-composer-dropdown" role="menu" aria-label={menuLabel}>
+          <div className="project-thread-composer-dropdown-title">{menuLabel}</div>
+          <div
+            className="project-thread-composer-dropdown-options desktop-scroll-region"
+            style={maxMenuHeight ? { maxHeight: `${maxMenuHeight}px` } : undefined}
+          >
+            {options.map((option) => (
+              <button
+                key={option.id}
+                type="button"
+                className={`project-thread-composer-option${option.selected ? " is-selected" : ""}`}
+                role="menuitemradio"
+                aria-checked={option.selected}
+                onClick={() => {
+                  setOpen(false);
+                  if (!option.selected) {
+                    onSelect(option.id);
+                  }
+                }}
+              >
+                <span className="project-thread-composer-option-copy">
+                  <span className="project-thread-composer-option-label">{option.label}</span>
+                  {option.secondaryLabel ? (
+                    <span className="project-thread-composer-option-secondary">
+                      {option.secondaryLabel}
+                    </span>
+                  ) : null}
+                </span>
+                {option.selected ? (
+                  <span className="project-thread-composer-option-check">
+                    <Check aria-hidden="true" />
+                  </span>
+                ) : null}
+              </button>
+            ))}
+          </div>
+        </div>
+      ) : null}
+    </div>
+  );
+}
+
 type ThreadViewProps = {
   onImportProject: () => void;
+  onSetModel: (threadId: string, modelId: string | null) => void;
+  onSendMessage: (threadId: string, message: string) => void;
+  onSwitchEnvironment: (threadId: string, environmentId: string) => void;
   selectedProject: AriaDesktopProjectGroup | null;
-  selectedThread: AriaDesktopProjectThreadItem | null;
+  selectedThreadState: AriaDesktopProjectThreadState | null;
 };
 
-function ThreadView({ onImportProject, selectedProject, selectedThread }: ThreadViewProps) {
+export function ThreadView({
+  onImportProject,
+  onSetModel,
+  onSendMessage,
+  onSwitchEnvironment,
+  selectedProject,
+  selectedThreadState,
+}: ThreadViewProps) {
   if (!selectedProject) {
     return (
       <div className="thread-design-canvas thread-empty-state">
@@ -187,7 +333,7 @@ function ThreadView({ onImportProject, selectedProject, selectedThread }: Thread
     );
   }
 
-  if (!selectedThread) {
+  if (!selectedThreadState) {
     return (
       <div className="thread-design-canvas thread-empty-state">
         <div className="thread-empty-state-content">
@@ -199,28 +345,115 @@ function ThreadView({ onImportProject, selectedProject, selectedThread }: Thread
       </div>
     );
   }
+  const selectedBranch =
+    selectedThreadState.availableBranches.find((option) => option.selected) ??
+    selectedThreadState.availableBranches[0] ??
+    null;
+  const selectedModel =
+    selectedThreadState.availableModels.find((option) => option.selected) ??
+    selectedThreadState.availableModels[0] ??
+    null;
 
-  return <div className="thread-design-canvas" />;
+  return (
+    <div className="thread-design-canvas project-thread-view">
+      <AriaChatView
+        chat={selectedThreadState.chat}
+        composerFooterEnd={
+          selectedModel ? (
+            <ComposerContextMenu
+              activeLabel={selectedModel.modelLabel ?? selectedModel.label}
+              align="end"
+              icon={<Sparkles aria-hidden="true" />}
+              menuLabel="Model"
+              onSelect={(modelId) => onSetModel(selectedThreadState.threadId, modelId || null)}
+              options={selectedThreadState.availableModels.map((option) => ({
+                description: null,
+                id: option.modelId ?? "",
+                label: option.modelLabel ?? option.label,
+                secondaryLabel: option.providerLabel ?? null,
+                selected: option.selected,
+              }))}
+            />
+          ) : null
+        }
+        composerFooterStart={
+          selectedBranch ? (
+            <ComposerContextMenu
+              activeLabel={selectedBranch.value}
+              icon={<GitBranch aria-hidden="true" />}
+              menuLabel="Branch"
+              onSelect={(environmentId) =>
+                onSwitchEnvironment(selectedThreadState.threadId, environmentId)
+              }
+              options={selectedThreadState.availableBranches.map((option) => ({
+                description: option.label,
+                id: option.environmentId,
+                label: option.value,
+                selected: option.selected,
+              }))}
+            />
+          ) : null
+        }
+        emptyPlaceholder={`Message ${selectedThreadState.agentLabel ?? "Agent"}`}
+        onAcceptForSession={() => {}}
+        onAnswerQuestion={() => {}}
+        onApproveToolCall={() => {}}
+        onSendMessage={(message) => onSendMessage(selectedThreadState.threadId, message)}
+      />
+    </div>
+  );
 }
 
 function SettingsView() {
   return <div className="settings-design-canvas" />;
 }
 
-function ThreadInspectorSurface() {
-  return <div className="thread-inspector-surface" />;
-}
-
-function ThreadTerminalSurface() {
-  return <div className="thread-terminal-surface" />;
+function ThreadInspectorSurface({ thread }: { thread: AriaDesktopProjectThreadState }) {
+  return (
+    <div className="thread-inspector-surface">
+      <dl className="aria-inspector-grid">
+        <div>
+          <dt>Project</dt>
+          <dd>{thread.projectName}</dd>
+        </div>
+        <div>
+          <dt>Agent</dt>
+          <dd>{thread.agentLabel ?? "Unknown"}</dd>
+        </div>
+        <div>
+          <dt>Environment</dt>
+          <dd>{thread.environmentLabel ?? "Unassigned"}</dd>
+        </div>
+        <div>
+          <dt>Status</dt>
+          <dd>{thread.statusLabel}</dd>
+        </div>
+        <div>
+          <dt>Changed Files</dt>
+          <dd>{thread.changedFiles.length}</dd>
+        </div>
+      </dl>
+      {thread.changedFiles.length > 0 ? (
+        <div className="thread-inspector-file-list">
+          {thread.changedFiles.map((filePath) => (
+            <div key={filePath} className="thread-inspector-file">
+              {filePath}
+            </div>
+          ))}
+        </div>
+      ) : null}
+    </div>
+  );
 }
 
 type ProjectSidebarProps = {
   collapsedProjectIds: string[];
+  onArchiveThread: (threadId: string) => void;
   onCreateThread: (projectId: string) => void;
   onOpenSettings: () => void;
   onSelectProject: (projectId: string) => void;
   onSelectThread: (projectId: string, threadId: string) => void;
+  onTogglePinnedThread: (threadId: string, pinned: boolean) => void;
   onToggleProject: (projectId: string, collapsed: boolean) => void;
   projects: AriaDesktopProjectGroup[];
   settingsActive: boolean;
@@ -230,10 +463,12 @@ type ProjectSidebarProps = {
 
 export function ProjectSidebar({
   collapsedProjectIds,
+  onArchiveThread,
   onCreateThread,
   onOpenSettings,
   onSelectProject,
   onSelectThread,
+  onTogglePinnedThread,
   onToggleProject,
   projects,
   settingsActive,
@@ -310,6 +545,25 @@ export function ProjectSidebar({
                       active={thread.threadId === selectedThreadId}
                       meta={formatRelativeUpdatedAt(thread.updatedAt)}
                       onSelect={() => onSelectThread(project.projectId, thread.threadId)}
+                      trailingAction={
+                        <div className="thread-list-item-actions">
+                          <DesktopIconButton
+                            active={Boolean(thread.pinned)}
+                            className="thread-list-item-action"
+                            icon={<Pin aria-hidden="true" />}
+                            label={thread.pinned ? `Unpin ${thread.title}` : `Pin ${thread.title}`}
+                            onClick={() =>
+                              onTogglePinnedThread(thread.threadId, !Boolean(thread.pinned))
+                            }
+                          />
+                          <DesktopIconButton
+                            className="thread-list-item-action"
+                            icon={<Archive aria-hidden="true" />}
+                            label={`Archive ${thread.title}`}
+                            onClick={() => onArchiveThread(thread.threadId)}
+                          />
+                        </div>
+                      }
                       title={thread.title}
                     />
                   ))}
@@ -560,6 +814,8 @@ function AriaPendingApprovalPrompt({
 
 export function AriaChatView({
   chat,
+  composerFooterEnd = null,
+  composerFooterStart = null,
   emptyPlaceholder,
   isArchived = false,
   onAcceptForSession,
@@ -568,6 +824,8 @@ export function AriaChatView({
   onSendMessage,
 }: {
   chat: AriaDesktopAriaShellState["chat"];
+  composerFooterEnd?: ReactNode;
+  composerFooterStart?: ReactNode;
   emptyPlaceholder: string;
   isArchived?: boolean;
   onAcceptForSession: (toolCallId: string) => void;
@@ -607,6 +865,8 @@ export function AriaChatView({
       <div className="aria-chat-empty-state">
         <AriaChatComposer
           centered
+          footerEnd={composerFooterEnd}
+          footerStart={composerFooterStart}
           onSend={handleSendMessage}
           placeholder={emptyPlaceholder}
           title="What should we work on?"
@@ -634,7 +894,12 @@ export function AriaChatView({
       {isArchived ? (
         <div className="aria-chat-readonly-label">archived session</div>
       ) : (
-        <AriaChatComposer onSend={handleSendMessage} placeholder={emptyPlaceholder} />
+        <AriaChatComposer
+          footerEnd={composerFooterEnd}
+          footerStart={composerFooterStart}
+          onSend={handleSendMessage}
+          placeholder={emptyPlaceholder}
+        />
       )}
     </div>
   );
@@ -789,17 +1054,6 @@ function getSelectedProject(
   );
 }
 
-function getSelectedThread(
-  project: AriaDesktopProjectGroup | null,
-  shellState: AriaDesktopProjectShellState,
-): AriaDesktopProjectThreadItem | null {
-  if (!project) {
-    return null;
-  }
-
-  return project.threads.find((thread) => thread.threadId === shellState.selectedThreadId) ?? null;
-}
-
 export function DesktopWorkbenchApp() {
   const [activeSpace, setActiveSpace] = useState<DesktopSpace>("projects");
   const [ariaState, setAriaState] = useState<AriaDesktopAriaShellState>(EMPTY_ARIA_STATE);
@@ -808,7 +1062,7 @@ export function DesktopWorkbenchApp() {
   const [shellState, setShellState] = useState<AriaDesktopProjectShellState>(EMPTY_SHELL_STATE);
 
   const selectedProject = getSelectedProject(shellState);
-  const selectedThread = getSelectedThread(selectedProject, shellState);
+  const selectedThreadState = shellState.selectedThreadState;
 
   useEffect(() => {
     let isDisposed = false;
@@ -838,6 +1092,18 @@ export function DesktopWorkbenchApp() {
     return () => {
       isDisposed = true;
     };
+  }, []);
+
+  useEffect(() => {
+    if (!window.ariaDesktop) {
+      return;
+    }
+
+    return window.ariaDesktop.onProjectShellStateChanged((nextShellState) => {
+      startTransition(() => {
+        setShellState(nextShellState);
+      });
+    });
   }, []);
 
   useEffect(() => {
@@ -911,12 +1177,20 @@ export function DesktopWorkbenchApp() {
     void applyProjectShellState(() => window.ariaDesktop.createThread(projectId));
   }
 
+  function archiveProjectThread(threadId: string): void {
+    void applyProjectShellState(() => window.ariaDesktop.archiveProjectThread(threadId));
+  }
+
   function selectProject(projectId: string): void {
     void applyProjectShellState(() => window.ariaDesktop.selectProject(projectId));
   }
 
   function selectThread(projectId: string, threadId: string): void {
     void applyProjectShellState(() => window.ariaDesktop.selectThread(projectId, threadId));
+  }
+
+  function setProjectThreadPinned(threadId: string, pinned: boolean): void {
+    void applyProjectShellState(() => window.ariaDesktop.setProjectThreadPinned(threadId, pinned));
   }
 
   function toggleProject(projectId: string, collapsed: boolean): void {
@@ -991,6 +1265,45 @@ export function DesktopWorkbenchApp() {
       });
   }
 
+  function sendProjectThreadMessage(threadId: string, message: string): void {
+    void window.ariaDesktop
+      .sendProjectThreadMessage(threadId, message)
+      .then((nextShellState) => {
+        startTransition(() => {
+          setShellState(nextShellState);
+        });
+      })
+      .catch((error) => {
+        console.error(error);
+      });
+  }
+
+  function switchProjectThreadEnvironment(threadId: string, environmentId: string): void {
+    void window.ariaDesktop
+      .switchProjectThreadEnvironment(threadId, environmentId)
+      .then((nextShellState) => {
+        startTransition(() => {
+          setShellState(nextShellState);
+        });
+      })
+      .catch((error) => {
+        console.error(error);
+      });
+  }
+
+  function setProjectThreadModel(threadId: string, modelId: string | null): void {
+    void window.ariaDesktop
+      .setProjectThreadModel(threadId, modelId)
+      .then((nextShellState) => {
+        startTransition(() => {
+          setShellState(nextShellState);
+        });
+      })
+      .catch((error) => {
+        console.error(error);
+      });
+  }
+
   const leftSidebarToolbarItems: DesktopBaseLayoutToolbarItem[] =
     activeSpace === "projects"
       ? [
@@ -1046,18 +1359,17 @@ export function DesktopWorkbenchApp() {
 
   return (
     <DesktopBaseLayout
-      bottomBar={
-        activeSpace === "projects" && selectedThread ? <ThreadTerminalSurface /> : undefined
-      }
-      bottomBarTitle={activeSpace === "projects" ? "Terminal" : "Compose"}
       center={
         settingsOpen ? (
           <SettingsView />
         ) : activeSpace === "projects" ? (
           <ThreadView
             onImportProject={importProject}
+            onSetModel={setProjectThreadModel}
+            onSendMessage={sendProjectThreadMessage}
+            onSwitchEnvironment={switchProjectThreadEnvironment}
             selectedProject={selectedProject}
-            selectedThread={selectedThread}
+            selectedThreadState={selectedThreadState}
           />
         ) : !ariaServerConnected ? (
           <NoAriaServerView />
@@ -1101,10 +1413,12 @@ export function DesktopWorkbenchApp() {
         activeSpace === "projects" ? (
           <ProjectSidebar
             collapsedProjectIds={shellState.collapsedProjectIds}
+            onArchiveThread={archiveProjectThread}
             onCreateThread={createThread}
             onOpenSettings={openSettings}
             onSelectProject={selectProject}
             onSelectThread={selectThread}
+            onTogglePinnedThread={setProjectThreadPinned}
             onToggleProject={toggleProject}
             projects={shellState.projects}
             selectedProjectId={shellState.selectedProjectId}
@@ -1131,15 +1445,15 @@ export function DesktopWorkbenchApp() {
       leftSidebarTitle={<DesktopSpaceTabs activeSpace={activeSpace} onSelectSpace={selectSpace} />}
       leftSidebarToolbarItems={leftSidebarToolbarItems}
       rightSidebar={
-        activeSpace === "projects" && selectedThread ? (
-          <ThreadInspectorSurface />
+        activeSpace === "projects" && selectedThreadState ? (
+          <ThreadInspectorSurface thread={selectedThreadState} />
         ) : showAriaChat ? (
           <AriaInspectorSurface chat={ariaState.chat} serverLabel={ariaState.serverLabel} />
         ) : undefined
       }
       rightSidebarTitle={
-        activeSpace === "projects" && selectedThread
-          ? selectedThread.title
+        activeSpace === "projects" && selectedThreadState
+          ? selectedThreadState.title
           : showAriaChat
             ? "Session"
             : undefined
@@ -1147,7 +1461,7 @@ export function DesktopWorkbenchApp() {
       showMainTopbar={!settingsOpen}
       title={
         activeSpace === "projects"
-          ? (selectedThread?.title ?? selectedProject?.name ?? "Projects")
+          ? (selectedThreadState?.title ?? selectedProject?.name ?? "Projects")
           : showAutomationView
             ? "Automations"
             : showConnectorView

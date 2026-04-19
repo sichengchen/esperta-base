@@ -1,7 +1,9 @@
 import { ArrowUp, Plus } from "lucide-react";
-import { useRef } from "react";
+import { useRef, type ReactNode } from "react";
 
 type AriaChatComposerProps = {
+  footerEnd?: ReactNode;
+  footerStart?: ReactNode;
   centered?: boolean;
   onSend: (message: string) => void | Promise<void>;
   placeholder?: string;
@@ -10,6 +12,8 @@ type AriaChatComposerProps = {
 
 export function AriaChatComposer({
   centered = false,
+  footerEnd = null,
+  footerStart = null,
   onSend,
   placeholder = "Message Aria",
   title = null,
@@ -65,6 +69,12 @@ export function AriaChatComposer({
           </button>
         </div>
       </form>
+      {footerStart || footerEnd ? (
+        <div className="aria-chat-composer-meta" aria-label="Composer context">
+          <div className="aria-chat-composer-meta-slot is-start">{footerStart}</div>
+          <div className="aria-chat-composer-meta-slot is-end">{footerEnd}</div>
+        </div>
+      ) : null}
     </div>
   );
 }

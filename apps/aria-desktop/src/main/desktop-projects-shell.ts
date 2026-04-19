@@ -8,6 +8,7 @@ import { createProjectThreadListItem } from "../../../../packages/projects/src/v
 import type {
   AriaDesktopProjectGroup,
   AriaDesktopProjectShellState,
+  AriaDesktopProjectThreadState,
   AriaDesktopProjectThreadItem,
 } from "../shared/api.js";
 
@@ -20,6 +21,8 @@ export interface DesktopShellStateRow {
   selectedProjectId: string | null;
   selectedThreadId: string | null;
   collapsedProjectIds: string[];
+  pinnedThreadIds: string[];
+  archivedThreadIds: string[];
   updatedAt: number;
 }
 
@@ -27,6 +30,7 @@ type BuildDesktopProjectShellStateInput = {
   environments: EnvironmentRecord[];
   projects: ProjectRecord[];
   repos: RepoRecord[];
+  selectedThreadState?: AriaDesktopProjectThreadState | null;
   shellState: DesktopShellStateRow | null;
   threads: ThreadRecord[];
 };
@@ -34,12 +38,14 @@ type BuildDesktopProjectShellStateInput = {
 function buildProjectThreadItem(
   project: ProjectRecord,
   thread: ThreadRecord,
+  pinnedThreadIds: Set<string>,
 ): AriaDesktopProjectThreadItem {
   const item = createProjectThreadListItem(project, thread);
 
   return {
     agentId: item.agentId ?? null,
     environmentId: item.environmentId ?? null,
+    pinned: pinnedThreadIds.has(thread.threadId),
     status: thread.status,
     statusLabel: item.status,
     threadId: thread.threadId,
@@ -53,6 +59,8 @@ function buildProjectThreadItem(
 function buildProjectGroup(
   project: ProjectRecord,
   environments: EnvironmentRecord[],
+  archivedThreadIds: Set<string>,
+  pinnedThreadIds: Set<string>,
   repos: RepoRecord[],
   threads: ThreadRecord[],
 ): AriaDesktopProjectGroup {
@@ -75,7 +83,18 @@ function buildProjectGroup(
     rootPath,
     threads: threads
       .filter((thread) => thread.projectId === project.projectId)
-      .map((thread) => buildProjectThreadItem(project, thread)),
+      .filter((thread) => !archivedThreadIds.has(thread.threadId))
+      .sort((left, right) => {
+        const leftPinned = pinnedThreadIds.has(left.threadId);
+        const rightPinned = pinnedThreadIds.has(right.threadId);
+
+        if (leftPinned !== rightPinned) {
+          return leftPinned ? -1 : 1;
+        }
+
+        return right.updatedAt - left.updatedAt;
+      })
+      .map((thread) => buildProjectThreadItem(project, thread, pinnedThreadIds)),
   };
 }
 
@@ -83,11 +102,14 @@ export function buildDesktopProjectShellState({
   environments,
   projects,
   repos,
+  selectedThreadState = null,
   shellState,
   threads,
 }: BuildDesktopProjectShellStateInput): AriaDesktopProjectShellState {
+  const pinnedThreadIds = new Set(shellState?.pinnedThreadIds ?? []);
+  const archivedThreadIds = new Set(shellState?.archivedThreadIds ?? []);
   const groupedProjects = projects.map((project) =>
-    buildProjectGroup(project, environments, repos, threads),
+    buildProjectGroup(project, environments, archivedThreadIds, pinnedThreadIds, repos, threads),
   );
 
   const validProjectIds = new Set(groupedProjects.map((project) => project.projectId));
@@ -107,8 +129,16 @@ export function buildDesktopProjectShellState({
     collapsedProjectIds: (shellState?.collapsedProjectIds ?? []).filter((projectId) =>
       validProjectIds.has(projectId),
     ),
+    archivedThreadIds: (shellState?.archivedThreadIds ?? []).filter((threadId) =>
+      threads.some((thread) => thread.threadId === threadId),
+    ),
+    pinnedThreadIds: (shellState?.pinnedThreadIds ?? []).filter((threadId) =>
+      threads.some((thread) => thread.threadId === threadId),
+    ),
     projects: groupedProjects,
     selectedProjectId: normalizedSelectedProjectId,
     selectedThreadId: normalizedSelectedThreadId,
+    selectedThreadState:
+      selectedThreadState?.threadId === normalizedSelectedThreadId ? selectedThreadState : null,
   };
 }

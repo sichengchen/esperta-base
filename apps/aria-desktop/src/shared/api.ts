@@ -6,12 +6,18 @@ export const ariaDesktopChannels = {
   getProjectShellState: "aria-desktop:get-project-shell-state",
   getAriaShellState: "aria-desktop:get-aria-shell-state",
   ariaShellStateChanged: "aria-desktop:aria-shell-state-changed",
+  projectShellStateChanged: "aria-desktop:project-shell-state-changed",
   importLocalProjectFromDialog: "aria-desktop:import-local-project-from-dialog",
   createThread: "aria-desktop:create-thread",
   createAriaChatSession: "aria-desktop:create-aria-chat-session",
   archiveAriaChatSession: "aria-desktop:archive-aria-chat-session",
   selectProject: "aria-desktop:select-project",
   selectThread: "aria-desktop:select-thread",
+  archiveProjectThread: "aria-desktop:archive-project-thread",
+  setProjectThreadPinned: "aria-desktop:set-project-thread-pinned",
+  sendProjectThreadMessage: "aria-desktop:send-project-thread-message",
+  switchProjectThreadEnvironment: "aria-desktop:switch-project-thread-environment",
+  setProjectThreadModel: "aria-desktop:set-project-thread-model",
   selectAriaChatSession: "aria-desktop:select-aria-chat-session",
   selectAriaScreen: "aria-desktop:select-aria-screen",
   setProjectCollapsed: "aria-desktop:set-project-collapsed",
@@ -56,6 +62,7 @@ export interface AriaDesktopProjectThreadItem {
   updatedAt: number;
   environmentId?: string | null;
   agentId?: string | null;
+  pinned?: boolean;
 }
 
 export interface AriaDesktopProjectGroup {
@@ -66,11 +73,53 @@ export interface AriaDesktopProjectGroup {
   threads: AriaDesktopProjectThreadItem[];
 }
 
+export interface AriaDesktopProjectThreadState {
+  threadId: string;
+  projectId: string;
+  projectName: string;
+  title: string;
+  status: AriaDesktopThreadStatus;
+  statusLabel: string;
+  threadType: AriaDesktopThreadType;
+  threadTypeLabel: string;
+  environmentId?: string | null;
+  environmentLabel?: string | null;
+  environmentLocator?: string | null;
+  agentId?: string | null;
+  agentLabel?: string | null;
+  modelId?: string | null;
+  modelLabel?: string | null;
+  backendSessionId?: string | null;
+  changedFiles: string[];
+  chat: AriaDesktopChatState;
+  availableBranches: AriaDesktopProjectThreadBranchOption[];
+  availableModels: AriaDesktopProjectThreadModelOption[];
+}
+
+export interface AriaDesktopProjectThreadBranchOption {
+  environmentId: string;
+  label: string;
+  locator?: string | null;
+  selected: boolean;
+  value: string;
+}
+
+export interface AriaDesktopProjectThreadModelOption {
+  modelId: string | null;
+  label: string;
+  modelLabel?: string | null;
+  providerLabel?: string | null;
+  selected: boolean;
+}
+
 export interface AriaDesktopProjectShellState {
   projects: AriaDesktopProjectGroup[];
   selectedProjectId: string | null;
   selectedThreadId: string | null;
   collapsedProjectIds: string[];
+  pinnedThreadIds: string[];
+  archivedThreadIds: string[];
+  selectedThreadState: AriaDesktopProjectThreadState | null;
 }
 
 export type AriaDesktopAriaScreen = "automations" | "connectors";
@@ -199,12 +248,32 @@ export interface AriaDesktopApi {
   getProjectShellState: () => Promise<AriaDesktopProjectShellState>;
   importLocalProjectFromDialog: () => Promise<AriaDesktopProjectShellState>;
   onAriaShellStateChanged: (listener: (state: AriaDesktopAriaShellState) => void) => () => void;
+  onProjectShellStateChanged: (
+    listener: (state: AriaDesktopProjectShellState) => void,
+  ) => () => void;
   createThread: (projectId: string) => Promise<AriaDesktopProjectShellState>;
+  archiveProjectThread: (threadId: string) => Promise<AriaDesktopProjectShellState>;
   refreshAutomations: () => Promise<AriaDesktopAriaShellState>;
   searchAriaChatSessions: (query: string) => Promise<AriaDesktopAriaShellState>;
   searchConnectorSessions: (query: string) => Promise<AriaDesktopAriaShellState>;
   selectProject: (projectId: string) => Promise<AriaDesktopProjectShellState>;
   selectThread: (projectId: string, threadId: string) => Promise<AriaDesktopProjectShellState>;
+  setProjectThreadPinned: (
+    threadId: string,
+    pinned: boolean,
+  ) => Promise<AriaDesktopProjectShellState>;
+  sendProjectThreadMessage: (
+    threadId: string,
+    message: string,
+  ) => Promise<AriaDesktopProjectShellState>;
+  setProjectThreadModel: (
+    threadId: string,
+    modelId: string | null,
+  ) => Promise<AriaDesktopProjectShellState>;
+  switchProjectThreadEnvironment: (
+    threadId: string,
+    environmentId: string,
+  ) => Promise<AriaDesktopProjectShellState>;
   selectAriaChatSession: (sessionId: string) => Promise<AriaDesktopAriaShellState>;
   selectAriaScreen: (screen: AriaDesktopAriaScreen) => Promise<AriaDesktopAriaShellState>;
   selectAutomationTask: (taskId: string) => Promise<AriaDesktopAriaShellState>;

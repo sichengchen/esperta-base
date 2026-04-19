@@ -5,6 +5,8 @@ import type { AriaDesktopAriaShellState } from "../apps/aria-desktop/src/shared/
 import {
   AriaChatView,
   AriaSidebar,
+  ProjectSidebar,
+  ThreadView,
 } from "../apps/aria-desktop/src/renderer/src/components/DesktopWorkbenchApp.js";
 import { AriaMessageItem } from "../apps/aria-desktop/src/renderer/src/components/AriaMessageItem.js";
 
@@ -77,6 +79,102 @@ const SAMPLE_ARIA_STATE: AriaDesktopAriaShellState = {
   serverLabel: "Local Server",
 };
 
+const SAMPLE_PROJECT = {
+  name: "desktop-shell",
+  projectId: "project-1",
+  repoName: "desktop-shell",
+  rootPath: "/tmp/desktop-shell",
+  threads: [
+    {
+      agentId: "opencode",
+      environmentId: "env-1",
+      status: "dirty" as const,
+      statusLabel: "Dirty",
+      threadId: "thread-1",
+      threadType: "local_project" as const,
+      threadTypeLabel: "Local Project",
+      title: "Desktop Projects OpenCode",
+      updatedAt: 100,
+    },
+  ],
+};
+
+const SAMPLE_PROJECT_THREAD_STATE = {
+  agentId: "opencode",
+  agentLabel: "OpenCode",
+  backendSessionId: "ses_1",
+  changedFiles: ["src/desktop.tsx"],
+  chat: {
+    agentName: "OpenCode",
+    approvalMode: "never" as const,
+    connected: true,
+    isStreaming: false,
+    lastError: null,
+    messages: [
+      {
+        content: "Plan the Projects chat surface",
+        id: "project-user-1",
+        role: "user" as const,
+        toolName: null,
+      },
+      {
+        content: "Implemented the local agent view.",
+        id: "project-assistant-1",
+        role: "assistant" as const,
+        toolName: null,
+      },
+    ],
+    modelName: "OpenAI / GPT-5",
+    pendingApproval: null,
+    pendingQuestion: null,
+    securityMode: "default" as const,
+    securityModeRemainingTTL: null,
+    sessionId: "thread-1",
+    sessionStatus: "resumed" as const,
+    streamingText: "",
+    streamingPhase: null,
+  },
+  environmentId: "env-1",
+  environmentLabel: "This Device / main",
+  environmentLocator: "/tmp/desktop-shell",
+  availableBranches: [
+    {
+      description: undefined,
+      environmentId: "env-1",
+      label: "This Device / main",
+      locator: "/tmp/desktop-shell",
+      selected: true,
+      value: "main",
+    },
+  ],
+  availableModels: [
+    {
+      label: "Default",
+      modelId: null,
+      modelLabel: "Default",
+      providerLabel: null,
+      selected: false,
+    },
+    {
+      label: "OpenAI / GPT-5",
+      modelId: "openai/gpt-5",
+      modelLabel: "GPT-5",
+      providerLabel: "OpenAI",
+      selected: true,
+    },
+  ],
+  modelId: "openai/gpt-5",
+  modelLabel: "GPT-5",
+  projectId: "project-1",
+  projectName: "desktop-shell",
+  status: "dirty" as const,
+  statusLabel: "Dirty",
+  threadId: "thread-1",
+  threadType: "local_project" as const,
+  threadTypeLabel: "Local Project",
+  title: "Desktop Projects OpenCode",
+};
+
 describe("desktop aria renderer", () => {
   test("renders the aria sidebar in the required order", () => {
     const html = renderToStaticMarkup(
@@ -103,6 +201,38 @@ describe("desktop aria renderer", () => {
     expect(html).not.toContain("Archived chat");
     expect(html).toContain("Pin Draft release notes");
     expect(html).toContain("Archive Draft release notes");
+  });
+
+  test("renders project thread row pin and archive actions", () => {
+    const html = renderToStaticMarkup(
+      React.createElement(ProjectSidebar, {
+        collapsedProjectIds: [],
+        onArchiveThread: () => {},
+        onCreateThread: () => {},
+        onOpenSettings: () => {},
+        onSelectProject: () => {},
+        onSelectThread: () => {},
+        onTogglePinnedThread: () => {},
+        onToggleProject: () => {},
+        projects: [
+          {
+            ...SAMPLE_PROJECT,
+            threads: [
+              {
+                ...SAMPLE_PROJECT.threads[0],
+                pinned: true,
+              },
+            ],
+          },
+        ],
+        selectedProjectId: "project-1",
+        selectedThreadId: "thread-1",
+        settingsActive: false,
+      }),
+    );
+
+    expect(html).toContain("Unpin Desktop Projects OpenCode");
+    expect(html).toContain("Archive Desktop Projects OpenCode");
   });
 
   test("renders the empty chat state as a centered composer with send button", () => {
@@ -216,6 +346,30 @@ describe("desktop aria renderer", () => {
     expect(html).toContain("archived session");
     expect(html).not.toContain("New chat");
     expect(html).not.toContain("aria-chat-composer-shell");
+  });
+
+  test("renders project threads with the reused chat interface and thread metadata", () => {
+    const html = renderToStaticMarkup(
+      React.createElement(ThreadView, {
+        onImportProject: () => {},
+        onSetModel: () => {},
+        onSendMessage: () => {},
+        onSwitchEnvironment: () => {},
+        selectedProject: SAMPLE_PROJECT,
+        selectedThreadState: SAMPLE_PROJECT_THREAD_STATE,
+      }),
+    );
+
+    expect(html).not.toContain("project-thread-header");
+    expect(html).toContain("project-thread-composer-trigger");
+    expect(html).toContain("Branch: main");
+    expect(html).toContain("main");
+    expect(html).not.toContain("This Device / main");
+    expect(html).not.toContain("Select coding agent:");
+    expect(html).toContain("Model: GPT-5");
+    expect(html).toContain("aria-chat-view");
+    expect(html).toContain("aria-message-user-bubble");
+    expect(html).toContain("Implemented the local agent view.");
   });
 
   test("renders pending ask-user prompts above the composer with composer-aligned chrome", () => {

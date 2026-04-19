@@ -103,7 +103,7 @@ function createFakeController(options: {
 }
 
 describe("DesktopAriaService", () => {
-  test("defaults to the most recent chat session in the sidebar inventory", async () => {
+  test("prefers the connected desktop session over older archived sessions", async () => {
     const live: AriaChatSessionSummary[] = [
       {
         archived: false,
@@ -144,9 +144,9 @@ describe("DesktopAriaService", () => {
 
     const state = await service.getAriaShellState();
 
-    expect(state.selectedAriaSessionId).toBe("chat-newer");
+    expect(state.selectedAriaSessionId).toBe("chat-older");
     expect(state.selectedAriaScreen).toBeNull();
-    expect(state.chat.sessionId).toBe("chat-newer");
+    expect(state.chat.sessionId).toBe("chat-older");
   });
 
   test("creates a new chat session and selects it", async () => {

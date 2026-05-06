@@ -268,6 +268,12 @@ Shows:
 - row-level controls for operator-local preferences, runtime defaults, model behavior, tools, automations, connectors, and product identity
 - sheet-launched step wizards for adding providers, adding models, and configuring connector credentials or policy
 
+The add-model wizard must follow the same provider-backed model selection
+contract as the TUI. It selects a configured provider, asks the node-side
+settings service to list provider model IDs using the shared gateway model
+catalog, falls back to manual entry when listing is unavailable, and fills model
+parameters such as max output tokens from catalog metadata.
+
 When `Settings` is active, it replaces the center work area and hides the main
 topbar, right inspector, and bottom utility bar.
 

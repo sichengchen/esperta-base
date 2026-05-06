@@ -6,6 +6,7 @@ export const ariaDesktopChannels = {
   getProjectShellState: "aria-desktop:get-project-shell-state",
   getAriaShellState: "aria-desktop:get-aria-shell-state",
   getSettingsState: "aria-desktop:get-settings-state",
+  listSettingsProviderModels: "aria-desktop:list-settings-provider-models",
   ariaShellStateChanged: "aria-desktop:aria-shell-state-changed",
   projectShellStateChanged: "aria-desktop:project-shell-state-changed",
   settingsStateChanged: "aria-desktop:settings-state-changed",
@@ -106,6 +107,19 @@ export interface AriaDesktopSettingsModelOption {
   type: "chat" | "embedding";
   selected: boolean;
   tiers: AriaDesktopSettingsModelTier[];
+}
+
+export interface AriaDesktopSettingsProviderModelOption {
+  configured: boolean;
+  id: string;
+  maxTokens?: number | null;
+}
+
+export interface AriaDesktopSettingsProviderModelsResult {
+  error: string | null;
+  models: AriaDesktopSettingsProviderModelOption[];
+  providerId: string;
+  source: "preset" | "provider";
 }
 
 export interface AriaDesktopSettingsConnectorSecret {
@@ -461,6 +475,9 @@ export interface AriaDesktopApi {
   getAriaShellState: () => Promise<AriaDesktopAriaShellState>;
   getProjectShellState: () => Promise<AriaDesktopProjectShellState>;
   getSettingsState: () => Promise<AriaDesktopSettingsState>;
+  listSettingsProviderModels: (
+    providerId: string,
+  ) => Promise<AriaDesktopSettingsProviderModelsResult>;
   importLocalProjectFromDialog: () => Promise<AriaDesktopProjectShellState>;
   onAriaShellStateChanged: (listener: (state: AriaDesktopAriaShellState) => void) => () => void;
   onProjectShellStateChanged: (

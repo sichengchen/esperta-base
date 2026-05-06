@@ -25,6 +25,8 @@ const ariaDesktopApi: AriaDesktopApi = {
   getAriaShellState: () => ipcRenderer.invoke(ariaDesktopChannels.getAriaShellState),
   getProjectShellState: () => ipcRenderer.invoke(ariaDesktopChannels.getProjectShellState),
   getSettingsState: () => ipcRenderer.invoke(ariaDesktopChannels.getSettingsState),
+  listSettingsProviderModels: (providerId) =>
+    ipcRenderer.invoke(ariaDesktopChannels.listSettingsProviderModels, providerId),
   ping: () => ipcRenderer.invoke(ariaDesktopChannels.ping),
   getRuntimeInfo: () => ipcRenderer.invoke(ariaDesktopChannels.getRuntimeInfo),
   importLocalProjectFromDialog: () =>

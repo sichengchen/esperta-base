@@ -126,4 +126,55 @@ describe("DesktopSettingsService", () => {
     expect(secrets?.apiKeys?.SLACK_BOT_TOKEN).toBe("xoxb-test");
     expect(existsSync(join(runtimeHome, "desktop-settings.json"))).toBe(true);
   });
+
+  test("lists provider models with the same catalog metadata used by the TUI", async () => {
+    const { DesktopSettingsService } =
+      await import("../apps/aria-desktop/src/main/desktop-settings-service.js");
+    const service = new DesktopSettingsService(
+      join(runtimeHome, "desktop-settings.json"),
+      {
+        model: { switch: { mutate: vi.fn(async () => undefined) } },
+      } as any,
+      {
+        getLoginItemSettings: () => ({ openAtLogin: false }),
+        getPath: () => runtimeHome,
+        setLoginItemSettings: vi.fn(),
+      },
+    );
+
+    await service.updateSettings({
+      provider: {
+        add: {
+          apiKeyEnvVar: "MINIMAX_API_KEY",
+          baseUrl: "https://api.minimaxi.com/anthropic",
+          id: "minimax-anthropic",
+          type: "anthropic",
+        },
+      },
+    });
+
+    let result = await service.listProviderModels("minimax-anthropic");
+    expect(result.source).toBe("preset");
+    expect(result.error).toBeNull();
+    expect(result.models.find((model) => model.id === "MiniMax-M2.7")).toMatchObject({
+      configured: false,
+      maxTokens: 196_608,
+    });
+
+    await service.updateSettings({
+      model: {
+        add: {
+          maxTokens: 196_608,
+          model: "MiniMax-M2.7",
+          name: "minimax-m27",
+          provider: "minimax-anthropic",
+          temperature: 0.7,
+          type: "chat",
+        },
+      },
+    });
+
+    result = await service.listProviderModels("minimax-anthropic");
+    expect(result.models.find((model) => model.id === "MiniMax-M2.7")?.configured).toBe(true);
+  });
 });

@@ -25,6 +25,7 @@ import {
 } from "lucide-react";
 import {
   startTransition,
+  useCallback,
   useEffect,
   useRef,
   useState,
@@ -37,6 +38,7 @@ import type {
   AriaDesktopSettingsApprovalMode,
   AriaDesktopSettingsConnectorType,
   AriaDesktopSettingsPatch,
+  AriaDesktopSettingsProviderModelsResult,
   AriaDesktopSettingsProviderType,
   AriaDesktopSettingsState,
   AriaDesktopProjectGroup,
@@ -721,6 +723,22 @@ const SETTINGS_SECTIONS: Array<{
 ];
 
 type SettingsUpdateHandler = (patch: AriaDesktopSettingsPatch) => Promise<void> | void;
+type SettingsProviderModelsHandler = (
+  providerId: string,
+) => Promise<AriaDesktopSettingsProviderModelsResult>;
+
+const EMPTY_SETTINGS_PROVIDER_MODELS: AriaDesktopSettingsProviderModelsResult = {
+  error: "Model list unavailable.",
+  models: [],
+  providerId: "",
+  source: "provider",
+};
+
+async function unavailableSettingsProviderModels(
+  providerId: string,
+): Promise<AriaDesktopSettingsProviderModelsResult> {
+  return { ...EMPTY_SETTINGS_PROVIDER_MODELS, providerId };
+}
 
 function SettingsToggle({
   checked,
@@ -1305,28 +1323,141 @@ function ProviderSetupWizard({
 }
 
 function ModelSetupWizard({
+  onFetchProviderModels = unavailableSettingsProviderModels,
   onUpdate,
   settingsState,
 }: {
+  onFetchProviderModels?: SettingsProviderModelsHandler;
   onUpdate: SettingsUpdateHandler;
   settingsState: AriaDesktopSettingsState;
 }) {
   const firstProviderId = settingsState.runtime.providers[0]?.id ?? "";
   const [step, setStep] = useState(0);
   const [name, setName] = useState("");
+  const [nameTouched, setNameTouched] = useState(false);
   const [provider, setProvider] = useState(firstProviderId);
   const [model, setModel] = useState("");
   const [type, setType] = useState<"chat" | "embedding">("chat");
   const [temperature, setTemperature] = useState("0.7");
   const [maxTokens, setMaxTokens] = useState("8192");
+  const [providerModels, setProviderModels] = useState<
+    AriaDesktopSettingsProviderModelsResult["models"]
+  >([]);
+  const [providerModelError, setProviderModelError] = useState<string | null>(null);
+  const [providerModelStatus, setProviderModelStatus] = useState<"idle" | "loading" | "ready">(
+    "idle",
+  );
+  const fetchRequestRef = useRef(0);
   const nameExists = settingsState.runtime.models.some((entry) => entry.name === name.trim());
-  const steps = ["Type", "Model", "Tuning", "Review"];
+  const selectedProvider =
+    settingsState.runtime.providers.find((entry) => entry.id === provider) ?? null;
+  const selectedProviderModel = providerModels.find((entry) => entry.id === model) ?? null;
+  const modelAlreadyConfigured = providerModels.some(
+    (entry) => entry.id === model && entry.configured,
+  );
+  const steps = ["Type", "Provider", "Model", "Review"];
   const canContinue =
     step === 0
       ? Boolean(type)
       : step === 1
-        ? Boolean(name.trim() && provider && model.trim() && !nameExists)
-        : true;
+        ? Boolean(provider)
+        : step === 2
+          ? Boolean(name.trim() && provider && model.trim() && !nameExists)
+          : true;
+
+  const inferModelName = useCallback(
+    (modelId: string) => {
+      const existingNames = new Set(settingsState.runtime.models.map((entry) => entry.name));
+      const lastSegment =
+        modelId
+          .replace(/^models\//, "")
+          .split("/")
+          .pop() ?? modelId;
+      const base = lastSegment
+        .trim()
+        .toLowerCase()
+        .replace(/[^a-z0-9]+/g, "-")
+        .replace(/^-+|-+$/g, "");
+      const stem = base || "model";
+      let candidate = stem;
+      let suffix = 2;
+      while (existingNames.has(candidate)) {
+        candidate = `${stem}-${suffix}`;
+        suffix += 1;
+      }
+      return candidate;
+    },
+    [settingsState.runtime.models],
+  );
+
+  const applyModelSelection = useCallback(
+    (
+      modelId: string,
+      options: AriaDesktopSettingsProviderModelsResult["models"] = providerModels,
+    ) => {
+      setModel(modelId);
+      if (!nameTouched) {
+        setName(inferModelName(modelId));
+      }
+      if (type === "chat") {
+        const option = options.find((entry) => entry.id === modelId);
+        setTemperature("0.7");
+        setMaxTokens(String(option?.maxTokens ?? 8192));
+      }
+    },
+    [inferModelName, nameTouched, providerModels, type],
+  );
+
+  const loadProviderModels = useCallback(async () => {
+    if (!provider) {
+      setProviderModels([]);
+      setProviderModelError(null);
+      setProviderModelStatus("idle");
+      return;
+    }
+
+    const requestId = fetchRequestRef.current + 1;
+    fetchRequestRef.current = requestId;
+    setProviderModelStatus("loading");
+    setProviderModelError(null);
+    try {
+      const result = await onFetchProviderModels(provider);
+      if (fetchRequestRef.current !== requestId) {
+        return;
+      }
+      setProviderModels(result.models);
+      setProviderModelError(result.error);
+      setProviderModelStatus("ready");
+      if (result.models.length > 0) {
+        const preferredModel =
+          result.models.find((entry) => !entry.configured)?.id ?? result.models[0]!.id;
+        applyModelSelection(model || preferredModel, result.models);
+      }
+    } catch (error) {
+      if (fetchRequestRef.current !== requestId) {
+        return;
+      }
+      setProviderModels([]);
+      setProviderModelError(error instanceof Error ? error.message : String(error));
+      setProviderModelStatus("ready");
+    }
+  }, [applyModelSelection, model, onFetchProviderModels, provider]);
+
+  const modelOptions = providerModels.map((entry) => ({
+    label: `${entry.id}${entry.configured ? " (configured)" : ""}`,
+    value: entry.id,
+  }));
+  const parameterSummary = type === "chat" ? `temp ${temperature}, max ${maxTokens}` : "Default";
+  const statusLabel =
+    providerModelStatus === "loading"
+      ? "Loading"
+      : nameExists
+        ? "Name Exists"
+        : modelAlreadyConfigured
+          ? "Configured"
+          : providerModelError
+            ? "Manual Entry"
+            : "Available";
 
   useEffect(() => {
     if (!provider && firstProviderId) {
@@ -1334,14 +1465,24 @@ function ModelSetupWizard({
     }
   }, [firstProviderId, provider]);
 
+  useEffect(() => {
+    if (step === 2) {
+      void loadProviderModels();
+    }
+  }, [provider, step]);
+
   function resetModelWizard(): void {
     setStep(0);
     setName("");
+    setNameTouched(false);
     setProvider(firstProviderId);
     setModel("");
     setType("chat");
     setTemperature("0.7");
     setMaxTokens("8192");
+    setProviderModels([]);
+    setProviderModelError(null);
+    setProviderModelStatus("idle");
   }
 
   async function addModel(): Promise<void> {
@@ -1349,8 +1490,8 @@ function ModelSetupWizard({
       model: {
         add: {
           maxTokens: type === "chat" ? Number(maxTokens) : null,
-          model,
-          name,
+          model: model.trim(),
+          name: name.trim(),
           provider,
           temperature: type === "chat" ? Number(temperature) : null,
           type,
@@ -1385,44 +1526,79 @@ function ModelSetupWizard({
       ) : null}
       {step === 1 ? (
         <>
-          <SettingsRow label="Name">
-            <SettingsTextInput label="Model Name" onChange={setName} value={name} />
-          </SettingsRow>
           <SettingsRow label="Provider">
             <SettingsSelect
               label="Provider"
-              onChange={setProvider}
+              onChange={(providerId) => {
+                setProvider(providerId);
+                setModel("");
+                setProviderModels([]);
+                setProviderModelError(null);
+                setProviderModelStatus("idle");
+              }}
               options={settingsState.runtime.providers.map((entry) => ({
-                label: entry.id,
+                label: entry.label,
                 value: entry.id,
               }))}
               value={provider}
             />
           </SettingsRow>
-          <SettingsRow label="Model ID">
-            <SettingsTextInput label="Model ID" onChange={setModel} value={model} />
-          </SettingsRow>
-          <SettingsRow label="Status" value={nameExists ? "Already Exists" : "Available"} />
+          <SettingsRow label="Provider Type" value={selectedProvider?.type ?? "Missing"} />
         </>
       ) : null}
       {step === 2 ? (
         <>
-          {type === "chat" ? (
-            <>
-              <SettingsRow label="Temperature">
-                <SettingsTextInput
-                  label="Temperature"
-                  onChange={setTemperature}
-                  value={temperature}
-                />
-              </SettingsRow>
-              <SettingsRow label="Max Tokens">
-                <SettingsTextInput label="Max Tokens" onChange={setMaxTokens} value={maxTokens} />
-              </SettingsRow>
-            </>
+          {modelOptions.length > 0 ? (
+            <SettingsRow label="Provider Model">
+              <SettingsSelect
+                label="Provider Model"
+                onChange={(modelId) => applyModelSelection(modelId)}
+                options={modelOptions}
+                value={model || modelOptions[0]?.value || ""}
+              />
+            </SettingsRow>
           ) : (
-            <SettingsRow label="Tuning" value="Default" />
+            <SettingsRow label="Provider Model">
+              <SettingsTextInput
+                label="Provider Model"
+                onChange={(modelId) => {
+                  setModel(modelId);
+                  if (!nameTouched && modelId.trim()) {
+                    setName(inferModelName(modelId));
+                  }
+                  if (type === "chat") {
+                    setTemperature("0.7");
+                    setMaxTokens("8192");
+                  }
+                }}
+                placeholder={providerModelStatus === "loading" ? "Loading" : "Model ID"}
+                value={model}
+              />
+            </SettingsRow>
           )}
+          <SettingsRow label="Name">
+            <SettingsTextInput
+              label="Model Name"
+              onChange={(nextName) => {
+                setNameTouched(true);
+                setName(nextName);
+              }}
+              value={name}
+            />
+          </SettingsRow>
+          <SettingsRow label="Parameters" value={parameterSummary} />
+          <SettingsRow label="Status">
+            <SettingsInlineControls>
+              <span>{statusLabel}</span>
+              {selectedProviderModel?.maxTokens ? (
+                <span>{selectedProviderModel.maxTokens} max</span>
+              ) : null}
+              <SettingsActionButton disabled={!provider} onClick={loadProviderModels}>
+                Refresh
+              </SettingsActionButton>
+            </SettingsInlineControls>
+          </SettingsRow>
+          {providerModelError ? <SettingsRow label="Fetch" value={providerModelError} /> : null}
         </>
       ) : null}
       {step === 3 ? (
@@ -1433,12 +1609,8 @@ function ModelSetupWizard({
             { label: "Provider", value: provider || "Missing" },
             { label: "Model ID", value: model.trim() || "Missing" },
             {
-              label: "Temperature",
-              value: type === "chat" ? temperature : "Default",
-            },
-            {
-              label: "Max Tokens",
-              value: type === "chat" ? maxTokens : "Default",
+              label: "Parameters",
+              value: parameterSummary,
             },
           ]}
         />
@@ -1648,10 +1820,12 @@ function ConnectorSetupWizard({
 
 export function SettingsView({
   initialSectionId = "general",
+  onFetchProviderModels,
   onUpdate,
   settingsState,
 }: {
   initialSectionId?: SettingsSectionId;
+  onFetchProviderModels?: SettingsProviderModelsHandler;
   onUpdate: SettingsUpdateHandler;
   settingsState: AriaDesktopSettingsState;
 }) {
@@ -2111,6 +2285,7 @@ export function SettingsView({
       {settingsSheet === "model" ? (
         <SettingsSheet title="Add Model" onClose={() => setSettingsSheet(null)}>
           <ModelSetupWizard
+            onFetchProviderModels={onFetchProviderModels}
             onUpdate={async (patch) => {
               await onUpdate(patch);
               setSettingsSheet(null);
@@ -2940,6 +3115,21 @@ export function DesktopWorkbenchApp() {
       });
   }
 
+  function listSettingsProviderModels(
+    providerId: string,
+  ): Promise<AriaDesktopSettingsProviderModelsResult> {
+    if (!window.ariaDesktop) {
+      return unavailableSettingsProviderModels(providerId);
+    }
+
+    return window.ariaDesktop.listSettingsProviderModels(providerId).catch((error) => ({
+      error: error instanceof Error ? error.message : String(error),
+      models: [],
+      providerId,
+      source: "provider" as const,
+    }));
+  }
+
   function selectSpace(space: DesktopSpace): void {
     startTransition(() => {
       setActiveSpace(space);
@@ -3152,7 +3342,11 @@ export function DesktopWorkbenchApp() {
     <DesktopBaseLayout
       center={
         settingsOpen ? (
-          <SettingsView onUpdate={updateSettings} settingsState={settingsState} />
+          <SettingsView
+            onFetchProviderModels={listSettingsProviderModels}
+            onUpdate={updateSettings}
+            settingsState={settingsState}
+          />
         ) : activeSpace === "projects" ? (
           <ThreadView
             onCreateBranch={createProjectThreadBranch}

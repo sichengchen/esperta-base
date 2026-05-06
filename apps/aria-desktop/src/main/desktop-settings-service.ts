@@ -1,11 +1,21 @@
 import { existsSync } from "node:fs";
 import { mkdir, readFile, writeFile } from "node:fs/promises";
 import { dirname, join } from "node:path";
-import { app } from "electron";
-import { createLocalAccessClient } from "@aria/access-client/local";
+import electron from "electron";
+import {
+  fetchModelList,
+  getPresetModelList,
+  lookupModelMeta,
+  type ProviderModelCatalogType,
+} from "../../../../packages/gateway/src/router/model-catalog.js";
 import type { ModelConfig, ProviderConfig } from "@aria/gateway/router/types";
-import { CLI_NAME, PRODUCT_NAME, RUNTIME_NAME } from "@aria/server/brand";
-import { ConfigManager, type AriaConfigFile, type SecretsFile } from "@aria/server/config";
+import { createLocalAccessClient } from "../../../../packages/access-client/src/local.js";
+import { CLI_NAME, PRODUCT_NAME, RUNTIME_NAME } from "../../../../packages/server/src/brand.js";
+import {
+  ConfigManager,
+  type AriaConfigFile,
+  type SecretsFile,
+} from "../../../../packages/server/src/config.js";
 import type {
   AriaDesktopSettingsApprovalMode,
   AriaDesktopSettingsConnectorType,
@@ -13,6 +23,7 @@ import type {
   AriaDesktopSettingsModelTier,
   AriaDesktopSettingsPatch,
   AriaDesktopSettingsProviderPreset,
+  AriaDesktopSettingsProviderModelsResult,
   AriaDesktopSettingsProviderType,
   AriaDesktopSettingsState,
   AriaDesktopSettingsTheme,
@@ -172,6 +183,7 @@ type DesktopSettingsApp = {
   getPath(name: "userData"): string;
   setLoginItemSettings(settings: { openAtLogin: boolean }): void;
 };
+const defaultElectronApp = (electron as { app: DesktopSettingsApp }).app;
 
 const DEFAULT_DESKTOP_SETTINGS: DesktopSettingsFile = {
   compactMode: true,
@@ -305,6 +317,20 @@ function normalizeProviderType(type: string): AriaDesktopSettingsProviderType {
   return "openai-compat";
 }
 
+function normalizeProviderCatalogType(type: string): ProviderModelCatalogType {
+  if (
+    type === "anthropic" ||
+    type === "openai" ||
+    type === "google" ||
+    type === "openrouter" ||
+    type === "nvidia" ||
+    type === "openai-compat"
+  ) {
+    return type;
+  }
+  return "openai-compat";
+}
+
 function providerLabel(provider: ProviderConfig): string {
   return PROVIDER_PRESETS.find((preset) => preset.id === provider.id)?.label ?? provider.id;
 }
@@ -347,6 +373,29 @@ function buildModelStatus(config: AriaConfigFile): AriaDesktopSettingsState["run
   }));
 }
 
+function buildProviderModelListResult(
+  config: AriaConfigFile,
+  provider: ProviderConfig,
+  modelIds: string[],
+  source: AriaDesktopSettingsProviderModelsResult["source"],
+  error: string | null = null,
+): AriaDesktopSettingsProviderModelsResult {
+  const configuredModelIds = new Set(
+    config.models.filter((model) => model.provider === provider.id).map((model) => model.model),
+  );
+
+  return {
+    error,
+    models: modelIds.map((modelId) => ({
+      configured: configuredModelIds.has(modelId),
+      id: modelId,
+      maxTokens: lookupModelMeta(provider.type, modelId, provider.id)?.maxTokens ?? null,
+    })),
+    providerId: provider.id,
+    source,
+  };
+}
+
 export class DesktopSettingsService {
   private readonly client: DesktopSettingsClient;
   private readonly config = new ConfigManager();
@@ -359,7 +408,7 @@ export class DesktopSettingsService {
   constructor(
     settingsPath?: string,
     client = createLocalAccessClient(),
-    electronApp: DesktopSettingsApp = app,
+    electronApp: DesktopSettingsApp = defaultElectronApp,
   ) {
     this.client = client;
     this.electronApp = electronApp;
@@ -474,6 +523,57 @@ export class DesktopSettingsService {
 
   async getSettingsState(): Promise<AriaDesktopSettingsState> {
     return this.snapshot();
+  }
+
+  async listProviderModels(providerId: string): Promise<AriaDesktopSettingsProviderModelsResult> {
+    await this.ensureLoaded();
+
+    const config = this.config.getConfigFile();
+    const provider = config.providers.find((entry) => entry.id === providerId);
+    if (!provider) {
+      throw new Error(`Provider "${providerId}" does not exist.`);
+    }
+
+    const providerType = normalizeProviderCatalogType(provider.type);
+    const presetModels = getPresetModelList(providerType, provider.id);
+    if (presetModels) {
+      return buildProviderModelListResult(config, provider, presetModels, "preset");
+    }
+
+    const secrets = await this.config.loadSecrets();
+    const apiKey =
+      process.env[provider.apiKeyEnvVar] ??
+      secrets?.apiKeys?.[provider.apiKeyEnvVar] ??
+      config.runtime.env?.[provider.apiKeyEnvVar] ??
+      "";
+
+    if (!apiKey) {
+      return buildProviderModelListResult(
+        config,
+        provider,
+        [],
+        "provider",
+        `No API key found for ${provider.apiKeyEnvVar}.`,
+      );
+    }
+
+    try {
+      const models = await fetchModelList(
+        providerType,
+        apiKey,
+        provider.baseUrl ?? "",
+        provider.id,
+      );
+      return buildProviderModelListResult(config, provider, models, "provider");
+    } catch (error) {
+      return buildProviderModelListResult(
+        config,
+        provider,
+        [],
+        "provider",
+        error instanceof Error ? error.message : String(error),
+      );
+    }
   }
 
   async updateSettings(patch: AriaDesktopSettingsPatch): Promise<AriaDesktopSettingsState> {

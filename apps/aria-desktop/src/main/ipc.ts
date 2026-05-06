@@ -51,6 +51,9 @@ export function registerDesktopIpc(
   );
   ipcMain.handle(ariaDesktopChannels.getAriaShellState, () => ariaService.getAriaShellState());
   ipcMain.handle(ariaDesktopChannels.getSettingsState, () => settingsService.getSettingsState());
+  ipcMain.handle(ariaDesktopChannels.listSettingsProviderModels, (_event, providerId: string) =>
+    settingsService.listProviderModels(providerId),
+  );
   ipcMain.handle(ariaDesktopChannels.importLocalProjectFromDialog, () =>
     importLocalProjectThroughDesktopService(projectsService, BrowserWindow),
   );

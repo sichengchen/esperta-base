@@ -259,6 +259,16 @@ Scope: Desktop
 
 In desktop `Chat`, pending `ask_user` prompts must render immediately above the composer instead of inside the transcript stream.
 
+### 029. Desktop Model Setup Uses The Runtime Model Catalog
+
+Scope: Desktop
+
+The desktop add-model sheet must select provider models from the same runtime catalog and provider fetch path used by the TUI.
+
+Do not require operators to manually enter provider model IDs or token limits when a provider can list models or has preset models.
+
+When a model is selected, Desktop must infer the local model name and model parameters from catalog metadata, while preserving manual entry as the fallback when provider listing is unavailable.
+
 ### 034. Desktop Projects And Chat Tabs Distinguish Workspace Attachment
 
 Scope: Desktop

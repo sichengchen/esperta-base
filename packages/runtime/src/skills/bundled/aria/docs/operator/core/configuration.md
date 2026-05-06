@@ -68,6 +68,11 @@ Resolution order remains:
 
 The Anthropic-compatible MiniMax presets surface the official MiniMax text models directly in CLI setup flows instead of requiring manual model ID entry.
 
+Desktop settings uses the same provider model catalog as the TUI when adding
+models. The desktop main process resolves provider secrets, lists available
+models or preset model IDs, and fills known model parameters before writing the
+selected model into `config.json`.
+
 Runtime and jobs execute through the Aria-native backend. Project work is routed
 to `Aria Agent` on the selected Aria node rather than to external coding-agent
 adapters.

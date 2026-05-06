@@ -14,6 +14,7 @@
     "./server": "./src/server.ts",
     "./trpc": "./src/trpc.ts",
     "./router": "./src/router/index.ts",
+    "./router/model-catalog": "./src/router/model-catalog.ts",
     "./router/router": "./src/router/router.ts",
     "./router/task-types": "./src/router/task-types.ts",
     "./router/types": "./src/router/types.ts"

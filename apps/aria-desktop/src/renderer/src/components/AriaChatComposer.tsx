@@ -1,6 +1,8 @@
-import { ArrowUp, FileText, Plus, Wrench } from "lucide-react";
 import { useMemo, useRef, useState, type ReactNode } from "react";
 import type { AriaDesktopProjectPromptSuggestions } from "../../../shared/api.js";
+import { ArrowUp, FileText, Plus, Wrench } from "./DesktopIcon.js";
+import { Button } from "./ui/button.js";
+import { Textarea } from "./ui/textarea.js";
 
 type AriaChatComposerProps = {
   footerEnd?: ReactNode;
@@ -195,10 +197,11 @@ export function AriaChatComposer({
       {visiblePromptSuggestions.length > 0 ? (
         <div className="aria-chat-composer-suggestions" aria-label="Prompt suggestions">
           {visiblePromptSuggestions.map((suggestion, index) => (
-            <button
+            <Button
               key={suggestion.id}
               type="button"
               className={`aria-chat-composer-suggestion${index === highlightedSuggestionIndex ? " is-active" : ""}`}
+              variant="ghost"
               onMouseDown={(event) => {
                 event.preventDefault();
                 commitPromptSuggestion(suggestion);
@@ -206,7 +209,7 @@ export function AriaChatComposer({
             >
               <span className="aria-chat-composer-suggestion-icon">{suggestion.icon}</span>
               <span className="aria-chat-composer-suggestion-label">{suggestion.label}</span>
-            </button>
+            </Button>
           ))}
         </div>
       ) : null}
@@ -217,7 +220,7 @@ export function AriaChatComposer({
           void submit();
         }}
       >
-        <textarea
+        <Textarea
           ref={textareaRef}
           className="aria-chat-composer-input"
           placeholder={placeholder}
@@ -270,17 +273,24 @@ export function AriaChatComposer({
         />
         <div className="aria-chat-composer-footer">
           <div className="aria-chat-composer-tools">
-            <button
+            <Button
               type="button"
               className="aria-chat-composer-utility"
+              size="icon-sm"
+              variant="ghost"
               aria-label="Composer tools"
             >
               <Plus aria-hidden="true" />
-            </button>
+            </Button>
           </div>
-          <button type="submit" className="aria-chat-composer-submit" aria-label="Send message">
+          <Button
+            type="submit"
+            className="aria-chat-composer-submit"
+            size="icon"
+            aria-label="Send message"
+          >
             <ArrowUp aria-hidden="true" />
-          </button>
+          </Button>
         </div>
       </form>
       {footerStart || footerEnd ? (

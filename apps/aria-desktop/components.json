@@ -3,7 +3,7 @@
   "style": "base-nova",
   "rsc": false,
   "tsx": true,
-  "iconLibrary": "lucide",
+  "iconLibrary": "hugeicons",
   "tailwind": {
     "config": "",
     "css": "src/renderer/src/styles.css",

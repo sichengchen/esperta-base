@@ -4,7 +4,7 @@ import {
   PanelRightClose,
   PanelRightOpen,
   SquareTerminal,
-} from "lucide-react";
+} from "./DesktopIcon.js";
 import { useEffect, useRef, useState } from "react";
 import type { ReactNode } from "react";
 import { LayoutToggleIconButton } from "./LayoutToggleIconButton.js";

@@ -5,6 +5,12 @@
       "source": "vercel/chat",
       "sourceType": "github",
       "computedHash": "dd43b1cf55f7a481732655011e121140143db3c1280b7ed502fa6be8180fb057"
+    },
+    "shadcn": {
+      "source": "shadcn/ui",
+      "sourceType": "github",
+      "skillPath": "skills/shadcn/SKILL.md",
+      "computedHash": "80a6226e78f6d1fe464214ae0ef449d49d8ffaa3e7704f011e9b418c678ad4d1"
     }
   }
 }

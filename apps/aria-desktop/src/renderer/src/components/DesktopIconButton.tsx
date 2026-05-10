@@ -1,5 +1,8 @@
 import type { ReactNode } from "react";
 
+import { Button } from "./ui/button.js";
+import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from "./ui/tooltip.js";
+
 export type DesktopIconButtonProps = {
   active?: boolean;
   className?: string;
@@ -21,9 +24,11 @@ export function DesktopIconButton({
   label,
   onClick,
 }: DesktopIconButtonProps) {
-  return (
-    <button
+  const button = (
+    <Button
       type="button"
+      variant="ghost"
+      size="icon-xs"
       className={`desktop-icon-button${active ? " is-active" : ""}${disabled ? " is-disabled" : ""}${className ? ` ${className}` : ""}`}
       aria-controls={controlsId}
       aria-label={label}
@@ -32,6 +37,15 @@ export function DesktopIconButton({
       onClick={onClick}
     >
       {icon}
-    </button>
+    </Button>
+  );
+
+  return (
+    <TooltipProvider>
+      <Tooltip>
+        <TooltipTrigger render={button} />
+        <TooltipContent>{label}</TooltipContent>
+      </Tooltip>
+    </TooltipProvider>
   );
 }

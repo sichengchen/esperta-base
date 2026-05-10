@@ -1,5 +1,7 @@
 import type { ReactNode } from "react";
 
+import { Button } from "./ui/button.js";
+
 export type DesktopSidebarButtonProps = {
   active?: boolean;
   className?: string;
@@ -18,8 +20,10 @@ export function DesktopSidebarButton({
   onClick,
 }: DesktopSidebarButtonProps) {
   return (
-    <button
+    <Button
       type="button"
+      variant="ghost"
+      size="default"
       className={`desktop-sidebar-button${active ? " is-active" : ""}${disabled ? " is-disabled" : ""}${className ? ` ${className}` : ""}`}
       disabled={disabled}
       onClick={onClick}
@@ -28,6 +32,6 @@ export function DesktopSidebarButton({
         {icon}
       </span>
       <span className="desktop-sidebar-button-label">{label}</span>
-    </button>
+    </Button>
   );
 }

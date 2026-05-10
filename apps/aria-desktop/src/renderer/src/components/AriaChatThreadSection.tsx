@@ -1,5 +1,5 @@
-import { Archive, MessageSquarePlus, Pin } from "lucide-react";
 import type { AriaDesktopSessionSummary } from "../../../shared/api.js";
+import { Archive, MessageSquarePlus, Pin } from "./DesktopIcon.js";
 import { DesktopIconButton } from "./DesktopIconButton.js";
 import { DesktopSidebarSectionHeader } from "./DesktopSidebarSectionHeader.js";
 import { DesktopThreadListItem } from "./DesktopThreadListItem.js";

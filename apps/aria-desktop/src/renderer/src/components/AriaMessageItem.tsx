@@ -1,6 +1,14 @@
-import { CircleAlert, FileText, Globe, MessageSquare, Search, Shield, Wrench } from "lucide-react";
 import type { AriaDesktopChatMessage } from "../../../shared/api.js";
 import { AriaMarkdown } from "./AriaMarkdown.js";
+import {
+  CircleAlert,
+  FileText,
+  Globe,
+  MessageSquare,
+  Search,
+  Shield,
+  Wrench,
+} from "./DesktopIcon.js";
 
 const TOOL_DISPLAY_NAMES: Record<string, string> = {
   ask_user: "Question",

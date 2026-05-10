@@ -1,6 +1,7 @@
 import { readFileSync } from "node:fs";
 import { resolve } from "node:path";
 import { fileURLToPath } from "node:url";
+import tailwindcss from "@tailwindcss/vite";
 import react from "@vitejs/plugin-react";
 import { defineConfig, externalizeDepsPlugin } from "electron-vite";
 
@@ -68,7 +69,7 @@ export default defineConfig({
   },
   renderer: {
     root: resolve(rootDir, "src/renderer"),
-    plugins: [react()],
+    plugins: [react(), tailwindcss()],
     server: {
       host: "127.0.0.1",
       port: 5173,
@@ -86,6 +87,10 @@ export default defineConfig({
     resolve: {
       alias: [
         ...workspaceAliases,
+        {
+          find: "src",
+          replacement: resolve(rootDir, "src"),
+        },
         {
           find: "@renderer",
           replacement: resolve(rootDir, "src/renderer/src"),

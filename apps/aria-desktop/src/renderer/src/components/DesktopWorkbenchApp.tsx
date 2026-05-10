@@ -3,7 +3,6 @@ import {
   ArrowUp,
   Bot,
   Brain,
-  Check,
   ChevronDown,
   ChevronRight,
   Clock3,
@@ -22,7 +21,7 @@ import {
   SlidersHorizontal,
   Sparkles,
   X,
-} from "lucide-react";
+} from "./DesktopIcon.js";
 import {
   startTransition,
   useCallback,
@@ -58,20 +57,91 @@ import { AriaChatComposer } from "./AriaChatComposer.js";
 import { formatToolDisplayName } from "./AriaMessageItem.js";
 import { AriaMessageStream } from "./AriaMessageStream.js";
 import { useTransientScrollbar } from "./useTransientScrollbar.js";
+import { Alert, AlertDescription } from "./ui/alert.js";
+import {
+  AlertDialog,
+  AlertDialogAction,
+  AlertDialogCancel,
+  AlertDialogContent,
+  AlertDialogDescription,
+  AlertDialogFooter,
+  AlertDialogHeader,
+  AlertDialogTitle,
+  AlertDialogTrigger,
+} from "./ui/alert-dialog.js";
+import { Badge } from "./ui/badge.js";
+import { Button } from "./ui/button.js";
+import { ButtonGroup } from "./ui/button-group.js";
+import {
+  Card,
+  CardAction,
+  CardContent,
+  CardDescription,
+  CardHeader,
+  CardTitle,
+} from "./ui/card.js";
 import { Dialog, DialogClose, DialogContent, DialogTitle } from "./ui/dialog.js";
 import {
   DropdownMenu,
   DropdownMenuContent,
+  DropdownMenuGroup,
   DropdownMenuItem,
+  DropdownMenuLabel,
   DropdownMenuRadioGroup,
   DropdownMenuRadioItem,
+  DropdownMenuSeparator,
   DropdownMenuTrigger,
 } from "./ui/dropdown-menu.js";
-import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "./ui/select.js";
-import { Sheet, SheetClose, SheetContent, SheetHeader, SheetTitle } from "./ui/sheet.js";
+import {
+  Empty,
+  EmptyContent,
+  EmptyDescription,
+  EmptyHeader,
+  EmptyMedia,
+  EmptyTitle,
+} from "./ui/empty.js";
+import {
+  Field,
+  FieldContent,
+  FieldDescription,
+  FieldGroup,
+  FieldLabel,
+  FieldSeparator,
+  FieldTitle,
+} from "./ui/field.js";
+import { Input } from "./ui/input.js";
+import {
+  InputGroup,
+  InputGroupAddon,
+  InputGroupButton,
+  InputGroupInput,
+  InputGroupText,
+} from "./ui/input-group.js";
+import { Item, ItemActions, ItemContent, ItemGroup, ItemTitle } from "./ui/item.js";
+import {
+  Select,
+  SelectContent,
+  SelectGroup,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from "./ui/select.js";
+import { Sheet, SheetContent, SheetFooter, SheetHeader, SheetTitle } from "./ui/sheet.js";
+import {
+  Sidebar,
+  SidebarContent,
+  SidebarGroup,
+  SidebarGroupContent,
+  SidebarGroupLabel,
+  SidebarHeader,
+  SidebarInset,
+  SidebarMenu,
+  SidebarMenuButton,
+  SidebarMenuItem,
+  SidebarProvider,
+} from "./ui/sidebar.js";
+import { Spinner } from "./ui/spinner.js";
 import { Switch } from "./ui/switch.js";
-import { Toggle } from "./ui/toggle.js";
-import { ToggleGroup } from "./ui/toggle-group.js";
 
 const EMPTY_SHELL_STATE: AriaDesktopProjectShellState = {
   archivedThreadIds: [],
@@ -295,7 +365,14 @@ function ComposerContextMenu({
     <div className={`project-thread-composer-menu is-${align}`}>
       <DropdownMenu modal={false}>
         <DropdownMenuTrigger
-          className="project-thread-composer-trigger"
+          render={
+            <Button
+              className="project-thread-composer-trigger"
+              size="sm"
+              type="button"
+              variant="ghost"
+            />
+          }
           aria-label={`${menuLabel}: ${activeLabel}`}
         >
           {icon}
@@ -305,46 +382,47 @@ function ComposerContextMenu({
         <DropdownMenuContent
           align={align}
           className="project-thread-composer-dropdown"
-          positionerClassName="project-thread-composer-positioner"
           sideOffset={8}
           aria-label={menuLabel}
         >
-          <div className="project-thread-composer-dropdown-title">{menuLabel}</div>
-          <DropdownMenuRadioGroup
-            className="project-thread-composer-dropdown-options desktop-scroll-region"
-            value={selectedOption?.id}
-            onValueChange={(value) => {
-              if (typeof value === "string" && value !== selectedOption?.id) {
-                onSelect(value);
-              }
-            }}
-          >
-            {options.map((option) => (
-              <DropdownMenuRadioItem
-                key={option.id}
-                closeOnClick
-                className={(state) =>
-                  `project-thread-composer-option${state.checked ? " is-selected" : ""}`
+          <DropdownMenuGroup>
+            <DropdownMenuLabel className="project-thread-composer-dropdown-title">
+              {menuLabel}
+            </DropdownMenuLabel>
+            <DropdownMenuRadioGroup
+              className="project-thread-composer-dropdown-options desktop-scroll-region"
+              value={selectedOption?.id}
+              onValueChange={(value) => {
+                if (typeof value === "string" && value !== selectedOption?.id) {
+                  onSelect(value);
                 }
-                label={option.label}
-                value={option.id}
-              >
-                <span className="project-thread-composer-option-copy">
-                  <span className="project-thread-composer-option-label">{option.label}</span>
-                  {option.secondaryLabel ? (
-                    <span className="project-thread-composer-option-secondary">
-                      {option.secondaryLabel}
-                    </span>
-                  ) : null}
-                </span>
-                {option.selected ? (
-                  <span className="project-thread-composer-option-check">
-                    <Check aria-hidden="true" />
+              }}
+            >
+              {options.map((option) => (
+                <DropdownMenuRadioItem
+                  key={option.id}
+                  closeOnClick
+                  className="project-thread-composer-option"
+                  label={option.label}
+                  value={option.id}
+                >
+                  <span className="project-thread-composer-option-copy">
+                    <span className="project-thread-composer-option-label">{option.label}</span>
+                    {option.secondaryLabel ? (
+                      <span className="project-thread-composer-option-secondary">
+                        {option.secondaryLabel}
+                      </span>
+                    ) : null}
+                    {option.description ? (
+                      <span className="project-thread-composer-option-secondary">
+                        {option.description}
+                      </span>
+                    ) : null}
                   </span>
-                ) : null}
-              </DropdownMenuRadioItem>
-            ))}
-          </DropdownMenuRadioGroup>
+                </DropdownMenuRadioItem>
+              ))}
+            </DropdownMenuRadioGroup>
+          </DropdownMenuGroup>
         </DropdownMenuContent>
       </DropdownMenu>
     </div>
@@ -432,7 +510,14 @@ function BranchComposerMenu({
     <div className="project-thread-composer-menu">
       <DropdownMenu modal={false} open={menuOpen} onOpenChange={setMenuOpen}>
         <DropdownMenuTrigger
-          className="project-thread-composer-trigger"
+          render={
+            <Button
+              className="project-thread-composer-trigger"
+              size="sm"
+              type="button"
+              variant="ghost"
+            />
+          }
           aria-label={`Branch: ${activeLabel}`}
         >
           <GitBranch aria-hidden="true" />
@@ -441,13 +526,14 @@ function BranchComposerMenu({
         </DropdownMenuTrigger>
         <DropdownMenuContent
           className="project-thread-composer-dropdown"
-          positionerClassName="project-thread-composer-positioner"
           sideOffset={8}
           aria-label="Branch"
         >
-          <div className="project-thread-composer-branch-search">
-            <Search aria-hidden="true" />
-            <input
+          <InputGroup className="project-thread-composer-branch-search">
+            <InputGroupAddon>
+              <Search aria-hidden="true" />
+            </InputGroupAddon>
+            <InputGroupInput
               className="project-thread-composer-branch-search-input"
               type="text"
               value={branchQuery}
@@ -455,47 +541,49 @@ function BranchComposerMenu({
               aria-label="Search branches"
               onChange={(event) => setBranchQuery(event.target.value)}
             />
-          </div>
-          <div className="project-thread-composer-dropdown-section-label">Branches</div>
-          <DropdownMenuRadioGroup
-            className="project-thread-composer-dropdown-options desktop-scroll-region"
-            value={selectedOption?.id}
-            onValueChange={(value) => {
-              if (typeof value === "string" && value !== selectedOption?.id) {
-                setMenuOpen(false);
-                onSelect(value);
-              }
-            }}
-          >
-            {filteredOptions.length > 0 ? (
-              filteredOptions.map((option) => (
-                <DropdownMenuRadioItem
-                  key={option.id}
-                  closeOnClick
-                  className={(state) =>
-                    `project-thread-composer-option${state.checked ? " is-selected" : ""}`
-                  }
-                  label={option.label}
-                  value={option.id}
-                >
-                  <span className="project-thread-composer-option-copy">
-                    <span className="project-thread-composer-option-leading">
-                      <GitBranch aria-hidden="true" />
+          </InputGroup>
+          <DropdownMenuGroup>
+            <DropdownMenuLabel className="project-thread-composer-dropdown-section-label">
+              Branches
+            </DropdownMenuLabel>
+            <DropdownMenuRadioGroup
+              className="project-thread-composer-dropdown-options desktop-scroll-region"
+              value={selectedOption?.id}
+              onValueChange={(value) => {
+                if (typeof value === "string" && value !== selectedOption?.id) {
+                  setMenuOpen(false);
+                  onSelect(value);
+                }
+              }}
+            >
+              {filteredOptions.length > 0 ? (
+                filteredOptions.map((option) => (
+                  <DropdownMenuRadioItem
+                    key={option.id}
+                    closeOnClick
+                    className="project-thread-composer-option"
+                    label={option.label}
+                    value={option.id}
+                  >
+                    <span className="project-thread-composer-option-copy">
+                      <span className="project-thread-composer-option-leading">
+                        <GitBranch aria-hidden="true" />
+                      </span>
+                      <span className="project-thread-composer-option-label">{option.label}</span>
                     </span>
-                    <span className="project-thread-composer-option-label">{option.label}</span>
-                  </span>
-                  {option.selected ? (
-                    <span className="project-thread-composer-option-check">
-                      <Check aria-hidden="true" />
-                    </span>
-                  ) : null}
-                </DropdownMenuRadioItem>
-              ))
-            ) : (
-              <div className="project-thread-composer-empty">No matching branches</div>
-            )}
-          </DropdownMenuRadioGroup>
-          <div className="project-thread-composer-dropdown-footer">
+                  </DropdownMenuRadioItem>
+                ))
+              ) : (
+                <Empty className="project-thread-composer-empty">
+                  <EmptyHeader>
+                    <EmptyTitle>No matching branches</EmptyTitle>
+                  </EmptyHeader>
+                </Empty>
+              )}
+            </DropdownMenuRadioGroup>
+          </DropdownMenuGroup>
+          <DropdownMenuSeparator />
+          <DropdownMenuGroup className="project-thread-composer-dropdown-footer">
             <DropdownMenuItem
               className="project-thread-composer-create-branch"
               onClick={openBranchDialog}
@@ -503,7 +591,7 @@ function BranchComposerMenu({
               <Plus aria-hidden="true" />
               <span>Create and checkout new branch...</span>
             </DropdownMenuItem>
-          </div>
+          </DropdownMenuGroup>
         </DropdownMenuContent>
       </DropdownMenu>
       <Dialog
@@ -518,7 +606,6 @@ function BranchComposerMenu({
         <DialogContent
           className="project-thread-branch-popover"
           initialFocus={inputRef}
-          overlayClassName="project-thread-branch-popover-backdrop"
           showCloseButton={false}
         >
           <form className="project-thread-branch-popover-form" onSubmit={submitBranch}>
@@ -527,46 +614,58 @@ function BranchComposerMenu({
                 Create and checkout branch
               </DialogTitle>
               <DialogClose
-                className="project-thread-branch-popover-close"
+                render={
+                  <Button
+                    className="project-thread-branch-popover-close"
+                    size="icon-sm"
+                    type="button"
+                    variant="ghost"
+                  />
+                }
                 aria-label="Close branch popover"
               >
                 <X aria-hidden="true" />
               </DialogClose>
             </div>
-            <div className="project-thread-branch-popover-body">
+            <FieldGroup className="project-thread-branch-popover-body">
               <div className="project-thread-branch-popover-label-row">
-                <label
+                <FieldLabel
                   className="project-thread-branch-popover-label"
                   htmlFor="project-thread-branch-name"
                 >
                   Branch name
-                </label>
-                <button
+                </FieldLabel>
+                <Button
                   type="button"
                   className="project-thread-branch-popover-prefix"
+                  size="sm"
+                  variant="ghost"
                   onClick={applyDefaultPrefix}
                 >
                   Set prefix
-                </button>
+                </Button>
               </div>
-              <input
-                id="project-thread-branch-name"
-                ref={inputRef}
-                className="project-thread-branch-popover-input"
-                type="text"
-                value={branchName}
-                placeholder={`${DEFAULT_BRANCH_PREFIX}create-and-checkout-branch`}
-                onChange={(event) => setBranchName(event.target.value)}
-              />
-            </div>
+              <Field>
+                <Input
+                  id="project-thread-branch-name"
+                  ref={inputRef}
+                  className="project-thread-branch-popover-input"
+                  type="text"
+                  value={branchName}
+                  placeholder={`${DEFAULT_BRANCH_PREFIX}create-and-checkout-branch`}
+                  onChange={(event) => setBranchName(event.target.value)}
+                />
+              </Field>
+            </FieldGroup>
             <div className="project-thread-branch-popover-actions">
-              <button
+              <Button
                 type="submit"
                 className="project-thread-branch-popover-button is-primary"
                 disabled={branchName.trim().length === 0}
+                size="sm"
               >
                 Create and checkout
-              </button>
+              </Button>
             </div>
           </form>
         </DialogContent>
@@ -596,24 +695,43 @@ export function ThreadView({
 }: ThreadViewProps) {
   if (!selectedProject) {
     return (
-      <div className="thread-design-canvas thread-empty-state">
-        <button type="button" className="thread-empty-state-action" onClick={onImportProject}>
-          <FolderPlus aria-hidden="true" />
-          <span>Import project</span>
-        </button>
+      <div className="workbench-surface thread-empty-state">
+        <Empty className="workbench-empty">
+          <EmptyHeader>
+            <EmptyMedia variant="icon">
+              <FolderPlus aria-hidden="true" />
+            </EmptyMedia>
+            <EmptyTitle>Projects</EmptyTitle>
+            <EmptyDescription>Import a local project to start a workbench thread.</EmptyDescription>
+          </EmptyHeader>
+          <EmptyContent>
+            <Button
+              type="button"
+              className="thread-empty-state-action"
+              onClick={onImportProject}
+              variant="outline"
+            >
+              <FolderPlus aria-hidden="true" />
+              <span>Import project</span>
+            </Button>
+          </EmptyContent>
+        </Empty>
       </div>
     );
   }
 
   if (!selectedThreadState) {
     return (
-      <div className="thread-design-canvas thread-empty-state">
-        <div className="thread-empty-state-content">
-          <h2 className="thread-empty-state-title">{selectedProject.name}</h2>
-          <p className="thread-empty-state-copy">
-            Create a thread from the project row to start work.
-          </p>
-        </div>
+      <div className="workbench-surface thread-empty-state">
+        <Empty className="workbench-empty">
+          <EmptyHeader>
+            <EmptyMedia variant="icon">
+              <MessageSquarePlus aria-hidden="true" />
+            </EmptyMedia>
+            <EmptyTitle>{selectedProject.name}</EmptyTitle>
+            <EmptyDescription>Create a thread from the project row to start work.</EmptyDescription>
+          </EmptyHeader>
+        </Empty>
       </div>
     );
   }
@@ -627,7 +745,7 @@ export function ThreadView({
     null;
 
   return (
-    <div className="thread-design-canvas project-thread-view">
+    <div className="workbench-surface project-thread-view">
       <AriaChatView
         chat={selectedThreadState.chat}
         composerFooterEnd={
@@ -666,7 +784,7 @@ export function ThreadView({
             />
           ) : null
         }
-        emptyPlaceholder={`Message ${selectedThreadState.agentLabel ?? "Agent"}`}
+        emptyPlaceholder="Message Aria"
         onAcceptForSession={() => {}}
         onAnswerQuestion={() => {}}
         onApproveToolCall={() => {}}
@@ -749,51 +867,7 @@ function SettingsToggle({
   label: string;
   onChange: (checked: boolean) => void;
 }) {
-  return (
-    <Switch
-      aria-label={label}
-      checked={checked}
-      className={(state) => `settings-toggle${state.checked ? " is-on" : ""}`}
-      onCheckedChange={onChange}
-      thumbClassName="settings-toggle-knob"
-    />
-  );
-}
-
-function SettingsSegment({
-  label,
-  onChange,
-  options,
-  value,
-}: {
-  label: string;
-  onChange: (value: string) => void;
-  options: Array<{ label: string; value: string }>;
-  value: string;
-}) {
-  return (
-    <ToggleGroup
-      className="settings-segment"
-      aria-label={label}
-      value={[value]}
-      onValueChange={(groupValue) => {
-        const nextValue = groupValue[0];
-        if (nextValue) {
-          onChange(nextValue);
-        }
-      }}
-    >
-      {options.map((option) => (
-        <Toggle
-          key={option.value}
-          className={(state) => `settings-segment-option${state.pressed ? " is-active" : ""}`}
-          value={option.value}
-        >
-          {option.label}
-        </Toggle>
-      ))}
-    </ToggleGroup>
-  );
+  return <Switch aria-label={label} checked={checked} onCheckedChange={onChange} size="sm" />;
 }
 
 function SettingsSelect({
@@ -820,7 +894,7 @@ function SettingsSelect({
       }}
       value={value}
     >
-      <SelectTrigger aria-label={label} className="settings-select">
+      <SelectTrigger aria-label={label} size="sm">
         <SelectValue>
           {(selectedValue: string | null) =>
             options.find((option) => option.value === selectedValue)?.label ??
@@ -829,23 +903,14 @@ function SettingsSelect({
           }
         </SelectValue>
       </SelectTrigger>
-      <SelectContent
-        align="end"
-        className="settings-select-popup"
-        listClassName="settings-select-list desktop-scroll-region"
-        positionerClassName="settings-select-positioner"
-        sideOffset={6}
-      >
-        {options.map((option) => (
-          <SelectItem
-            key={option.value}
-            className={(state) => `settings-select-option${state.selected ? " is-selected" : ""}`}
-            label={option.label}
-            value={option.value}
-          >
-            {option.label}
-          </SelectItem>
-        ))}
+      <SelectContent align="end" sideOffset={6}>
+        <SelectGroup>
+          {options.map((option) => (
+            <SelectItem key={option.value} label={option.label} value={option.value}>
+              {option.label}
+            </SelectItem>
+          ))}
+        </SelectGroup>
       </SelectContent>
     </Select>
   );
@@ -863,9 +928,9 @@ function SettingsNumberInput({
   value: number;
 }) {
   return (
-    <input
+    <Input
       aria-label={label}
-      className="settings-number-input"
+      className="max-w-20 text-right"
       min={min}
       onChange={(event) => onChange(Number(event.target.value))}
       type="number"
@@ -888,9 +953,8 @@ function SettingsTextInput({
   value: string;
 }) {
   return (
-    <input
+    <Input
       aria-label={label}
-      className="settings-text-input"
       onChange={(event) => onChange(event.target.value)}
       placeholder={placeholder}
       type={type}
@@ -904,22 +968,67 @@ function SettingsActionButton({
   disabled = false,
   icon,
   onClick,
+  variant = "outline",
 }: {
   children: ReactNode;
   disabled?: boolean;
   icon?: ReactNode;
   onClick: () => Promise<void> | void;
+  variant?: "default" | "ghost" | "outline" | "secondary";
 }) {
   return (
-    <button className="settings-action-button" disabled={disabled} onClick={onClick} type="button">
-      {icon ? <span className="settings-action-button-icon">{icon}</span> : null}
+    <Button disabled={disabled} onClick={onClick} size="sm" type="button" variant={variant}>
+      {icon ? <span data-icon="inline-start">{icon}</span> : null}
       {children}
-    </button>
+    </Button>
+  );
+}
+
+function SettingsDeleteAction({
+  disabled = false,
+  itemLabel,
+  onConfirm,
+}: {
+  disabled?: boolean;
+  itemLabel: string;
+  onConfirm: () => Promise<void> | void;
+}) {
+  const [open, setOpen] = useState(false);
+
+  return (
+    <AlertDialog open={open} onOpenChange={setOpen}>
+      <AlertDialogTrigger
+        disabled={disabled}
+        render={<Button disabled={disabled} size="sm" type="button" variant="outline" />}
+      >
+        Delete
+      </AlertDialogTrigger>
+      <AlertDialogContent size="sm">
+        <AlertDialogHeader>
+          <AlertDialogTitle>Delete {itemLabel}?</AlertDialogTitle>
+          <AlertDialogDescription>
+            This removes the local settings entry. Existing runtime files are left untouched.
+          </AlertDialogDescription>
+        </AlertDialogHeader>
+        <AlertDialogFooter>
+          <AlertDialogCancel>Cancel</AlertDialogCancel>
+          <AlertDialogAction
+            variant="destructive"
+            onClick={() => {
+              setOpen(false);
+              void onConfirm();
+            }}
+          >
+            Delete
+          </AlertDialogAction>
+        </AlertDialogFooter>
+      </AlertDialogContent>
+    </AlertDialog>
   );
 }
 
 function SettingsInlineControls({ children }: { children: ReactNode }) {
-  return <div className="settings-inline-controls">{children}</div>;
+  return <div className="flex min-w-0 flex-wrap items-center justify-end gap-2">{children}</div>;
 }
 
 function SettingsRow({
@@ -931,13 +1040,21 @@ function SettingsRow({
   label: string;
   value?: ReactNode;
 }) {
+  const control = children ?? value;
+  const controlContent =
+    typeof control === "string" || typeof control === "number" ? (
+      <FieldDescription>{control}</FieldDescription>
+    ) : (
+      control
+    );
+
   return (
-    <div className="settings-row">
-      <div className="settings-row-main">
-        <span className="settings-row-label">{label}</span>
-      </div>
-      <div className="settings-row-control">{children ?? value}</div>
-    </div>
+    <Field orientation="responsive" className="py-2">
+      <FieldContent>
+        <FieldTitle>{label}</FieldTitle>
+      </FieldContent>
+      <div className="flex min-w-0 justify-start @md/field-group:justify-end">{controlContent}</div>
+    </Field>
   );
 }
 
@@ -951,21 +1068,23 @@ function SettingsPanel({
   section: (typeof SETTINGS_SECTIONS)[number];
 }) {
   return (
-    <section className="settings-panel" aria-labelledby={`settings-panel-${section.id}`}>
-      <div className="settings-panel-header">
-        <div className="settings-panel-title">
-          <span className="settings-panel-icon">{section.icon}</span>
-          <h1 id={`settings-panel-${section.id}`}>{section.label}</h1>
-        </div>
-        {action ? <div className="settings-panel-actions">{action}</div> : null}
-      </div>
-      <div className="settings-panel-body">{children}</div>
-    </section>
+    <Card className="w-full" size="sm" aria-labelledby={`settings-panel-${section.id}`}>
+      <CardHeader>
+        <CardTitle className="flex items-center gap-2">
+          <span aria-hidden="true">{section.icon}</span>
+          <span id={`settings-panel-${section.id}`}>{section.label}</span>
+        </CardTitle>
+        {action ? <CardAction>{action}</CardAction> : null}
+      </CardHeader>
+      <CardContent>
+        <FieldGroup>{children}</FieldGroup>
+      </CardContent>
+    </Card>
   );
 }
 
 function SettingsSectionHeading({ children }: { children: ReactNode }) {
-  return <div className="settings-section-heading">{children}</div>;
+  return <FieldSeparator>{children}</FieldSeparator>;
 }
 
 function SettingsSheet({
@@ -986,18 +1105,11 @@ function SettingsSheet({
         }
       }}
     >
-      <SheetContent
-        className="settings-sheet"
-        overlayClassName="settings-sheet-backdrop"
-        showCloseButton={false}
-      >
-        <SheetHeader className="settings-sheet-header">
+      <SheetContent>
+        <SheetHeader>
           <SheetTitle>{title}</SheetTitle>
-          <SheetClose className="desktop-icon-button" aria-label="Close sheet">
-            <X aria-hidden="true" />
-          </SheetClose>
         </SheetHeader>
-        <div className="settings-sheet-body">{children}</div>
+        {children}
       </SheetContent>
     </Sheet>
   );
@@ -1060,26 +1172,31 @@ function SettingsSecretEditor({
   const [value, setValue] = useState("");
 
   return (
-    <SettingsInlineControls>
-      <span className="settings-secret-status">{maskedValue ?? "Not set"}</span>
-      <SettingsTextInput
-        label={secretLabel}
-        onChange={setValue}
+    <InputGroup>
+      <InputGroupAddon>
+        <InputGroupText>{maskedValue ?? "Not set"}</InputGroupText>
+      </InputGroupAddon>
+      <InputGroupInput
+        aria-label={secretLabel}
+        autoComplete="off"
+        onChange={(event) => setValue(event.target.value)}
         placeholder="New value"
         type="password"
         value={value}
       />
-      <SettingsActionButton
-        disabled={value.trim() === ""}
-        onClick={() => {
-          onSave(value);
-          setValue("");
-        }}
-      >
-        Save
-      </SettingsActionButton>
-      <SettingsActionButton onClick={() => onSave(null)}>Clear</SettingsActionButton>
-    </SettingsInlineControls>
+      <InputGroupAddon align="inline-end">
+        <InputGroupButton
+          disabled={value.trim() === ""}
+          onClick={() => {
+            onSave(value);
+            setValue("");
+          }}
+        >
+          Save
+        </InputGroupButton>
+        <InputGroupButton onClick={() => onSave(null)}>Clear</InputGroupButton>
+      </InputGroupAddon>
+    </InputGroup>
   );
 }
 
@@ -1111,51 +1228,57 @@ function SettingsWizard({
   const isLastStep = activeStepIndex === steps.length - 1;
 
   return (
-    <div className="settings-wizard">
-      <div className="settings-wizard-header">
-        <span className="settings-wizard-title">{title}</span>
-        <div className="settings-wizard-steps" aria-label={`${title} steps`}>
-          {steps.map((step, index) => (
-            <span
-              key={step}
-              className={`settings-wizard-step${index === activeStepIndex ? " is-active" : ""}${index < activeStepIndex ? " is-complete" : ""}`}
-            >
-              <span className="settings-wizard-step-index">{index + 1}</span>
-              <span className="settings-wizard-step-label">{step}</span>
-            </span>
-          ))}
-        </div>
-      </div>
-      <div className="settings-wizard-stage">{children}</div>
-      <div className="settings-wizard-footer">
-        <SettingsActionButton onClick={onCancel}>Reset</SettingsActionButton>
-        <SettingsActionButton disabled={activeStepIndex === 0} onClick={onBack}>
-          Back
-        </SettingsActionButton>
-        {isLastStep ? (
-          <SettingsActionButton disabled={finishDisabled} onClick={onFinish}>
-            {finishLabel}
-          </SettingsActionButton>
-        ) : (
-          <SettingsActionButton disabled={!canContinue} onClick={onNext}>
-            Next
-          </SettingsActionButton>
-        )}
-      </div>
-    </div>
+    <>
+      <FieldGroup className="min-h-0 flex-1 overflow-auto px-4 pb-4">
+        <Field>
+          <FieldLabel className="sr-only">{title} progress</FieldLabel>
+          <div className="flex flex-wrap gap-2" aria-label={`${title} steps`}>
+            {steps.map((step, index) => (
+              <Badge key={step} variant={index <= activeStepIndex ? "default" : "outline"}>
+                {index + 1} {step}
+              </Badge>
+            ))}
+          </div>
+        </Field>
+        <FieldSeparator />
+        <FieldGroup>{children}</FieldGroup>
+      </FieldGroup>
+      <SheetFooter className="items-end">
+        <ButtonGroup>
+          <Button onClick={onCancel} size="sm" type="button" variant="outline">
+            Reset
+          </Button>
+          <Button
+            disabled={activeStepIndex === 0}
+            onClick={onBack}
+            size="sm"
+            type="button"
+            variant="outline"
+          >
+            Back
+          </Button>
+          {isLastStep ? (
+            <Button disabled={finishDisabled} onClick={onFinish} size="sm" type="button">
+              {finishLabel}
+            </Button>
+          ) : (
+            <Button disabled={!canContinue} onClick={onNext} size="sm" type="button">
+              Next
+            </Button>
+          )}
+        </ButtonGroup>
+      </SheetFooter>
+    </>
   );
 }
 
 function SettingsReviewRows({ items }: { items: Array<{ label: string; value: ReactNode }> }) {
   return (
-    <div className="settings-review-list">
+    <FieldGroup>
       {items.map((item) => (
-        <div key={item.label} className="settings-review-row">
-          <span>{item.label}</span>
-          <strong>{item.value}</strong>
-        </div>
+        <SettingsRow key={item.label} label={item.label} value={item.value} />
       ))}
-    </div>
+    </FieldGroup>
   );
 }
 
@@ -1270,7 +1393,14 @@ function ProviderSetupWizard({
               </SettingsRow>
             </>
           ) : null}
-          <SettingsRow label="Status" value={alreadyExists ? "Already Exists" : "Available"} />
+          <SettingsRow
+            label="Status"
+            value={
+              <Badge variant={alreadyExists ? "outline" : "secondary"}>
+                {alreadyExists ? "Already Exists" : "Available"}
+              </Badge>
+            }
+          />
         </>
       ) : null}
       {step === 1 ? (
@@ -1516,7 +1646,7 @@ function ModelSetupWizard({
     >
       {step === 0 ? (
         <SettingsRow label="Model Type">
-          <SettingsSegment
+          <SettingsSelect
             label="Model Type"
             onChange={(value) => setType(value as "chat" | "embedding")}
             options={SETTINGS_MODEL_TYPE_OPTIONS}
@@ -1543,7 +1673,10 @@ function ModelSetupWizard({
               value={provider}
             />
           </SettingsRow>
-          <SettingsRow label="Provider Type" value={selectedProvider?.type ?? "Missing"} />
+          <SettingsRow
+            label="Provider Type"
+            value={<Badge variant="secondary">{selectedProvider?.type ?? "Missing"}</Badge>}
+          />
         </>
       ) : null}
       {step === 2 ? (
@@ -1589,9 +1722,10 @@ function ModelSetupWizard({
           <SettingsRow label="Parameters" value={parameterSummary} />
           <SettingsRow label="Status">
             <SettingsInlineControls>
-              <span>{statusLabel}</span>
+              {providerModelStatus === "loading" ? <Spinner /> : null}
+              <Badge variant={nameExists ? "outline" : "secondary"}>{statusLabel}</Badge>
               {selectedProviderModel?.maxTokens ? (
-                <span>{selectedProviderModel.maxTokens} max</span>
+                <Badge variant="outline">{selectedProviderModel.maxTokens} max</Badge>
               ) : null}
               <SettingsActionButton disabled={!provider} onClick={loadProviderModels}>
                 Refresh
@@ -1731,14 +1865,18 @@ function ConnectorSetupWizard({
           </SettingsRow>
           <SettingsRow
             label="Status"
-            value={selectedConnector?.configured ? "Configured" : "Not Set"}
+            value={
+              <Badge variant={selectedConnector?.configured ? "secondary" : "outline"}>
+                {selectedConnector?.configured ? "Configured" : "Not Set"}
+              </Badge>
+            }
           />
         </>
       ) : null}
       {step === 1 ? (
         <>
           <SettingsRow label="Approval">
-            <SettingsSegment
+            <SettingsSelect
               label="Connector Approval"
               onChange={(mode) => setApproval(mode as AriaDesktopSettingsApprovalMode)}
               options={SETTINGS_APPROVAL_OPTIONS}
@@ -1762,29 +1900,33 @@ function ConnectorSetupWizard({
             selectedConnector.secrets.map((secret) => (
               <SettingsRow key={secret.key} label={secret.label}>
                 <SettingsInlineControls>
-                  <span className="settings-secret-status">{secret.maskedValue ?? "Not set"}</span>
-                  <SettingsTextInput
-                    label={`${selectedConnector.label} ${secret.label}`}
-                    onChange={(value) =>
-                      setSecretDrafts((current) => ({
-                        ...current,
-                        [secret.key]: value,
-                      }))
-                    }
-                    placeholder="New value"
-                    type="password"
-                    value={secretDrafts[secret.key] ?? ""}
-                  />
-                  <SettingsActionButton
-                    onClick={() =>
-                      setSecretDrafts((current) => ({
-                        ...current,
-                        [secret.key]: null,
-                      }))
-                    }
-                  >
-                    Clear
-                  </SettingsActionButton>
+                  <Badge variant={secret.configured ? "secondary" : "outline"}>
+                    {secret.maskedValue ?? "Not set"}
+                  </Badge>
+                  <ButtonGroup>
+                    <SettingsTextInput
+                      label={`${selectedConnector.label} ${secret.label}`}
+                      onChange={(value) =>
+                        setSecretDrafts((current) => ({
+                          ...current,
+                          [secret.key]: value,
+                        }))
+                      }
+                      placeholder="New value"
+                      type="password"
+                      value={secretDrafts[secret.key] ?? ""}
+                    />
+                    <SettingsActionButton
+                      onClick={() =>
+                        setSecretDrafts((current) => ({
+                          ...current,
+                          [secret.key]: null,
+                        }))
+                      }
+                    >
+                      Clear
+                    </SettingsActionButton>
+                  </ButtonGroup>
                 </SettingsInlineControls>
               </SettingsRow>
             ))
@@ -1863,414 +2005,445 @@ export function SettingsView({
     ) : null;
 
   return (
-    <div className="settings-design-canvas">
-      <nav className="settings-sidebar" aria-label="Settings">
-        <div className="settings-sidebar-title">Settings</div>
-        <div className="settings-sidebar-items">
-          {SETTINGS_SECTIONS.map((section) => (
-            <button
-              key={section.id}
-              type="button"
-              className={`settings-sidebar-item${section.id === activeSectionId ? " is-active" : ""}`}
-              onClick={() => setActiveSectionId(section.id)}
-            >
-              <span className="settings-sidebar-item-icon">{section.icon}</span>
-              <span className="settings-sidebar-item-label">{section.label}</span>
-            </button>
-          ))}
-        </div>
-      </nav>
-      <main className="settings-content">
-        <SettingsPanel action={sectionAction} section={activeSection}>
-          {activeSectionId === "general" ? (
-            <>
-              <SettingsRow label="Theme">
-                <SettingsSegment
-                  label="Theme"
-                  onChange={(theme) =>
-                    onUpdate({
-                      desktop: {
-                        theme: theme as AriaDesktopSettingsState["desktop"]["theme"],
-                      },
-                    })
-                  }
-                  options={SETTINGS_THEME_OPTIONS}
-                  value={settingsState.desktop.theme}
-                />
-              </SettingsRow>
-              <SettingsRow label="Default Space">
-                <SettingsSegment
-                  label="Default Space"
-                  onChange={(defaultSpace) =>
-                    onUpdate({
-                      desktop: {
-                        defaultSpace:
-                          defaultSpace as AriaDesktopSettingsState["desktop"]["defaultSpace"],
-                      },
-                    })
-                  }
-                  options={SETTINGS_SPACE_OPTIONS}
-                  value={settingsState.desktop.defaultSpace}
-                />
-              </SettingsRow>
-              <SettingsRow label="Compact Mode">
-                <SettingsToggle
-                  checked={settingsState.desktop.compactMode}
-                  label="Toggle compact mode"
-                  onChange={(compactMode) => onUpdate({ desktop: { compactMode } })}
-                />
-              </SettingsRow>
-              <SettingsRow label="Start At Login">
-                <SettingsToggle
-                  checked={settingsState.desktop.startAtLogin}
-                  label="Toggle start at login"
-                  onChange={(startAtLogin) => onUpdate({ desktop: { startAtLogin } })}
-                />
-              </SettingsRow>
-            </>
-          ) : null}
+    <SidebarProvider className="min-h-0 flex-1">
+      <Sidebar aria-label="Settings">
+        <SidebarHeader>Settings</SidebarHeader>
+        <SidebarContent>
+          <SidebarGroup>
+            <SidebarGroupLabel>Sections</SidebarGroupLabel>
+            <SidebarGroupContent>
+              <SidebarMenu aria-label="Settings sections">
+                {SETTINGS_SECTIONS.map((section) => (
+                  <SidebarMenuItem key={section.id}>
+                    <SidebarMenuButton
+                      isActive={section.id === activeSectionId}
+                      onClick={() => setActiveSectionId(section.id)}
+                      type="button"
+                    >
+                      <span data-icon="inline-start">{section.icon}</span>
+                      <span className="truncate">{section.label}</span>
+                    </SidebarMenuButton>
+                  </SidebarMenuItem>
+                ))}
+              </SidebarMenu>
+            </SidebarGroupContent>
+          </SidebarGroup>
+        </SidebarContent>
+      </Sidebar>
+      <SidebarInset className="min-h-0 overflow-hidden">
+        <div className="min-h-0 overflow-auto p-4 sm:p-6">
+          <div className="mx-auto flex w-full max-w-5xl flex-col gap-4">
+            <SettingsPanel action={sectionAction} section={activeSection}>
+              {activeSectionId === "general" ? (
+                <>
+                  <SettingsRow label="Theme">
+                    <SettingsSelect
+                      label="Theme"
+                      onChange={(theme) =>
+                        onUpdate({
+                          desktop: {
+                            theme: theme as AriaDesktopSettingsState["desktop"]["theme"],
+                          },
+                        })
+                      }
+                      options={SETTINGS_THEME_OPTIONS}
+                      value={settingsState.desktop.theme}
+                    />
+                  </SettingsRow>
+                  <SettingsRow label="Default Space">
+                    <SettingsSelect
+                      label="Default Space"
+                      onChange={(defaultSpace) =>
+                        onUpdate({
+                          desktop: {
+                            defaultSpace:
+                              defaultSpace as AriaDesktopSettingsState["desktop"]["defaultSpace"],
+                          },
+                        })
+                      }
+                      options={SETTINGS_SPACE_OPTIONS}
+                      value={settingsState.desktop.defaultSpace}
+                    />
+                  </SettingsRow>
+                  <SettingsRow label="Compact Mode">
+                    <SettingsToggle
+                      checked={settingsState.desktop.compactMode}
+                      label="Toggle compact mode"
+                      onChange={(compactMode) => onUpdate({ desktop: { compactMode } })}
+                    />
+                  </SettingsRow>
+                  <SettingsRow label="Start At Login">
+                    <SettingsToggle
+                      checked={settingsState.desktop.startAtLogin}
+                      label="Toggle start at login"
+                      onChange={(startAtLogin) => onUpdate({ desktop: { startAtLogin } })}
+                    />
+                  </SettingsRow>
+                </>
+              ) : null}
 
-          {activeSectionId === "runtime" ? (
-            <>
-              <SettingsRow label="Current Node" value="This Mac" />
-              <SettingsRow
-                label="Runtime Home"
-                value={<code>{settingsState.runtime.homeDir}</code>}
-              />
-              <SettingsRow label="Providers" value={settingsState.runtime.providerCount} />
-              <SettingsRow label="MCP Servers" value={settingsState.runtime.mcpServerCount} />
-              <SettingsRow label="Context Files">
-                <SettingsToggle
-                  checked={settingsState.runtime.contextFilesEnabled}
-                  label="Toggle context files"
-                  onChange={(contextFilesEnabled) => onUpdate({ runtime: { contextFilesEnabled } })}
-                />
-              </SettingsRow>
-            </>
-          ) : null}
+              {activeSectionId === "runtime" ? (
+                <>
+                  <SettingsRow
+                    label="Current Node"
+                    value={<Badge variant="secondary">This Mac</Badge>}
+                  />
+                  <SettingsRow
+                    label="Runtime Home"
+                    value={<code>{settingsState.runtime.homeDir}</code>}
+                  />
+                  <SettingsRow label="Providers" value={settingsState.runtime.providerCount} />
+                  <SettingsRow label="MCP Servers" value={settingsState.runtime.mcpServerCount} />
+                  <SettingsRow label="Context Files">
+                    <SettingsToggle
+                      checked={settingsState.runtime.contextFilesEnabled}
+                      label="Toggle context files"
+                      onChange={(contextFilesEnabled) =>
+                        onUpdate({ runtime: { contextFilesEnabled } })
+                      }
+                    />
+                  </SettingsRow>
+                </>
+              ) : null}
 
-          {activeSectionId === "providers" ? (
-            <>
-              {settingsState.runtime.providers.map((provider) => (
-                <SettingsRow
-                  key={provider.id}
-                  label={`${provider.label} (${provider.type})`}
-                  value={
-                    <SettingsInlineControls>
-                      <span>{provider.apiKeyConfigured ? provider.apiKeyEnvVar : "No key"}</span>
-                      <span>{provider.modelCount} models</span>
-                      <SettingsSecretEditor
-                        maskedValue={provider.apiKeyConfigured ? "Configured" : null}
-                        onSave={(value) =>
+              {activeSectionId === "providers" ? (
+                <>
+                  {settingsState.runtime.providers.map((provider) => (
+                    <SettingsRow
+                      key={provider.id}
+                      label={`${provider.label} (${provider.type})`}
+                      value={
+                        <SettingsInlineControls>
+                          <Badge variant={provider.apiKeyConfigured ? "secondary" : "outline"}>
+                            {provider.apiKeyConfigured ? provider.apiKeyEnvVar : "No key"}
+                          </Badge>
+                          <Badge variant="outline">{provider.modelCount} models</Badge>
+                          <SettingsSecretEditor
+                            maskedValue={provider.apiKeyConfigured ? "Configured" : null}
+                            onSave={(value) =>
+                              onUpdate({
+                                provider: {
+                                  updateApiKey: {
+                                    envVar: provider.apiKeyEnvVar,
+                                    value,
+                                  },
+                                },
+                              })
+                            }
+                            secretLabel={`${provider.id} API key`}
+                          />
+                          <SettingsDeleteAction
+                            disabled={provider.modelCount > 0}
+                            itemLabel={provider.label}
+                            onConfirm={() => onUpdate({ provider: { deleteId: provider.id } })}
+                          />
+                        </SettingsInlineControls>
+                      }
+                    />
+                  ))}
+                </>
+              ) : null}
+
+              {activeSectionId === "models" ? (
+                <>
+                  <SettingsSectionHeading>Model Configuration</SettingsSectionHeading>
+                  <SettingsRow label="Default Model">
+                    <SettingsSelect
+                      label="Default Model"
+                      onChange={(setDefault) => onUpdate({ model: { setDefault } })}
+                      options={modelOptions}
+                      value={settingsState.runtime.activeModel}
+                    />
+                  </SettingsRow>
+                  <SettingsRow label="Config Default" value={settingsState.runtime.defaultModel} />
+                  {SETTINGS_MODEL_TIER_OPTIONS.map((tier) => (
+                    <SettingsRow key={tier.value} label={`${tier.label} Tier`}>
+                      <SettingsSelect
+                        label={`${tier.label} Tier`}
+                        onChange={(modelName) =>
                           onUpdate({
-                            provider: {
-                              updateApiKey: {
-                                envVar: provider.apiKeyEnvVar,
-                                value,
+                            model: {
+                              setTier: {
+                                modelName: modelName || null,
+                                tier: tier.value as AriaDesktopSettingsState["runtime"]["models"][number]["tiers"][number],
                               },
                             },
                           })
                         }
-                        secretLabel={`${provider.id} API key`}
+                        options={[{ label: "Default", value: "" }, ...modelOptions]}
+                        value={
+                          settingsState.runtime.modelTiers[
+                            tier.value as keyof typeof settingsState.runtime.modelTiers
+                          ] ?? ""
+                        }
                       />
-                      <SettingsActionButton
-                        disabled={provider.modelCount > 0}
-                        onClick={() => onUpdate({ provider: { deleteId: provider.id } })}
-                      >
-                        Delete
-                      </SettingsActionButton>
-                    </SettingsInlineControls>
-                  }
-                />
-              ))}
-            </>
-          ) : null}
+                    </SettingsRow>
+                  ))}
+                  <SettingsSectionHeading>Model List</SettingsSectionHeading>
+                  {settingsState.runtime.models.map((model) => (
+                    <SettingsRow
+                      key={model.name}
+                      label={`${model.name}${model.selected ? " *" : ""}`}
+                      value={
+                        <SettingsInlineControls>
+                          <Badge variant="secondary">{model.type}</Badge>
+                          <Badge variant="outline">{model.provider}</Badge>
+                          <span>{model.model}</span>
+                          {model.tiers.length > 0 ? (
+                            <Badge variant="outline">{model.tiers.join(", ")}</Badge>
+                          ) : null}
+                          <SettingsDeleteAction
+                            disabled={model.selected}
+                            itemLabel={model.name}
+                            onConfirm={() => onUpdate({ model: { deleteName: model.name } })}
+                          />
+                        </SettingsInlineControls>
+                      }
+                    />
+                  ))}
+                </>
+              ) : null}
 
-          {activeSectionId === "models" ? (
-            <>
-              <SettingsSectionHeading>Model Configuration</SettingsSectionHeading>
-              <SettingsRow label="Default Model">
-                <SettingsSelect
-                  label="Default Model"
-                  onChange={(setDefault) => onUpdate({ model: { setDefault } })}
-                  options={modelOptions}
-                  value={settingsState.runtime.activeModel}
-                />
-              </SettingsRow>
-              <SettingsRow label="Config Default" value={settingsState.runtime.defaultModel} />
-              {SETTINGS_MODEL_TIER_OPTIONS.map((tier) => (
-                <SettingsRow key={tier.value} label={`${tier.label} Tier`}>
-                  <SettingsSelect
-                    label={`${tier.label} Tier`}
-                    onChange={(modelName) =>
-                      onUpdate({
-                        model: {
-                          setTier: {
-                            modelName: modelName || null,
-                            tier: tier.value as AriaDesktopSettingsState["runtime"]["models"][number]["tiers"][number],
+              {activeSectionId === "security" ? (
+                <>
+                  <SettingsRow label="Desktop Tool Approval">
+                    <SettingsSelect
+                      label="Desktop Tool Approval"
+                      onChange={(tuiApproval) =>
+                        onUpdate({
+                          runtime: {
+                            tuiApproval:
+                              tuiApproval as AriaDesktopSettingsState["runtime"]["tuiApproval"],
                           },
-                        },
-                      })
-                    }
-                    options={[{ label: "Default", value: "" }, ...modelOptions]}
-                    value={
-                      settingsState.runtime.modelTiers[
-                        tier.value as keyof typeof settingsState.runtime.modelTiers
-                      ] ?? ""
-                    }
+                        })
+                      }
+                      options={SETTINGS_APPROVAL_OPTIONS}
+                      value={settingsState.runtime.tuiApproval}
+                    />
+                  </SettingsRow>
+                  <SettingsRow label="Connector Approval">
+                    <SettingsSelect
+                      label="Connector Approval"
+                      onChange={(connectorApproval) =>
+                        onUpdate({
+                          runtime: {
+                            connectorApproval:
+                              connectorApproval as AriaDesktopSettingsState["runtime"]["connectorApproval"],
+                          },
+                        })
+                      }
+                      options={SETTINGS_APPROVAL_OPTIONS}
+                      value={settingsState.runtime.connectorApproval}
+                    />
+                  </SettingsRow>
+                  <SettingsRow label="Webhook Approval">
+                    <SettingsSelect
+                      label="Webhook Approval"
+                      onChange={(webhookApproval) =>
+                        onUpdate({
+                          runtime: {
+                            webhookApproval:
+                              webhookApproval as AriaDesktopSettingsState["runtime"]["webhookApproval"],
+                          },
+                        })
+                      }
+                      options={SETTINGS_APPROVAL_OPTIONS}
+                      value={settingsState.runtime.webhookApproval}
+                    />
+                  </SettingsRow>
+                  <SettingsRow label="Security Mode">
+                    <SettingsSelect
+                      label="Security Mode"
+                      onChange={(securityMode) =>
+                        onUpdate({
+                          runtime: {
+                            securityMode:
+                              securityMode as AriaDesktopSettingsState["runtime"]["securityMode"],
+                          },
+                        })
+                      }
+                      options={SETTINGS_SECURITY_OPTIONS}
+                      value={settingsState.runtime.securityMode}
+                    />
+                  </SettingsRow>
+                </>
+              ) : null}
+
+              {activeSectionId === "memory" ? (
+                <>
+                  <SettingsRow label="Memory">
+                    <SettingsToggle
+                      checked={settingsState.runtime.memoryEnabled}
+                      label="Toggle memory"
+                      onChange={(memoryEnabled) => onUpdate({ runtime: { memoryEnabled } })}
+                    />
+                  </SettingsRow>
+                  <SettingsRow label="Journal">
+                    <SettingsToggle
+                      checked={settingsState.runtime.journalEnabled}
+                      label="Toggle journal"
+                      onChange={(journalEnabled) => onUpdate({ runtime: { journalEnabled } })}
+                    />
+                  </SettingsRow>
+                  <SettingsRow
+                    label="Memory Directory"
+                    value={<code>{settingsState.runtime.memoryDirectory}</code>}
                   />
-                </SettingsRow>
-              ))}
-              <SettingsSectionHeading>Model List</SettingsSectionHeading>
-              {settingsState.runtime.models.map((model) => (
-                <SettingsRow
-                  key={model.name}
-                  label={`${model.name}${model.selected ? " *" : ""}`}
-                  value={
-                    <SettingsInlineControls>
-                      <span>{model.type}</span>
-                      <span>{model.provider}</span>
-                      <span>{model.model}</span>
-                      {model.tiers.length > 0 ? <span>{model.tiers.join(", ")}</span> : null}
-                      <SettingsActionButton
-                        disabled={model.selected}
-                        onClick={() => onUpdate({ model: { deleteName: model.name } })}
-                      >
-                        Delete
-                      </SettingsActionButton>
-                    </SettingsInlineControls>
-                  }
-                />
-              ))}
-            </>
-          ) : null}
+                  <SettingsRow
+                    label="Skill Directory"
+                    value={<code>{`${settingsState.runtime.homeDir}/skills`}</code>}
+                  />
+                </>
+              ) : null}
 
-          {activeSectionId === "security" ? (
-            <>
-              <SettingsRow label="Desktop Tool Approval">
-                <SettingsSegment
-                  label="Desktop Tool Approval"
-                  onChange={(tuiApproval) =>
-                    onUpdate({
-                      runtime: {
-                        tuiApproval:
-                          tuiApproval as AriaDesktopSettingsState["runtime"]["tuiApproval"],
-                      },
-                    })
-                  }
-                  options={SETTINGS_APPROVAL_OPTIONS}
-                  value={settingsState.runtime.tuiApproval}
-                />
-              </SettingsRow>
-              <SettingsRow label="Connector Approval">
-                <SettingsSegment
-                  label="Connector Approval"
-                  onChange={(connectorApproval) =>
-                    onUpdate({
-                      runtime: {
-                        connectorApproval:
-                          connectorApproval as AriaDesktopSettingsState["runtime"]["connectorApproval"],
-                      },
-                    })
-                  }
-                  options={SETTINGS_APPROVAL_OPTIONS}
-                  value={settingsState.runtime.connectorApproval}
-                />
-              </SettingsRow>
-              <SettingsRow label="Webhook Approval">
-                <SettingsSegment
-                  label="Webhook Approval"
-                  onChange={(webhookApproval) =>
-                    onUpdate({
-                      runtime: {
-                        webhookApproval:
-                          webhookApproval as AriaDesktopSettingsState["runtime"]["webhookApproval"],
-                      },
-                    })
-                  }
-                  options={SETTINGS_APPROVAL_OPTIONS}
-                  value={settingsState.runtime.webhookApproval}
-                />
-              </SettingsRow>
-              <SettingsRow label="Security Mode">
-                <SettingsSegment
-                  label="Security Mode"
-                  onChange={(securityMode) =>
-                    onUpdate({
-                      runtime: {
-                        securityMode:
-                          securityMode as AriaDesktopSettingsState["runtime"]["securityMode"],
-                      },
-                    })
-                  }
-                  options={SETTINGS_SECURITY_OPTIONS}
-                  value={settingsState.runtime.securityMode}
-                />
-              </SettingsRow>
-            </>
-          ) : null}
+              {activeSectionId === "automation" ? (
+                <>
+                  <SettingsRow label="Heartbeats">
+                    <SettingsToggle
+                      checked={settingsState.runtime.heartbeatEnabled}
+                      label="Toggle heartbeats"
+                      onChange={(heartbeatEnabled) => onUpdate({ runtime: { heartbeatEnabled } })}
+                    />
+                  </SettingsRow>
+                  <SettingsRow label="Heartbeat Minutes">
+                    <SettingsNumberInput
+                      label="Heartbeat Minutes"
+                      min={1}
+                      onChange={(heartbeatIntervalMinutes) =>
+                        onUpdate({ runtime: { heartbeatIntervalMinutes } })
+                      }
+                      value={settingsState.runtime.heartbeatIntervalMinutes}
+                    />
+                  </SettingsRow>
+                  <SettingsRow label="Webhook Connector">
+                    <SettingsToggle
+                      checked={settingsState.runtime.webhookEnabled}
+                      label="Toggle webhook connector"
+                      onChange={(webhookEnabled) => onUpdate({ runtime: { webhookEnabled } })}
+                    />
+                  </SettingsRow>
+                  <SettingsRow label="Cron Tasks" value={settingsState.runtime.cronTaskCount} />
+                  <SettingsRow
+                    label="Webhook Tasks"
+                    value={settingsState.runtime.webhookTaskCount}
+                  />
+                </>
+              ) : null}
 
-          {activeSectionId === "memory" ? (
-            <>
-              <SettingsRow label="Memory">
-                <SettingsToggle
-                  checked={settingsState.runtime.memoryEnabled}
-                  label="Toggle memory"
-                  onChange={(memoryEnabled) => onUpdate({ runtime: { memoryEnabled } })}
-                />
-              </SettingsRow>
-              <SettingsRow label="Journal">
-                <SettingsToggle
-                  checked={settingsState.runtime.journalEnabled}
-                  label="Toggle journal"
-                  onChange={(journalEnabled) => onUpdate({ runtime: { journalEnabled } })}
-                />
-              </SettingsRow>
-              <SettingsRow
-                label="Memory Directory"
-                value={<code>{settingsState.runtime.memoryDirectory}</code>}
-              />
-              <SettingsRow
-                label="Skill Directory"
-                value={<code>{`${settingsState.runtime.homeDir}/skills`}</code>}
-              />
-            </>
-          ) : null}
+              {activeSectionId === "connectors" ? (
+                <>
+                  <SettingsRow
+                    label="Connector Sessions"
+                    value={<Badge variant="secondary">Node-owned</Badge>}
+                  />
+                  <SettingsSectionHeading>Connector List</SettingsSectionHeading>
+                  {settingsState.connectors.map((connector) => (
+                    <SettingsRow
+                      key={connector.name}
+                      label={connector.label}
+                      value={
+                        <SettingsInlineControls>
+                          <Badge variant={connector.configured ? "secondary" : "outline"}>
+                            {connector.configured ? "Configured" : "Not Configured"}
+                          </Badge>
+                          <SettingsActionButton
+                            onClick={() => {
+                              setConnectorSetupName(
+                                connector.name as AriaDesktopSettingsConnectorType,
+                              );
+                              setSettingsSheet("connector");
+                            }}
+                          >
+                            Configure
+                          </SettingsActionButton>
+                        </SettingsInlineControls>
+                      }
+                    />
+                  ))}
+                  <SettingsSectionHeading>Connector Preferences</SettingsSectionHeading>
+                  <SettingsRow label="Connector Verbosity">
+                    <SettingsSelect
+                      label="Connector Verbosity"
+                      onChange={(connectorVerbosity) =>
+                        onUpdate({
+                          runtime: {
+                            connectorVerbosity:
+                              connectorVerbosity as AriaDesktopSettingsState["runtime"]["connectorVerbosity"],
+                          },
+                        })
+                      }
+                      options={SETTINGS_VERBOSITY_OPTIONS}
+                      value={settingsState.runtime.connectorVerbosity}
+                    />
+                  </SettingsRow>
+                  <SettingsRow label="Desktop Verbosity">
+                    <SettingsSelect
+                      label="Desktop Verbosity"
+                      onChange={(tuiVerbosity) =>
+                        onUpdate({
+                          runtime: {
+                            tuiVerbosity:
+                              tuiVerbosity as AriaDesktopSettingsState["runtime"]["tuiVerbosity"],
+                          },
+                        })
+                      }
+                      options={SETTINGS_VERBOSITY_OPTIONS}
+                      value={settingsState.runtime.tuiVerbosity}
+                    />
+                  </SettingsRow>
+                </>
+              ) : null}
 
-          {activeSectionId === "automation" ? (
-            <>
-              <SettingsRow label="Heartbeats">
-                <SettingsToggle
-                  checked={settingsState.runtime.heartbeatEnabled}
-                  label="Toggle heartbeats"
-                  onChange={(heartbeatEnabled) => onUpdate({ runtime: { heartbeatEnabled } })}
-                />
-              </SettingsRow>
-              <SettingsRow label="Heartbeat Minutes">
-                <SettingsNumberInput
-                  label="Heartbeat Minutes"
-                  min={1}
-                  onChange={(heartbeatIntervalMinutes) =>
-                    onUpdate({ runtime: { heartbeatIntervalMinutes } })
-                  }
-                  value={settingsState.runtime.heartbeatIntervalMinutes}
-                />
-              </SettingsRow>
-              <SettingsRow label="Webhook Connector">
-                <SettingsToggle
-                  checked={settingsState.runtime.webhookEnabled}
-                  label="Toggle webhook connector"
-                  onChange={(webhookEnabled) => onUpdate({ runtime: { webhookEnabled } })}
-                />
-              </SettingsRow>
-              <SettingsRow label="Cron Tasks" value={settingsState.runtime.cronTaskCount} />
-              <SettingsRow label="Webhook Tasks" value={settingsState.runtime.webhookTaskCount} />
-            </>
-          ) : null}
+              {activeSectionId === "data" ? (
+                <>
+                  <SettingsRow
+                    label="Runtime Storage"
+                    value={<code>{settingsState.runtime.homeDir}</code>}
+                  />
+                  <SettingsRow
+                    label="Desktop Settings"
+                    value={<code>{settingsState.desktop.settingsPath}</code>}
+                  />
+                  <SettingsRow label="Checkpoints">
+                    <SettingsToggle
+                      checked={settingsState.runtime.checkpointsEnabled}
+                      label="Toggle checkpoints"
+                      onChange={(checkpointsEnabled) =>
+                        onUpdate({ runtime: { checkpointsEnabled } })
+                      }
+                    />
+                  </SettingsRow>
+                  <SettingsRow label="Checkpoint Limit">
+                    <SettingsNumberInput
+                      label="Checkpoint Limit"
+                      min={1}
+                      onChange={(checkpointMaxSnapshots) =>
+                        onUpdate({ runtime: { checkpointMaxSnapshots } })
+                      }
+                      value={settingsState.runtime.checkpointMaxSnapshots}
+                    />
+                  </SettingsRow>
+                </>
+              ) : null}
 
-          {activeSectionId === "connectors" ? (
-            <>
-              <SettingsRow label="Connector Sessions" value="Node-owned" />
-              <SettingsSectionHeading>Connector List</SettingsSectionHeading>
-              {settingsState.connectors.map((connector) => (
-                <SettingsRow
-                  key={connector.name}
-                  label={connector.label}
-                  value={
-                    <div className="settings-row-action-control">
-                      <span>{connector.configured ? "Configured" : "Not Configured"}</span>
-                      <SettingsActionButton
-                        onClick={() => {
-                          setConnectorSetupName(connector.name as AriaDesktopSettingsConnectorType);
-                          setSettingsSheet("connector");
-                        }}
-                      >
-                        Configure
-                      </SettingsActionButton>
-                    </div>
-                  }
-                />
-              ))}
-              <SettingsSectionHeading>Connector Preferences</SettingsSectionHeading>
-              <SettingsRow label="Connector Verbosity">
-                <SettingsSegment
-                  label="Connector Verbosity"
-                  onChange={(connectorVerbosity) =>
-                    onUpdate({
-                      runtime: {
-                        connectorVerbosity:
-                          connectorVerbosity as AriaDesktopSettingsState["runtime"]["connectorVerbosity"],
-                      },
-                    })
-                  }
-                  options={SETTINGS_VERBOSITY_OPTIONS}
-                  value={settingsState.runtime.connectorVerbosity}
-                />
-              </SettingsRow>
-              <SettingsRow label="Desktop Verbosity">
-                <SettingsSegment
-                  label="Desktop Verbosity"
-                  onChange={(tuiVerbosity) =>
-                    onUpdate({
-                      runtime: {
-                        tuiVerbosity:
-                          tuiVerbosity as AriaDesktopSettingsState["runtime"]["tuiVerbosity"],
-                      },
-                    })
-                  }
-                  options={SETTINGS_VERBOSITY_OPTIONS}
-                  value={settingsState.runtime.tuiVerbosity}
-                />
-              </SettingsRow>
-            </>
-          ) : null}
+              {activeSectionId === "about" ? (
+                <>
+                  <SettingsRow label="Product" value={settingsState.about.productName} />
+                  <SettingsRow label="Runtime" value={settingsState.about.runtimeName} />
+                  <SettingsRow label="CLI" value={<code>{settingsState.about.cliName}</code>} />
+                  <SettingsRow label="Channel" value={settingsState.about.channel} />
+                </>
+              ) : null}
 
-          {activeSectionId === "data" ? (
-            <>
-              <SettingsRow
-                label="Runtime Storage"
-                value={<code>{settingsState.runtime.homeDir}</code>}
-              />
-              <SettingsRow
-                label="Desktop Settings"
-                value={<code>{settingsState.desktop.settingsPath}</code>}
-              />
-              <SettingsRow label="Checkpoints">
-                <SettingsToggle
-                  checked={settingsState.runtime.checkpointsEnabled}
-                  label="Toggle checkpoints"
-                  onChange={(checkpointsEnabled) => onUpdate({ runtime: { checkpointsEnabled } })}
-                />
-              </SettingsRow>
-              <SettingsRow label="Checkpoint Limit">
-                <SettingsNumberInput
-                  label="Checkpoint Limit"
-                  min={1}
-                  onChange={(checkpointMaxSnapshots) =>
-                    onUpdate({ runtime: { checkpointMaxSnapshots } })
-                  }
-                  value={settingsState.runtime.checkpointMaxSnapshots}
-                />
-              </SettingsRow>
-            </>
-          ) : null}
-
-          {activeSectionId === "about" ? (
-            <>
-              <SettingsRow label="Product" value={settingsState.about.productName} />
-              <SettingsRow label="Runtime" value={settingsState.about.runtimeName} />
-              <SettingsRow label="CLI" value={<code>{settingsState.about.cliName}</code>} />
-              <SettingsRow label="Channel" value={settingsState.about.channel} />
-            </>
-          ) : null}
-
-          {settingsState.lastError ? (
-            <div className="settings-error" role="status">
-              {settingsState.lastError}
-            </div>
-          ) : null}
-        </SettingsPanel>
-      </main>
+              {settingsState.lastError ? (
+                <Alert variant="destructive">
+                  <AlertDescription>{settingsState.lastError}</AlertDescription>
+                </Alert>
+              ) : null}
+            </SettingsPanel>
+          </div>
+        </div>
+      </SidebarInset>
       {settingsSheet === "provider" ? (
         <SettingsSheet title="Add Provider" onClose={() => setSettingsSheet(null)}>
           <ProviderSetupWizard
@@ -2309,7 +2482,7 @@ export function SettingsView({
           />
         </SettingsSheet>
       ) : null}
-    </div>
+    </SidebarProvider>
   );
 }
 
@@ -2331,11 +2504,17 @@ function ThreadInspectorSurface({ thread }: { thread: AriaDesktopProjectThreadSt
         </div>
         <div>
           <dt>Status</dt>
-          <dd>{thread.statusLabel}</dd>
+          <dd>
+            <Badge variant="secondary">{thread.statusLabel}</Badge>
+          </dd>
         </div>
         <div>
           <dt>Changed Files</dt>
-          <dd>{thread.changedFiles.length}</dd>
+          <dd>
+            <Badge variant={thread.changedFiles.length > 0 ? "outline" : "secondary"}>
+              {thread.changedFiles.length}
+            </Badge>
+          </dd>
         </div>
       </dl>
       {thread.changedFiles.length > 0 ? (
@@ -2430,13 +2609,14 @@ export function ProjectSidebar({
                   </>
                 }
                 title={
-                  <button
+                  <Button
                     type="button"
                     className={`desktop-sidebar-section-title-button${isSelectedProject ? " is-active" : ""}`}
                     onClick={() => onSelectProject(project.projectId)}
+                    variant="ghost"
                   >
                     {project.name}
-                  </button>
+                  </Button>
                 }
               />
 
@@ -2580,10 +2760,16 @@ export function AriaSidebar({
 
 function NoAriaServerView() {
   return (
-    <div className="thread-empty-state">
-      <div className="thread-empty-state-content">
-        <p className="thread-empty-state-copy">No Aria server connected</p>
-      </div>
+    <div className="workbench-surface thread-empty-state">
+      <Empty className="workbench-empty">
+        <EmptyHeader>
+          <EmptyMedia variant="icon">
+            <Server aria-hidden="true" />
+          </EmptyMedia>
+          <EmptyTitle>No Aria server connected</EmptyTitle>
+          <EmptyDescription>Start or connect the local runtime to use Aria chat.</EmptyDescription>
+        </EmptyHeader>
+      </Empty>
     </div>
   );
 }
@@ -2612,7 +2798,9 @@ function AriaInspectorSurface({
         </div>
         <div>
           <dt>Status</dt>
-          <dd>{chat.sessionStatus}</dd>
+          <dd>
+            <Badge variant="secondary">{chat.sessionStatus}</Badge>
+          </dd>
         </div>
       </dl>
     </div>
@@ -2636,14 +2824,15 @@ function AriaPendingQuestionPrompt({
       {hasOptions ? (
         <div className="aria-question-prompt-options">
           {pendingQuestion.options!.map((option) => (
-            <button
+            <Button
               key={option}
               type="button"
               className="aria-question-prompt-option"
+              variant="outline"
               onClick={() => onAnswerQuestion(pendingQuestion.questionId, option)}
             >
               {option}
-            </button>
+            </Button>
           ))}
         </div>
       ) : (
@@ -2658,16 +2847,21 @@ function AriaPendingQuestionPrompt({
             setAnswer("");
           }}
         >
-          <input
+          <Input
             className="aria-question-prompt-input"
             value={answer}
             onChange={(event) => setAnswer(event.target.value)}
             placeholder="Type your answer"
           />
           <div className="aria-question-prompt-footer">
-            <button type="submit" className="aria-chat-composer-submit" aria-label="Submit answer">
+            <Button
+              type="submit"
+              className="aria-chat-composer-submit"
+              size="icon"
+              aria-label="Submit answer"
+            >
               <ArrowUp aria-hidden="true" />
-            </button>
+            </Button>
           </div>
         </form>
       )}
@@ -2691,27 +2885,29 @@ function AriaPendingApprovalPrompt({
       </div>
       <pre className="aria-action-prompt-copy">{JSON.stringify(pendingApproval.args, null, 2)}</pre>
       <div className="aria-action-prompt-footer">
-        <button
+        <Button
           type="button"
           className="aria-action-prompt-button"
+          variant="outline"
           onClick={() => onApproveToolCall(pendingApproval.toolCallId, false)}
         >
           Deny
-        </button>
-        <button
+        </Button>
+        <Button
           type="button"
           className="aria-action-prompt-button"
+          variant="secondary"
           onClick={() => onAcceptForSession(pendingApproval.toolCallId)}
         >
           Allow session
-        </button>
-        <button
+        </Button>
+        <Button
           type="button"
           className="aria-action-prompt-button is-primary"
           onClick={() => onApproveToolCall(pendingApproval.toolCallId, true)}
         >
           Approve
-        </button>
+        </Button>
       </div>
     </section>
   );
@@ -2777,7 +2973,6 @@ export function AriaChatView({
           onSend={handleSendMessage}
           placeholder={emptyPlaceholder}
           promptSuggestions={promptSuggestions}
-          title="What should we work on?"
         />
       </div>
     );
@@ -2827,53 +3022,79 @@ function AutomationsView({
     automations.tasks.find((task) => task.taskId === automations.selectedTaskId) ?? null;
 
   return (
-    <div className="aria-split-view">
-      <section className="aria-split-list">
-        <div className="aria-split-toolbar">
-          <span className="aria-split-title">Automations</span>
-          <button type="button" className="aria-toolbar-button" onClick={onRefresh}>
+    <div className="workbench-split-view">
+      <section className="workbench-list-panel">
+        <div className="workbench-panel-toolbar">
+          <span className="workbench-panel-title">Automations</span>
+          <Button
+            type="button"
+            className="aria-toolbar-button"
+            size="sm"
+            variant="outline"
+            onClick={onRefresh}
+          >
             Refresh
-          </button>
+          </Button>
         </div>
-        <div className="aria-split-items">
+        <ItemGroup className="workbench-list-items">
           {automations.tasks.map((task) => (
-            <button
+            <Item
               key={task.taskId}
-              type="button"
-              className={`aria-split-item${task.taskId === automations.selectedTaskId ? " is-active" : ""}`}
+              className={`workbench-list-item${task.taskId === automations.selectedTaskId ? " is-active" : ""}`}
+              render={<button type="button" />}
+              size="sm"
               onClick={() => onSelectTask(task.taskId)}
             >
-              <span>{task.name}</span>
-              <span>{task.lastStatus ?? "idle"}</span>
-            </button>
+              <ItemContent>
+                <ItemTitle>{task.name}</ItemTitle>
+              </ItemContent>
+              <ItemActions>
+                <Badge variant={task.lastStatus ? "outline" : "secondary"}>
+                  {task.lastStatus ?? "idle"}
+                </Badge>
+              </ItemActions>
+            </Item>
           ))}
-        </div>
+        </ItemGroup>
       </section>
-      <section className="aria-split-detail">
+      <section className="workbench-detail-panel">
         {selectedTask ? (
           <>
-            <div className="aria-detail-header">
+            <div className="workbench-detail-header">
               <h2>{selectedTask.name}</h2>
-              <p>{selectedTask.taskType}</p>
+              <Badge variant="outline">{selectedTask.taskType}</Badge>
             </div>
-            <div className="aria-run-list">
+            <div className="workbench-card-list">
               {automations.runs.map((run) => (
-                <article key={run.taskRunId} className="aria-run-card">
-                  <strong>{run.status}</strong>
-                  <span>{run.trigger}</span>
-                  <span>{run.summary ?? run.errorMessage ?? "No summary"}</span>
-                </article>
+                <Card key={run.taskRunId} className="workbench-card" size="sm">
+                  <CardHeader className="workbench-card-header">
+                    <CardTitle className="workbench-card-title">{run.trigger}</CardTitle>
+                    <CardAction>
+                      <Badge variant="secondary">{run.status}</Badge>
+                    </CardAction>
+                  </CardHeader>
+                  <CardContent className="workbench-card-content">
+                    <CardDescription>
+                      {run.summary ?? run.errorMessage ?? "No summary"}
+                    </CardDescription>
+                  </CardContent>
+                </Card>
               ))}
             </div>
           </>
         ) : (
-          <div className="thread-empty-state">
-            <div className="thread-empty-state-content">
-              <h2 className="thread-empty-state-title">Automations</h2>
-              <p className="thread-empty-state-copy">
-                {automations.lastError ?? "Select an automation to inspect recent runs."}
-              </p>
-            </div>
+          <div className="thread-empty-state workbench-empty-state">
+            <Empty className="workbench-empty">
+              <EmptyHeader>
+                <EmptyMedia variant="icon">
+                  <Clock3 aria-hidden="true" />
+                </EmptyMedia>
+                <EmptyTitle>Automations</EmptyTitle>
+                <EmptyDescription>
+                  {automations.lastError ?? "Select an automation to inspect recent runs."}
+                </EmptyDescription>
+              </EmptyHeader>
+            </Empty>
           </div>
         )}
       </section>
@@ -2915,29 +3136,42 @@ function ConnectorsView({
 
   if (connectorStatuses.length === 0) {
     return (
-      <div className="thread-empty-state">
-        <div className="thread-empty-state-content">
-          <h2 className="thread-empty-state-title">Connectors</h2>
-          <p className="thread-empty-state-copy">No connector activity yet.</p>
-        </div>
+      <div className="workbench-surface thread-empty-state">
+        <Empty className="workbench-empty">
+          <EmptyHeader>
+            <EmptyMedia variant="icon">
+              <Plug2 aria-hidden="true" />
+            </EmptyMedia>
+            <EmptyTitle>Connectors</EmptyTitle>
+            <EmptyDescription>No connector activity yet.</EmptyDescription>
+          </EmptyHeader>
+        </Empty>
       </div>
     );
   }
 
   return (
-    <div className="aria-split-view is-single">
-      <section className="aria-split-detail">
-        <div className="aria-detail-header">
+    <div className="workbench-surface workbench-single-view">
+      <section className="workbench-detail-panel">
+        <div className="workbench-detail-header">
           <h2>Connectors</h2>
-          <p>Current connector status and recent activity.</p>
+          <Badge variant="outline">Node-owned</Badge>
         </div>
-        <div className="aria-run-list">
+        <div className="workbench-card-list">
           {connectorStatuses.map((status) => (
-            <article key={status.connectorType} className="aria-run-card">
-              <strong>{status.connectorType}</strong>
-              <span>{status.count} threads</span>
-              <span>{formatRelativeUpdatedAt(status.lastActiveAt) ?? "idle"}</span>
-            </article>
+            <Card key={status.connectorType} className="workbench-card" size="sm">
+              <CardHeader className="workbench-card-header">
+                <CardTitle className="workbench-card-title">{status.connectorType}</CardTitle>
+                <CardAction>
+                  <Badge variant="secondary">
+                    {formatRelativeUpdatedAt(status.lastActiveAt) ?? "idle"}
+                  </Badge>
+                </CardAction>
+              </CardHeader>
+              <CardContent className="workbench-card-content">
+                <CardDescription>{status.count} threads</CardDescription>
+              </CardContent>
+            </Card>
           ))}
         </div>
         {effectiveConnectors.sessionId ? (
@@ -2953,7 +3187,6 @@ function ConnectorsView({
     </div>
   );
 }
-
 function getSelectedProject(
   shellState: AriaDesktopProjectShellState,
 ): AriaDesktopProjectGroup | null {

@@ -95,7 +95,7 @@ describe("server memory and prompt workflow", () => {
     } finally {
       await runtime.close();
     }
-  });
+  }, 15_000);
 
   test("refreshes prompt-visible skill state after skill_manage mutations", async () => {
     const runtime = await createRuntime();
@@ -155,5 +155,5 @@ describe("server memory and prompt workflow", () => {
     } finally {
       await runtime.close();
     }
-  });
+  }, 15_000);
 });

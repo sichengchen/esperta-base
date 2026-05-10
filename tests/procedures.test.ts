@@ -808,6 +808,66 @@ describe("tRPC procedures (non-live)", () => {
       expect(receivedMessage).toContain("Do not edit files");
     });
 
+    test("renames sessions through the shared slash command path", async () => {
+      const caller = createSessionCaller("telegram:123", "telegram");
+      const { session } = await caller.session.create({
+        connectorType: "telegram",
+        prefix: "telegram:123",
+      });
+
+      const events: any[] = [];
+      const gen = await caller.chat.stream({
+        sessionId: session.id,
+        message: "/rename Release polish",
+      });
+      for await (const event of gen) {
+        events.push(event);
+      }
+
+      expect(runtime.sessions.getSession(session.id)?.title).toBe("Release polish");
+      expect(events).toHaveLength(2);
+      expect(events[0]).toMatchObject({
+        type: "text_delta",
+        delta: "Session renamed to: Release polish",
+        sessionId: session.id,
+        connectorType: "telegram",
+        source: "chat",
+      });
+      expect(events[1]).toMatchObject({
+        type: "done",
+        stopReason: "slash_command",
+      });
+      expect(events[0].runId).toBe(events[1].runId);
+    });
+
+    test("reports usage for bare session rename slash command", async () => {
+      const caller = createSessionCaller("telegram:123", "telegram");
+      const { session } = await caller.session.create({
+        connectorType: "telegram",
+        prefix: "telegram:123",
+      });
+
+      const events: any[] = [];
+      const gen = await caller.chat.stream({
+        sessionId: session.id,
+        message: "/rename",
+      });
+      for await (const event of gen) {
+        events.push(event);
+      }
+
+      expect(runtime.sessions.getSession(session.id)?.title).toBeNull();
+      expect(events).toHaveLength(1);
+      expect(events[0]).toMatchObject({
+        type: "error",
+        message: "Usage: /rename <session title>",
+        sessionId: session.id,
+        connectorType: "telegram",
+        source: "chat",
+      });
+      expect(typeof events[0].runId).toBe("string");
+    });
+
     test("creates harness sessions for gateway chat execution", async () => {
       const faux = registerFauxProvider({
         provider: "procedures-harness",

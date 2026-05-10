@@ -50,7 +50,11 @@ import type { ToolIntent } from "@aria/policy";
 import { createSessionTitleTool } from "@aria/tools";
 import { createSessionToolEnvironment } from "@aria/tools/session-tool-environment";
 import { preprocessContextReferences } from "@aria/prompt/context-references";
-import { expandAriaSlashPrompt } from "@aria/prompt/slash-prompts";
+import {
+  ARIA_RENAME_COMMAND,
+  expandAriaSlashPrompt,
+  parseAriaRenameSlashCommand,
+} from "@aria/prompt/slash-prompts";
 
 import { listToolsets } from "@aria/tools/toolsets";
 
@@ -775,6 +779,20 @@ export function createAppRouter(runtime: EngineRuntime) {
     return promptState.value;
   }
 
+  async function persistSessionTitle(sessionId: string): Promise<void> {
+    const refreshedSession = runtime.sessions.getSession(sessionId);
+    if (!refreshedSession) {
+      return;
+    }
+
+    const liveAgent = sessionAgents.get(sessionId);
+    const messages = liveAgent?.getMessages() ?? runtime.store.getSessionMessages(sessionId);
+    if (liveAgent) {
+      runtime.store.syncSessionMessages(refreshedSession.id, messages);
+    }
+    await runtime.archive.syncSession(refreshedSession, messages);
+  }
+
   /** Get or create a harness session for a runtime session */
   async function getSessionAgent(sessionId: string) {
     let agent = sessionAgents.get(sessionId);
@@ -1206,6 +1224,85 @@ export function createAppRouter(runtime: EngineRuntime) {
                 actorId: ctx.connectorId,
               },
             );
+            return;
+          }
+
+          const renameCommand = parseAriaRenameSlashCommand(input.message);
+          if (renameCommand) {
+            const runId = startRun(input.sessionId, "slash_command", input.message);
+            try {
+              if (!renameCommand.title) {
+                yield withEventMeta(
+                  {
+                    type: "error",
+                    message: `Usage: ${ARIA_RENAME_COMMAND} <session title>`,
+                  },
+                  {
+                    sessionId: input.sessionId,
+                    connectorType: session.connectorType as ConnectorType,
+                    runId,
+                    source: "chat",
+                    session,
+                    actorId: ctx.connectorId,
+                  },
+                );
+                finishRun(input.sessionId, runId, {
+                  status: "failed",
+                  errorMessage: "Session title cannot be empty",
+                });
+                return;
+              }
+
+              const updated = runtime.sessions.setTitle(input.sessionId, renameCommand.title);
+              await persistSessionTitle(input.sessionId);
+              const savedTitle = updated.title?.trim() ?? renameCommand.title;
+              yield withEventMeta(
+                {
+                  type: "text_delta",
+                  delta: `Session renamed to: ${savedTitle}`,
+                },
+                {
+                  sessionId: input.sessionId,
+                  connectorType: session.connectorType as ConnectorType,
+                  runId,
+                  source: "chat",
+                  session: updated,
+                  actorId: ctx.connectorId,
+                },
+              );
+              yield withEventMeta(
+                { type: "done", stopReason: "slash_command" },
+                {
+                  sessionId: input.sessionId,
+                  connectorType: updated.connectorType as ConnectorType,
+                  runId,
+                  source: "chat",
+                  session: updated,
+                  actorId: ctx.connectorId,
+                },
+              );
+              finishRun(input.sessionId, runId, {
+                status: "completed",
+                stopReason: "slash_command",
+              });
+            } catch (err) {
+              const message = err instanceof Error ? err.message : String(err);
+              yield withEventMeta(
+                { type: "error", message },
+                {
+                  sessionId: input.sessionId,
+                  connectorType: session.connectorType as ConnectorType,
+                  runId,
+                  source: "chat",
+                  session,
+                  actorId: ctx.connectorId,
+                },
+              );
+              finishRun(input.sessionId, runId, {
+                status: "failed",
+                errorMessage: message,
+              });
+            }
             return;
           }
           const agent = await getSessionAgent(input.sessionId);

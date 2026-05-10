@@ -3,8 +3,10 @@ import {
   ARIA_INIT_COMMAND,
   ARIA_INIT_PROMPT,
   ARIA_PLAN_COMMAND,
+  ARIA_RENAME_COMMAND,
   buildAriaPlanPrompt,
   expandConsoleSlashPrompt,
+  parseAriaRenameSlashCommand,
 } from "@aria/console/init";
 
 describe("console init prompt", () => {
@@ -46,5 +48,13 @@ describe("console init prompt", () => {
     expect(prompt).toContain("without a project task");
     expect(prompt).toContain("Ask the user what Aria project work they want planned");
     expect(expandConsoleSlashPrompt(ARIA_PLAN_COMMAND)?.message).toBe(prompt);
+  });
+
+  test("recognizes /rename as a direct slash command instead of a prompt expansion", () => {
+    expect(parseAriaRenameSlashCommand(`${ARIA_RENAME_COMMAND} Release polish`)).toEqual({
+      title: "Release polish",
+    });
+    expect(parseAriaRenameSlashCommand(ARIA_RENAME_COMMAND)).toEqual({ title: "" });
+    expect(expandConsoleSlashPrompt(`${ARIA_RENAME_COMMAND} Release polish`)).toBeNull();
   });
 });

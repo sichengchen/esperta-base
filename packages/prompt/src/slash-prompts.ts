@@ -1,5 +1,6 @@
 export const ARIA_INIT_COMMAND = "/init";
 export const ARIA_PLAN_COMMAND = "/plan";
+export const ARIA_RENAME_COMMAND = "/rename";
 
 export const ARIA_INIT_PROMPT = `Please analyze this codebase and create an AGENTS.md file, which will be given to future Aria agents and other coding agents operating in this repository.
 
@@ -29,6 +30,19 @@ This file provides guidance to Aria agents when working with code in this reposi
 export interface SlashPromptExpansion {
   displayText: string;
   message: string;
+}
+
+export interface RenameSlashCommand {
+  title: string;
+}
+
+export function parseAriaRenameSlashCommand(text: string): RenameSlashCommand | null {
+  if (text !== ARIA_RENAME_COMMAND && !text.startsWith(`${ARIA_RENAME_COMMAND} `)) {
+    return null;
+  }
+
+  const title = text === ARIA_RENAME_COMMAND ? "" : text.slice(ARIA_RENAME_COMMAND.length).trim();
+  return { title };
 }
 
 export function buildAriaPlanPrompt(request: string): string {
@@ -77,6 +91,10 @@ export function expandAriaSlashPrompt(text: string): SlashPromptExpansion | null
       displayText: text,
       message: buildAriaPlanPrompt(request),
     };
+  }
+
+  if (parseAriaRenameSlashCommand(text)) {
+    return null;
   }
 
   return null;

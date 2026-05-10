@@ -9,13 +9,16 @@ import { SessionPicker } from "./SessionPicker.js";
 import { ToolApproval } from "./ToolApproval.js";
 import { UserQuestion } from "./UserQuestion.js";
 import { handleConsoleWorkflowCommand } from "./commands.js";
+import { ARIA_INIT_COMMAND, ARIA_PLAN_COMMAND } from "./init.js";
 import { createTuiClient } from "./client.js";
 import type { ModelConfig } from "@aria/gateway/router/types";
 import type { Session } from "@aria/protocol";
 
 type EngineClient = ReturnType<typeof createTuiClient>;
 
-const TUI_COMMANDS = [
+const CLIENT_SLASH_COMMANDS = [
+  ARIA_INIT_COMMAND,
+  ARIA_PLAN_COMMAND,
   "/new",
   "/stop",
   "/restart",
@@ -866,7 +869,7 @@ export function App({ client }: AppProps) {
           <Input
             onSubmit={handleSubmit}
             disabled={isStreaming || !connected}
-            commands={TUI_COMMANDS}
+            commands={CLIENT_SLASH_COMMANDS}
           />
         ))
       )}

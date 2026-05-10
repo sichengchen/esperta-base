@@ -772,6 +772,42 @@ describe("tRPC procedures (non-live)", () => {
       expect(events[0].runId).toBe(events[1].runId);
     });
 
+    test("expands Aria slash prompts at the shared chat stream boundary", async () => {
+      const caller = createSessionCaller("telegram:123", "telegram");
+      const { session } = await caller.session.create({
+        connectorType: "telegram",
+        prefix: "telegram:123",
+      });
+
+      let receivedMessage = "";
+      const coordinator = getRuntimeSessionCoordinator(runtime);
+      coordinator.sessionAgents.set(session.id, {
+        async *chat(text: string) {
+          receivedMessage = text;
+          yield { type: "text_delta", delta: "planned" };
+          yield { type: "done", stopReason: "end_turn" };
+        },
+        getMessages() {
+          return [
+            { role: "user", content: receivedMessage, timestamp: 100 },
+            { role: "assistant", content: "planned", timestamp: 101 },
+          ];
+        },
+      } as unknown as Agent);
+
+      const gen = await caller.chat.stream({
+        sessionId: session.id,
+        message: "/plan add project labels",
+      });
+      for await (const _event of gen) {
+        // Drain the stream.
+      }
+
+      expect(receivedMessage).toContain("You are planning Aria project work");
+      expect(receivedMessage).toContain("add project labels");
+      expect(receivedMessage).toContain("Do not edit files");
+    });
+
     test("creates harness sessions for gateway chat execution", async () => {
       const faux = registerFauxProvider({
         provider: "procedures-harness",

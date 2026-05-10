@@ -98,6 +98,51 @@ describe("ChatSDKAdapter command handling", () => {
     expect(posts.join("")).toBe(streamed);
   });
 
+  test("passes Aria slash prompts through for gateway-level expansion", async () => {
+    const { thread, posts } = createFakeThread();
+    const streamed = "Planning response";
+    const messages: string[] = [];
+    const adapter = new ChatSDKAdapter(createFakeChat(), {
+      connectorType: "discord",
+      platformName: "discord",
+      attributeSender: false,
+    });
+
+    (adapter as any).client = {
+      session: {
+        getLatest: {
+          query: async () => null,
+        },
+        create: {
+          mutate: async () => ({ session: { id: "discord:channel-1:new" } }),
+        },
+      },
+      chat: {
+        stream: {
+          subscribe: (
+            input: { sessionId: string; message: string },
+            handlers: { onData: (event: any) => Promise<void> },
+          ) => {
+            messages.push(input.message);
+            void handlers.onData({ type: "text_delta", delta: streamed });
+            void handlers.onData({ type: "done" });
+            return { unsubscribe() {} };
+          },
+        },
+      },
+    };
+
+    await (adapter as any).handleMessage(thread, {
+      text: "/plan add project labels",
+      author: { fullName: "Remote User" },
+    });
+
+    await waitFor(() => {
+      expect(posts).toEqual([streamed]);
+    });
+    expect(messages).toEqual(["/plan add project labels"]);
+  });
+
   test("submits numbered answers for pending multiple-choice questions", async () => {
     const { thread, posts } = createFakeThread();
     const answers: Array<{ id: string; answer: string }> = [];

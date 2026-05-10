@@ -50,6 +50,7 @@ import type { ToolIntent } from "@aria/policy";
 import { createSessionTitleTool } from "@aria/tools";
 import { createSessionToolEnvironment } from "@aria/tools/session-tool-environment";
 import { preprocessContextReferences } from "@aria/prompt/context-references";
+import { expandAriaSlashPrompt } from "@aria/prompt/slash-prompts";
 
 import { listToolsets } from "@aria/tools/toolsets";
 
@@ -1212,8 +1213,8 @@ export function createAppRouter(runtime: EngineRuntime) {
           const toolEnvironment = ensureSessionToolEnvironment(input.sessionId);
           toolEnvironment.newTurn();
 
-          // Expand @file / @folder / @diff / @url context references first.
-          let chatMessage = input.message;
+          // Expand client-agnostic slash prompts, then @file / @folder / @diff / @url references.
+          let chatMessage = expandAriaSlashPrompt(input.message)?.message ?? input.message;
           try {
             const webFetchTool = runtime.tools.find((tool) => tool.name === "web_fetch");
             const contextRefs = await preprocessContextReferences(chatMessage, {

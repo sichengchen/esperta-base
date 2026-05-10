@@ -10,6 +10,7 @@
     ".": "./src/index.ts",
     "./App": "./src/App.tsx",
     "./Input": "./src/Input.tsx",
+    "./init": "./src/init.ts",
     "./MarkdownText": "./src/MarkdownText.tsx",
     "./MessageBlock": "./src/MessageBlock.tsx",
     "./ModelPicker": "./src/ModelPicker.tsx",

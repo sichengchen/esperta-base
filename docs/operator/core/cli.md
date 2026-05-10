@@ -55,13 +55,17 @@ or as a standalone surface:
 - `aria linear`
 - `aria wechat [start|login]`
 
-## TUI Behavior
+## Client Slash Commands
 
-The TUI is a connector surface over the same runtime protocol used by other connectors. It creates or resumes a `tui` session, streams runtime events, and routes approvals/questions back through the runtime.
+Slash commands are cross-client runtime commands. Clients may offer suggestions
+or compact UI for them, but command meaning belongs to the shared Aria Runtime
+and gateway path rather than to one surface.
 
 Important slash commands remain:
 
 - `/new`
+- `/init`
+- `/plan <task>`
 - `/stop`
 - `/restart`
 - `/shutdown`

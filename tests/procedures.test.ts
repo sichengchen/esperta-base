@@ -806,6 +806,19 @@ describe("tRPC procedures (non-live)", () => {
       expect(receivedMessage).toContain("You are planning Aria project work");
       expect(receivedMessage).toContain("add project labels");
       expect(receivedMessage).toContain("Do not edit files");
+
+      receivedMessage = "";
+      const reviewGen = await caller.chat.stream({
+        sessionId: session.id,
+        message: "/security-review current branch",
+      });
+      for await (const _event of reviewGen) {
+        // Drain the stream.
+      }
+
+      expect(receivedMessage).toContain("senior security engineer");
+      expect(receivedMessage).toContain("current branch");
+      expect(receivedMessage).toContain("No high-confidence security findings.");
     });
 
     test("renames sessions through the shared slash command path", async () => {

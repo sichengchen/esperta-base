@@ -9,7 +9,13 @@ import { SessionPicker } from "./SessionPicker.js";
 import { ToolApproval } from "./ToolApproval.js";
 import { UserQuestion } from "./UserQuestion.js";
 import { handleConsoleWorkflowCommand } from "./commands.js";
-import { ARIA_INIT_COMMAND, ARIA_PLAN_COMMAND, ARIA_RENAME_COMMAND } from "./init.js";
+import {
+  ARIA_INIT_COMMAND,
+  ARIA_PLAN_COMMAND,
+  ARIA_RENAME_COMMAND,
+  ARIA_REVIEW_COMMAND,
+  ARIA_SECURITY_REVIEW_COMMAND,
+} from "./init.js";
 import { createTuiClient } from "./client.js";
 import type { ModelConfig } from "@aria/gateway/router/types";
 import type { Session } from "@aria/protocol";
@@ -20,6 +26,8 @@ const CLIENT_SLASH_COMMANDS = [
   ARIA_INIT_COMMAND,
   ARIA_PLAN_COMMAND,
   ARIA_RENAME_COMMAND,
+  ARIA_REVIEW_COMMAND,
+  ARIA_SECURITY_REVIEW_COMMAND,
   "/new",
   "/stop",
   "/restart",

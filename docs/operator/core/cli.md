@@ -67,6 +67,8 @@ Important slash commands remain:
 - `/init`
 - `/plan <task>`
 - `/rename <session title>`
+- `/review [target]`
+- `/security-review [target]`
 - `/stop`
 - `/restart`
 - `/shutdown`

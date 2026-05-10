@@ -4,7 +4,11 @@ import {
   ARIA_INIT_PROMPT,
   ARIA_PLAN_COMMAND,
   ARIA_RENAME_COMMAND,
+  ARIA_REVIEW_COMMAND,
+  ARIA_SECURITY_REVIEW_COMMAND,
   buildAriaPlanPrompt,
+  buildAriaReviewPrompt,
+  buildAriaSecurityReviewPrompt,
   expandConsoleSlashPrompt,
   parseAriaRenameSlashCommand,
 } from "@aria/console/init";
@@ -56,5 +60,33 @@ describe("console init prompt", () => {
     });
     expect(parseAriaRenameSlashCommand(ARIA_RENAME_COMMAND)).toEqual({ title: "" });
     expect(expandConsoleSlashPrompt(`${ARIA_RENAME_COMMAND} Release polish`)).toBeNull();
+  });
+
+  test("expands /review into a focused code review prompt", () => {
+    const prompt = buildAriaReviewPrompt("PR 42");
+    const expansion = expandConsoleSlashPrompt(`${ARIA_REVIEW_COMMAND} PR 42`);
+
+    expect(expansion).toEqual({
+      displayText: "/review PR 42",
+      message: prompt,
+    });
+    expect(prompt).toContain("focused Aria code review");
+    expect(prompt).toContain("PR 42");
+    expect(prompt).toContain("Lead with findings");
+    expect(prompt).toContain("correctness bugs");
+  });
+
+  test("expands /security-review into a high-confidence vulnerability review prompt", () => {
+    const prompt = buildAriaSecurityReviewPrompt("");
+    const expansion = expandConsoleSlashPrompt(ARIA_SECURITY_REVIEW_COMMAND);
+
+    expect(expansion).toEqual({
+      displayText: ARIA_SECURITY_REVIEW_COMMAND,
+      message: prompt,
+    });
+    expect(prompt).toContain("senior security engineer");
+    expect(prompt).toContain("confidence 8");
+    expect(prompt).toContain("No high-confidence security findings.");
+    expect(prompt).toContain("current repository changes");
   });
 });

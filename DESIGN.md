@@ -69,19 +69,27 @@ When a layout control has a clear semantic icon, use a pure icon button instead 
 
 Use a shared icon library rather than ad hoc inline glyphs or text arrows.
 
+Desktop uses HugeIcons as the shared icon library.
+
 When an icon does not have state variants, show the active state with the same treatment as hover.
 
 Reusable icon-toggle buttons must be abstracted as shared components.
 
-### 008. Neutral Palette Uses Only Black, White, And Pure Gray
+### 008. Desktop And Mobile Use The Shadcn Neutral Palette
 
 Scope: Desktop, Mobile
 
-The interface palette must use only black, white, and neutral gray values.
+The interface palette follows shadcn's neutral token system.
 
-Do not use tinted gray, biased gray, or colored accent grays.
+Use shadcn semantic tokens for `background`, `foreground`, `card`, `popover`,
+`primary`, `secondary`, `muted`, `accent`, `destructive`, `border`, `input`,
+and `ring`.
 
-Interactive hover and emphasis states must also remain neutral, using grayscale fills or black alpha overlays rather than color accents.
+Layout-level Aria tokens may alias those shadcn tokens, but new component work
+should prefer shadcn tokens directly.
+
+Chart color tokens must stay neutral rather than introducing categorical hue
+families unless a domain-specific visualization explicitly requires them.
 
 ### 009. Desktop Uses A Primary-Left Split Hierarchy
 
@@ -289,7 +297,7 @@ on the right.
 
 Settings rows use the shared neutral palette, compact typography, thin
 separators, icon-led section navigation, switches for binary values, and
-segmented controls for short mutually exclusive choices.
+selects for short mutually exclusive choices.
 
 Rows with dense record controls, such as provider secrets or model actions,
 must keep the record title readable first and wrap controls onto the following
@@ -416,15 +424,108 @@ expose shadcn-style names such as `DialogContent`, `DropdownMenuContent`,
 the primitive implementation detail inside those local files.
 
 The desktop shadcn configuration uses the Base UI family (`base-nova`) with
-semantic CSS theme tokens mapped onto Aria Desktop's neutral palette, compact
+semantic CSS theme tokens mapped onto shadcn's neutral palette, compact
 metrics, icon rules, and no-nested-box constraints. Do not adopt pre-styled skins
 or color themes that override the desktop workbench language.
 
 The desktop workbench uses local shadcn/Base UI components for workspace tabs,
 project disclosure sections, composer dropdown menus, branch dialogs, settings
-sheets, settings switches, settings selects, settings toggles, and settings
-segmented controls.
+sheets, settings switches, settings selects, settings fields, input groups,
+destructive confirmations, empty states, and list items.
+
+Generated shadcn/Base UI components such as `Button`, `ButtonGroup`, `Input`,
+`InputGroup`, `Textarea`, `Badge`, `Card`, `Alert`, `AlertDialog`, `Field`,
+`Item`, `Empty`, `Spinner`, `Label`, and `Separator` should be used directly in
+the central workbench and settings surfaces wherever they match the interaction.
 
 The desktop renderer root must keep portal-friendly stacking isolation so
 shadcn/Base UI popups and dialogs can layer above pane content without broad
 `z-index` overrides.
+
+Settings list rows must be built from shadcn `Item`, `ItemContent`, and
+`ItemActions`, with controls from shadcn `Switch`, `Select`, `Input`, and
+`Button`. Avoid restyling those controls as bespoke desktop widgets; local CSS
+may constrain layout dimensions but should leave component states, focus rings,
+active states, and control anatomy to the shadcn component.
+
+Settings content uses a constrained readable column. Row labels stay in the
+left column and controls begin in the adjacent control column; do not center row
+labels in the panel or pin controls to the far window edge.
+
+### 038. Desktop Uses The Mira shadcn Preset Values
+
+Scope: Desktop
+
+The desktop app uses the following shadcn design preset values across the full
+desktop surface, including layout shell, sidebars, topbar, inspectors,
+workbench, settings, dialogs, sheets, menus, and composer:
+
+- Style: `Mira`
+- Base Color: `Neutral`
+- Theme: `Neutral`
+- Chart Color: `Neutral`
+- Heading: `Inter`
+- Font: `Inter`
+- Icon Library: `HugeIcons`
+- Radius: `Default`
+- Menu: `Default / Solid`
+- Menu Accent: `Subtle`
+
+These values are the rule. Reference screenshots that contain these words are
+text inputs for the preset values, not visual layout or chrome contracts.
+
+### 039. Desktop Portal Stacking Is Owned By shadcn/Base Primitives
+
+Scope: Desktop
+
+Dialogs, sheets, menus, popovers, and alert dialogs must keep their
+shadcn/Base UI overlay and popup stacking order intact.
+
+Surface-specific CSS may set size, position, padding, borders, and typography
+for portal content, but must not lower popup `z-index` below the primitive
+overlay or add competing broad stacking rules.
+
+### 040. Desktop Settings Preserve shadcn Component Chrome
+
+Scope: Desktop
+
+The settings surface is a shadcn composition, not a custom table. Settings
+panels use shadcn `Card`; settings records use shadcn `Item`; section breaks use
+shadcn `FieldSeparator`; wizard progress uses shadcn `Badge`; form actions use
+shadcn `ButtonGroup`; boolean controls use shadcn `Switch`; persisted option
+sets use shadcn `Select`; and freeform controls use shadcn `Input` and
+`InputGroup`.
+
+Settings CSS must not define settings-specific global selectors for the shell,
+sidebar, content region, panels, rows, sheets, wizards, form controls, review
+rows, or action footers. Use shadcn component chrome plus local layout utilities
+in JSX. Do not add selectors such as `.settings-row`, `.settings-sheet`,
+`.settings-wizard`, `.settings-select`, `.settings-panel`,
+`.settings-sidebar`, or `.settings-content`.
+
+Do not flatten shadcn cards/items into border-only rows, force custom
+segmented-control styling, or replace component hover, focus, active, disabled,
+radius, border, or background treatments.
+
+Settings rows that pick one value from a small enum, including theme, default
+space, approval mode, security mode, verbosity, provider type, model type, and
+model tier, must use shadcn `Select` rather than segmented `ToggleGroup`
+buttons.
+
+### 041. Desktop Settings Follow Official shadcn Block Shells
+
+Scope: Desktop
+
+Desktop settings must follow the official shadcn blocks app-shell pattern:
+`SidebarProvider` wraps the settings shell, `Sidebar` owns navigation,
+`SidebarContent` contains `SidebarGroup`, `SidebarGroupLabel`,
+`SidebarGroupContent`, `SidebarMenu`, and `SidebarMenuItem`, and `SidebarInset`
+owns the active settings content.
+
+Settings section navigation uses `SidebarMenuButton` with state owned by the
+settings view. Do not nest `TabsList` or `TabsTrigger` inside `SidebarMenu`; that
+mixes two navigation systems and can collapse labels or produce overlapping
+chrome. The settings sidebar is a local copy-owned shadcn component surface. Do
+not replace it with a bespoke `<aside>` navigation, a painted tab rail, or
+custom list/button chrome when the shadcn sidebar composition can express the
+same structure.

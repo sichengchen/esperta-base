@@ -45,6 +45,10 @@
     "apps/aria-desktop": {
       "name": "aria-desktop",
       "dependencies": {
+        "@aria/access-client": "workspace:*",
+        "@aria/gateway": "workspace:*",
+        "@aria/node-host": "workspace:*",
+        "@aria/persistence": "workspace:*",
         "@base-ui/react": "^1.4.1",
         "@hugeicons/core-free-icons": "^4.1.1",
         "@hugeicons/react": "^1.1.6",
@@ -60,6 +64,10 @@
         "electron-vite": "^4.0.0",
         "vite": "^7.2.1",
       },
+    },
+    "apps/aria-node": {
+      "name": "aria-node",
+      "version": "0.0.0",
     },
     "apps/aria-server": {
       "name": "aria-server",
@@ -78,6 +86,10 @@
     },
     "packages/automation": {
       "name": "@aria/automation",
+      "version": "0.0.0",
+    },
+    "packages/capability": {
+      "name": "@aria/capability",
       "version": "0.0.0",
     },
     "packages/cli": {
@@ -107,8 +119,20 @@
       "name": "@aria/jobs",
       "version": "0.0.0",
     },
+    "packages/kernel": {
+      "name": "@aria/kernel",
+      "version": "0.0.0",
+    },
     "packages/memory": {
       "name": "@aria/memory",
+      "version": "0.0.0",
+    },
+    "packages/node-host": {
+      "name": "@aria/node-host",
+      "version": "0.0.0",
+    },
+    "packages/node-runtime": {
+      "name": "@aria/node-runtime",
       "version": "0.0.0",
     },
     "packages/persistence": {
@@ -129,6 +153,18 @@
     },
     "packages/runtime": {
       "name": "@aria/runtime",
+      "version": "0.0.0",
+    },
+    "packages/sandbox": {
+      "name": "@aria/sandbox",
+      "version": "0.0.0",
+    },
+    "packages/sandbox-full": {
+      "name": "@aria/sandbox-full",
+      "version": "0.0.0",
+    },
+    "packages/sandbox-justbash": {
+      "name": "@aria/sandbox-justbash",
       "version": "0.0.0",
     },
     "packages/server": {
@@ -161,6 +197,8 @@
 
     "@aria/automation": ["@aria/automation@workspace:packages/automation"],
 
+    "@aria/capability": ["@aria/capability@workspace:packages/capability"],
+
     "@aria/cli": ["@aria/cli@workspace:packages/cli"],
 
     "@aria/connectors": ["@aria/connectors@workspace:packages/connectors"],
@@ -175,7 +213,13 @@
 
     "@aria/jobs": ["@aria/jobs@workspace:packages/jobs"],
 
+    "@aria/kernel": ["@aria/kernel@workspace:packages/kernel"],
+
     "@aria/memory": ["@aria/memory@workspace:packages/memory"],
+
+    "@aria/node-host": ["@aria/node-host@workspace:packages/node-host"],
+
+    "@aria/node-runtime": ["@aria/node-runtime@workspace:packages/node-runtime"],
 
     "@aria/persistence": ["@aria/persistence@workspace:packages/persistence"],
 
@@ -186,6 +230,12 @@
     "@aria/protocol": ["@aria/protocol@workspace:packages/protocol"],
 
     "@aria/runtime": ["@aria/runtime@workspace:packages/runtime"],
+
+    "@aria/sandbox": ["@aria/sandbox@workspace:packages/sandbox"],
+
+    "@aria/sandbox-full": ["@aria/sandbox-full@workspace:packages/sandbox-full"],
+
+    "@aria/sandbox-justbash": ["@aria/sandbox-justbash@workspace:packages/sandbox-justbash"],
 
     "@aria/server": ["@aria/server@workspace:packages/server"],
 
@@ -926,6 +976,8 @@
     "ansi-styles": ["ansi-styles@6.2.3", "", {}, "sha512-4Dj6M28JB+oAH8kFkTLUo+a2jwOFkuqb3yucU0CANcRRUbxS0cP0nZYCGjcc3BNXwRIsUVmDGgzawme7zvJHvg=="],
 
     "aria-desktop": ["aria-desktop@workspace:apps/aria-desktop"],
+
+    "aria-node": ["aria-node@workspace:apps/aria-node"],
 
     "aria-server": ["aria-server@workspace:apps/aria-server"],
 

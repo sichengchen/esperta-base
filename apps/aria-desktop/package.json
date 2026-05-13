@@ -10,6 +10,10 @@
     "preview": "electron-vite preview"
   },
   "dependencies": {
+    "@aria/access-client": "workspace:*",
+    "@aria/gateway": "workspace:*",
+    "@aria/node-host": "workspace:*",
+    "@aria/persistence": "workspace:*",
     "@base-ui/react": "^1.4.1",
     "@hugeicons/core-free-icons": "^4.1.1",
     "@hugeicons/react": "^1.1.6",

@@ -15,6 +15,7 @@ import { MCPManager } from "@aria/server/mcp";
 import { SessionArchiveManager } from "@aria/server/session-archive";
 import { SessionManager } from "@aria/server/sessions";
 import type { EngineRuntime } from "@aria/node-runtime/runtime";
+import { createSessionTitleTool, createSessionToolEnvironment, listToolsets } from "@aria/tools";
 import type { KnownProvider } from "@mariozechner/pi-ai";
 
 const allocatedGatewayPorts = new Set<number>();
@@ -171,6 +172,9 @@ export async function createTestRuntime(
     securityMode: new SecurityModeManager(),
     agentName: "Test",
     mainSessionId: mainSession.id,
+    createSessionTitleTool,
+    createSessionToolEnvironment,
+    listToolsets: () => listToolsets([]),
     async refreshSystemPrompt() {
       return "Test agent.";
     },

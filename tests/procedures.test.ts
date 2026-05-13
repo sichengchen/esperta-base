@@ -21,6 +21,7 @@ import { OperationalStore } from "@aria/persistence/operational-store";
 import { MCPManager } from "@aria/server/mcp";
 import { AuthManager } from "@aria/gateway/auth";
 import { ProjectsEngineRepository, ProjectsEngineStore } from "@aria/work";
+import { createSessionTitleTool, createSessionToolEnvironment, listToolsets } from "@aria/tools";
 import {
   fauxAssistantMessage,
   fauxToolCall,
@@ -157,6 +158,9 @@ async function createTestRuntime(runtimeHome: string): Promise<EngineRuntime> {
     securityMode: new SecurityModeManager(),
     agentName: "Test",
     mainSessionId: mainSession.id,
+    createSessionTitleTool,
+    createSessionToolEnvironment,
+    listToolsets: () => listToolsets([]),
     async refreshSystemPrompt() {
       return "Test agent.";
     },

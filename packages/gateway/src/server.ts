@@ -7,7 +7,7 @@ import { createAppRouter, flushProcedureState, type AppRouter } from "./procedur
 import { createContext } from "./context.js";
 import type { EngineRuntime } from "@aria/node-runtime/runtime";
 import { heartbeatState } from "@aria/automation/scheduler";
-import { frameAsData } from "@aria/agent/content-frame";
+import { frameAsData } from "@aria/protocol/content-frame";
 import {
   logAutomationResult,
   runAutomationAgent,

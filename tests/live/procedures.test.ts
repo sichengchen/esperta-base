@@ -18,6 +18,7 @@ import { OperationalStore } from "@aria/persistence/operational-store";
 import { MCPManager } from "@aria/server/mcp";
 import { AuthManager } from "@aria/gateway/auth";
 import type { EngineEvent } from "@aria/protocol";
+import { createSessionTitleTool, createSessionToolEnvironment, listToolsets } from "@aria/tools";
 import {
   describeLive,
   getLiveTestLabel,
@@ -120,6 +121,9 @@ async function createLiveTestRuntime(runtimeHome: string): Promise<EngineRuntime
     securityMode: new SecurityModeManager(),
     agentName: "Test",
     mainSessionId: mainSession.id,
+    createSessionTitleTool,
+    createSessionToolEnvironment,
+    listToolsets: () => listToolsets(tools),
     async refreshSystemPrompt() {
       return "Reply briefly. When asked to use a tool, use it without explanation.";
     },

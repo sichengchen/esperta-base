@@ -2,7 +2,28 @@ import * as z from "zod";
 
 /** Shared types between Engine and Connectors */
 
-/** Events emitted by the agent during streaming — mirrors AgentEvent but for tRPC transport */
+export type DangerLevel = "safe" | "moderate" | "dangerous";
+
+export interface ToolResult {
+  content: string;
+  isError?: boolean;
+}
+
+/** Events emitted by the agent during streaming. */
+export type AgentEvent =
+  | { type: "text_delta"; delta: string }
+  | { type: "thinking_delta"; delta: string }
+  | { type: "tool_start"; name: string; id: string; args: Record<string, unknown> }
+  | { type: "tool_intent_created"; name: string; id: string; args: Record<string, unknown> }
+  | { type: "tool_end"; name: string; id: string; result: ToolResult }
+  | { type: "tool_approval_request"; name: string; id: string; args: Record<string, unknown> }
+  | { type: "user_question"; id: string; question: string; options?: string[] }
+  | { type: "warning"; message: string }
+  | { type: "done"; stopReason: string }
+  | { type: "error"; message: string };
+
+export type AskUserCallback = (id: string, question: string, options?: string[]) => Promise<string>;
+
 /** Security layers that can block a tool call */
 export type SecurityLayer = "url_policy" | "exec_fence" | "tool_restriction";
 
@@ -55,6 +76,12 @@ export type EngineEvent = EngineEventMeta &
     | { type: "text_delta"; delta: string }
     | { type: "thinking_delta"; delta: string }
     | { type: "tool_start"; name: string; id: string }
+    | {
+        type: "tool_intent_created";
+        name: string;
+        id: string;
+        args: Record<string, unknown>;
+      }
     | {
         type: "tool_end";
         name: string;

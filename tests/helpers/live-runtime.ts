@@ -14,6 +14,7 @@ import { MCPManager } from "@aria/server/mcp";
 import { SessionArchiveManager } from "@aria/server/session-archive";
 import { SessionManager } from "@aria/server/sessions";
 import type { EngineRuntime } from "@aria/node-runtime/runtime";
+import { createSessionTitleTool, createSessionToolEnvironment, listToolsets } from "@aria/tools";
 import { makeLiveRouter, resolveLiveProviderSelection } from "./live-model.js";
 
 export interface CreateLiveRuntimeOptions {
@@ -127,6 +128,9 @@ export async function createLiveRuntime(
     securityMode: new SecurityModeManager(),
     agentName: "Live Test",
     mainSessionId: mainSession.id,
+    createSessionTitleTool,
+    createSessionToolEnvironment,
+    listToolsets: () => listToolsets(tools),
     async refreshSystemPrompt() {
       return systemPrompt;
     },

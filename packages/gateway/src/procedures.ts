@@ -8,7 +8,6 @@ import { getRuntimeSessionCoordinator } from "@aria/server/session-coordinator";
 import { HandoffService, HandoffStore } from "@aria/handoff";
 import { ProjectsEngineRepository, ProjectsEngineStore } from "@aria/work";
 import type { RuntimeBackendAdapter } from "@aria/jobs/runtime-backend";
-import type { AgentEvent, AskUserCallback, DangerLevel } from "@aria/agent";
 import {
   createAriaHarnessContext,
   type AriaHarnessHost,
@@ -27,6 +26,9 @@ import type {
   ToolApprovalMode,
   EscalationChoice,
   Session,
+  AgentEvent,
+  AskUserCallback,
+  DangerLevel,
 } from "@aria/protocol";
 import type { ModelConfig, ProviderConfig } from "./router/types.js";
 import {
@@ -47,16 +49,12 @@ import {
   toolIntentRequiresApproval,
 } from "@aria/policy";
 import type { ToolIntent } from "@aria/policy";
-import { createSessionTitleTool } from "@aria/tools";
-import { createSessionToolEnvironment } from "@aria/tools/session-tool-environment";
 import { preprocessContextReferences } from "@aria/prompt/context-references";
 import {
   ARIA_RENAME_COMMAND,
   expandAriaSlashPrompt,
   parseAriaRenameSlashCommand,
 } from "@aria/prompt/slash-prompts";
-
-import { listToolsets } from "@aria/tools/toolsets";
 
 import { upsertWebhookTaskRecord, updateCronTaskState } from "@aria/automation/automation";
 import { queryAuditEntries } from "@aria/audit";
@@ -718,7 +716,7 @@ export function createAppRouter(runtime: EngineRuntime) {
       .filterToolsForSession(runtime.tools, sessionId)
       .map((tool) =>
         tool.name === "set_session_title"
-          ? createSessionTitleTool({
+          ? runtime.createSessionTitleTool({
               setTitle: async (title) => {
                 const savedTitle = runtime.sessions.setTitle(sessionId, title).title?.trim();
                 const refreshedSession = runtime.sessions.getSession(sessionId);
@@ -736,7 +734,7 @@ export function createAppRouter(runtime: EngineRuntime) {
           : tool,
       );
     const harnessHost = createGatewayHarnessHost(sessionId);
-    const toolEnvironment = createSessionToolEnvironment({
+    const toolEnvironment = runtime.createSessionToolEnvironment({
       baseTools: sessionBaseTools,
       checkpointManager: runtime.checkpoints,
       maxContextHintChars: runtime.config.getConfigFile().runtime.contextFiles?.maxHintChars,
@@ -2175,7 +2173,7 @@ export function createAppRouter(runtime: EngineRuntime) {
     /** Toolset metadata */
     toolset: router({
       list: adminProcedure.query(() => {
-        return listToolsets(runtime.tools);
+        return runtime.listToolsets();
       }),
     }),
 

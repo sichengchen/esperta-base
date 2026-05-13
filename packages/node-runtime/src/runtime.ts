@@ -1,7 +1,8 @@
 import { existsSync } from "node:fs";
 import { writeFile } from "node:fs/promises";
 import { join } from "node:path";
-import type { AgentEvent, AskUserCallback, ToolApprovalCallback, ToolImpl } from "@aria/agent";
+import type { ToolApprovalCallback, ToolImpl } from "@aria/agent";
+import type { AgentEvent, AskUserCallback } from "@aria/protocol";
 import type { Message } from "@mariozechner/pi-ai";
 import { Orchestrator } from "@aria/agent/orchestrator";
 import { AuditLogger } from "@aria/audit";
@@ -45,6 +46,7 @@ import {
   createWebFetchTool,
   createSessionToolEnvironment,
   getBuiltinTools,
+  listToolsets,
 } from "@aria/tools";
 import { MCPManager } from "@aria/server/mcp";
 import { createTranscriber, type Transcriber } from "@aria/server/audio";
@@ -86,6 +88,9 @@ export interface EngineRuntime {
   handoffs?: HandoffService;
   agentName: string;
   mainSessionId: string;
+  createSessionTitleTool: typeof createSessionTitleTool;
+  createSessionToolEnvironment: typeof createSessionToolEnvironment;
+  listToolsets(): ReturnType<typeof listToolsets>;
   createAgent(
     onToolApproval?: ToolApprovalCallback,
     modelOverride?: string,
@@ -522,6 +527,11 @@ export async function createRuntime(): Promise<EngineRuntime> {
     handoffs,
     agentName: ariaConfig.identity.name,
     mainSessionId: mainSession.id,
+    createSessionTitleTool,
+    createSessionToolEnvironment,
+    listToolsets() {
+      return listToolsets(runtime.tools);
+    },
     async refreshSystemPrompt(): Promise<string> {
       systemPrompt = await promptEngine.buildBasePrompt(true);
       runtime.systemPrompt = systemPrompt;

@@ -8,6 +8,7 @@
   "types": "./src/index.ts",
   "exports": {
     ".": "./src/index.ts",
+    "./content-frame": "./src/content-frame.ts",
     "./events": "./src/events.ts",
     "./types": "./src/types.ts",
     "./connector": "./src/connector.ts"

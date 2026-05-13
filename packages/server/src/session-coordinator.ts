@@ -20,7 +20,6 @@ export class RuntimeSessionCoordinator {
   readonly sessionToolEnvironments = new Map<string, SessionToolEnvironment>();
   readonly activeRunsBySession = new Map<string, string>();
   readonly pendingApprovals = new Map<string, (approved: boolean) => void>();
-  readonly sessionToolOverrides = new Map<string, Set<string>>();
   readonly sessionSecurityOverrides = new Map<string, SessionSecurityOverrides>();
   readonly pendingApprovalMeta = new Map<
     string,

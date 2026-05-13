@@ -279,7 +279,7 @@ describe("server Aria chat e2e", () => {
       expect(await client.approval.list.query({ sessionId: session.id })).toEqual([
         expect.objectContaining({
           approvalId: "approval-exec",
-          status: "approved",
+          status: "approve_once",
         }),
       ]);
       expect(coordinator.pendingApprovals.has("approval-exec")).toBe(false);

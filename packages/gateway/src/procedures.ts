@@ -163,7 +163,6 @@ export function createAppRouter(runtime: EngineRuntime) {
     sessionToolEnvironments,
     activeRunsBySession,
     pendingApprovals,
-    sessionToolOverrides,
     sessionSecurityOverrides,
     pendingApprovalMeta,
     pendingEscalations,
@@ -171,7 +170,7 @@ export function createAppRouter(runtime: EngineRuntime) {
   } = coordinator;
   let projectsRepositoryPromise: Promise<ProjectsEngineRepository> | null = null;
   let handoffServicePromise: Promise<HandoffService> | null = null;
-  const preapprovedToolIntents = new Set<string>();
+  const approvedToolIntents = new Set<string>();
 
   async function getProjectsRepository(): Promise<ProjectsEngineRepository> {
     const attachedRuntime = runtime as EngineRuntime & {
@@ -316,9 +315,9 @@ export function createAppRouter(runtime: EngineRuntime) {
     });
   }
 
-  function rememberApprovedToolIntent(sessionId: string, intent?: ToolIntent): void {
+  function approveToolIntentOnce(sessionId: string, intent?: ToolIntent): void {
     if (!intent || !toolIntentRequiresApproval(intent)) return;
-    preapprovedToolIntents.add(toolIntentApprovalKey(sessionId, intent));
+    approvedToolIntents.add(toolIntentApprovalKey(sessionId, intent));
   }
 
   function createGatewayHarnessHost(sessionId: string): AriaHarnessHost {
@@ -328,7 +327,7 @@ export function createAppRouter(runtime: EngineRuntime) {
       },
       async requestToolDecision(intent) {
         const approvalKey = toolIntentApprovalKey(sessionId, intent);
-        if (preapprovedToolIntents.delete(approvalKey)) {
+        if (approvedToolIntents.delete(approvalKey)) {
           return { status: "allow" };
         }
         if (toolIntentRequiresApproval(intent)) {
@@ -851,20 +850,11 @@ export function createAppRouter(runtime: EngineRuntime) {
         const level = getEffectiveDangerLevel(toolName, args);
         const decision = resolveCapabilityPolicyDecision(getCapability(toolName), level, mode);
         const intent = getToolIntent(toolName, args);
-        const overrides = sessionToolOverrides.get(sessionId);
-
         const intentRequiresApproval = toolIntentRequiresApproval(intent);
 
         if (level === "safe" && !intentRequiresApproval) {
           pendingApprovalMeta.delete(toolCallId);
-          runtime.store.resolveApproval(toolCallId, "approved");
-          return true;
-        }
-
-        if (overrides?.has(toolName)) {
-          rememberApprovedToolIntent(sessionId, intent);
-          pendingApprovalMeta.delete(toolCallId);
-          runtime.store.resolveApproval(toolCallId, "allow_session");
+          runtime.store.resolveApproval(toolCallId, "approve_once");
           return true;
         }
 
@@ -886,7 +876,7 @@ export function createAppRouter(runtime: EngineRuntime) {
         }
 
         pendingApprovalMeta.delete(toolCallId);
-        runtime.store.resolveApproval(toolCallId, "approved");
+        runtime.store.resolveApproval(toolCallId, "approve_once");
         return true;
       },
     };
@@ -1763,7 +1753,6 @@ export function createAppRouter(runtime: EngineRuntime) {
           sessionAgents.delete(input.sessionId);
           sessionPromptState.delete(input.sessionId);
           sessionToolEnvironments.delete(input.sessionId);
-          sessionToolOverrides.delete(input.sessionId);
           sessionSecurityOverrides.delete(input.sessionId);
           runtime.securityMode.clearMode(input.sessionId);
           return {
@@ -2291,9 +2280,7 @@ export function createAppRouter(runtime: EngineRuntime) {
           z
             .object({
               sessionId: z.string().optional(),
-              status: z
-                .enum(["pending", "approved", "denied", "allow_session", "interrupted"])
-                .optional(),
+              status: z.enum(["pending", "approve_once", "denied", "interrupted"]).optional(),
               limit: z.number().int().min(1).max(100).optional(),
             })
             .optional(),
@@ -2331,9 +2318,12 @@ export function createAppRouter(runtime: EngineRuntime) {
             requireOwnedSession(ctx, meta.sessionId);
           }
           if (input.approved && meta) {
-            rememberApprovedToolIntent(meta.sessionId, meta.intent);
+            approveToolIntentOnce(meta.sessionId, meta.intent);
           }
-          runtime.store.resolveApproval(input.toolCallId, input.approved ? "approved" : "denied");
+          runtime.store.resolveApproval(
+            input.toolCallId,
+            input.approved ? "approve_once" : "denied",
+          );
           pendingApprovals.delete(input.toolCallId);
           pendingApprovalMeta.delete(input.toolCallId);
 
@@ -2351,38 +2341,6 @@ export function createAppRouter(runtime: EngineRuntime) {
           resolver(input.approved);
           return { acknowledged: true };
         }),
-
-      /** Accept all calls to a tool for the rest of this session, and approve the current call */
-      acceptForSession: protectedProcedure
-        .input(
-          z.object({
-            toolCallId: z.string(),
-          }),
-        )
-        .mutation(({ ctx, input }): { acknowledged: boolean } => {
-          const meta = pendingApprovalMeta.get(input.toolCallId);
-          const resolver = pendingApprovals.get(input.toolCallId);
-          if (!resolver || !meta) {
-            return { acknowledged: false };
-          }
-          requireOwnedSession(ctx, meta.sessionId);
-
-          // Add tool to session overrides
-          let overrides = sessionToolOverrides.get(meta.sessionId);
-          if (!overrides) {
-            overrides = new Set();
-            sessionToolOverrides.set(meta.sessionId, overrides);
-          }
-          overrides.add(meta.toolName);
-          rememberApprovedToolIntent(meta.sessionId, meta.intent);
-
-          // Approve the current call
-          runtime.store.resolveApproval(input.toolCallId, "allow_session");
-          pendingApprovals.delete(input.toolCallId);
-          pendingApprovalMeta.delete(input.toolCallId);
-          resolver(true);
-          return { acknowledged: true };
-        }),
     }),
 
     /** Security escalation */
@@ -2392,7 +2350,7 @@ export function createAppRouter(runtime: EngineRuntime) {
         .input(
           z.object({
             id: z.string(),
-            choice: z.enum(["allow_once", "allow_session", "add_persistent", "deny"]),
+            choice: z.enum(["approve_once", "deny"]),
           }),
         )
         .mutation(async ({ ctx, input }): Promise<{ acknowledged: boolean }> => {
@@ -2415,8 +2373,6 @@ export function createAppRouter(runtime: EngineRuntime) {
             },
           });
 
-          // If allow_session, add the resource to session overrides
-          // (the resource info is attached to the escalation — handled by the caller)
           pending.resolve(input.choice as EscalationChoice);
           return { acknowledged: true };
         }),

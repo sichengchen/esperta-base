@@ -28,7 +28,7 @@ export type AskUserCallback = (id: string, question: string, options?: string[])
 export type SecurityLayer = "url_policy" | "exec_fence" | "tool_restriction";
 
 /** User choice for a security escalation prompt */
-export type EscalationChoice = "allow_once" | "allow_session" | "add_persistent" | "deny";
+export type EscalationChoice = "approve_once" | "deny";
 
 export const ThreadTypeSchema = z.enum([
   "aria",

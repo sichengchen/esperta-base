@@ -390,7 +390,6 @@ The desktop must expose pure transition functions for every visible interaction:
 - `sendMessage(message)`
 - `stopSession()`
 - `approveToolCall(toolCallId, approved)`
-- `acceptToolCallForSession(toolCallId)`
 - `answerQuestion(questionId, answer)`
 - `createProjectThread(input)`
 - `createWorkspace(input)`

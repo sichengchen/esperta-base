@@ -99,7 +99,7 @@ describe("AuditLogger", () => {
       event: "security_escalation",
       escalation: {
         layer: "exec_fence",
-        choice: "allow_session",
+        choice: "approve_once",
         resource: "/etc/hosts",
       },
     });
@@ -107,7 +107,7 @@ describe("AuditLogger", () => {
     const entries = readEntries(tmpDir);
     expect(entries[0]!.escalation).toEqual({
       layer: "exec_fence",
-      choice: "allow_session",
+      choice: "approve_once",
       resource: "/etc/hosts",
     });
   });

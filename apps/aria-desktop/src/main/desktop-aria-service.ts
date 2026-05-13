@@ -749,7 +749,7 @@ export class DesktopAriaService {
 
   async acceptAriaChatToolCallForSession(toolCallId: string): Promise<AriaDesktopAriaShellState> {
     await this.ensureBootstrapped();
-    await this.getChatController().acceptToolCallForSession(toolCallId);
+    await this.getChatController().approveToolCall(toolCallId, true);
     this.chatState = normalizeChatState(this.getChatController().getState());
     return this.snapshot();
   }
@@ -829,7 +829,7 @@ export class DesktopAriaService {
 
   async acceptConnectorToolCallForSession(toolCallId: string): Promise<AriaDesktopAriaShellState> {
     await this.ensureBootstrapped();
-    await this.getConnectorController().acceptToolCallForSession(toolCallId);
+    await this.getConnectorController().approveToolCall(toolCallId, true);
     this.connectorsState = normalizeChatState(this.getConnectorController().getState());
     return this.snapshot();
   }

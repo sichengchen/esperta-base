@@ -157,7 +157,7 @@ describeLive("server gateway — live LLM tests", () => {
         expect.objectContaining({
           sessionId: session.id,
           toolName: "dangerous_probe",
-          status: "approved",
+          status: "approve_once",
         }),
       ]);
     } finally {

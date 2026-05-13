@@ -7,7 +7,7 @@ import { ensureAriaDomainModelSchema } from "./domain-model.js";
 
 export type RunStatus = "running" | "completed" | "failed" | "cancelled" | "interrupted";
 export type ToolCallStatus = "running" | "completed" | "failed" | "cancelled" | "interrupted";
-export type ApprovalStatus = "pending" | "approved" | "denied" | "allow_session" | "interrupted";
+export type ApprovalStatus = "pending" | "approve_once" | "denied" | "interrupted";
 export type AutomationTaskType = "heartbeat" | "cron" | "webhook";
 export type AutomationRunStatus = "running" | "success" | "error" | "cancelled" | "interrupted";
 export type AutomationDeliveryStatus = "not_requested" | "delivered" | "failed";

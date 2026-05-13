@@ -14,7 +14,7 @@ export interface SecurityBlock {
 }
 
 /** How the user wants to handle a security block */
-export type EscalationChoice = "allow_once" | "allow_session" | "add_persistent" | "deny";
+export type EscalationChoice = "approve_once" | "deny";
 
 /** Session-level security overrides (cleared on session destroy) */
 export interface SessionSecurityOverrides {

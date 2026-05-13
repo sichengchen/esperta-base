@@ -108,19 +108,6 @@ export class ChatSDKAdapter {
       }
     });
 
-    this.chat.onAction("always", async (event) => {
-      const thread = event.thread;
-      if (!event.value || !thread) return;
-      try {
-        await this.client.tool.acceptForSession.mutate({
-          toolCallId: event.value,
-        });
-        await thread.post("Tool always allowed for this session.");
-      } catch {
-        await thread.post("Failed to process.");
-      }
-    });
-
     // Question answer button clicks
     this.chat.onAction("answer", async (event) => {
       const thread = event.thread;

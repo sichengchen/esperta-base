@@ -7,7 +7,6 @@ interface ToolApprovalProps {
   args: Record<string, unknown>;
   onApprove: (toolCallId: string) => void;
   onReject: (toolCallId: string) => void;
-  onAcceptForSession: (toolCallId: string) => void;
 }
 
 /** Format args as a concise one-liner */
@@ -25,15 +24,12 @@ export function ToolApproval({
   args,
   onApprove,
   onReject,
-  onAcceptForSession,
 }: ToolApprovalProps) {
   useInput((input, key) => {
     if (input === "y" || key.return) {
       onApprove(toolCallId);
     } else if (input === "n" || key.escape) {
       onReject(toolCallId);
-    } else if (input === "a") {
-      onAcceptForSession(toolCallId);
     }
   });
 
@@ -55,11 +51,7 @@ export function ToolApproval({
         <Text color="red" bold>
           n
         </Text>
-        {" reject  "}
-        <Text color="cyan" bold>
-          a
-        </Text>
-        {" allow for session"}
+        {" reject"}
       </Text>
     </Box>
   );

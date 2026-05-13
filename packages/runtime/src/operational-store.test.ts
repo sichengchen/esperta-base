@@ -179,7 +179,7 @@ describe("OperationalStore", () => {
       args: { path: "/tmp/demo.txt" },
       createdAt: 302,
     });
-    store.resolveApproval("tool-2", "allow_session", 303);
+    store.resolveApproval("tool-2", "approve_once", 303);
     store.recordToolCallEnd({
       toolCallId: "tool-2",
       status: "completed",
@@ -209,8 +209,8 @@ describe("OperationalStore", () => {
     expect(run.stop_reason).toBe("endTurn");
     expect(toolCall.status).toBe("completed");
     expect(toolCall.is_error).toBe(0);
-    expect(approval.status).toBe("allow_session");
-    expect(approval.resolution).toBe("allow_session");
+    expect(approval.status).toBe("approve_once");
+    expect(approval.resolution).toBe("approve_once");
   });
 
   test("lists approvals with session and status filters", async () => {

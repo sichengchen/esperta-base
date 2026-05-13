@@ -71,7 +71,6 @@ type WeChatCommand =
   | { kind: "new" }
   | { kind: "approve"; toolCallId: string }
   | { kind: "reject"; toolCallId: string }
-  | { kind: "always"; toolCallId: string }
   | { kind: "answer"; questionId: string; answer: string }
   | { kind: "model"; modelName: string };
 
@@ -158,9 +157,6 @@ function parseCommand(text: string): WeChatCommand | null {
   const rejectMatch = trimmed.match(/^\/reject\s+(\S+)$/i);
   if (rejectMatch) return { kind: "reject", toolCallId: rejectMatch[1]! };
 
-  const alwaysMatch = trimmed.match(/^\/always\s+(\S+)$/i);
-  if (alwaysMatch) return { kind: "always", toolCallId: alwaysMatch[1]! };
-
   const answerMatch = trimmed.match(/^\/answer\s+(\S+)\s+([\s\S]+)$/i);
   if (answerMatch) {
     return {
@@ -197,7 +193,6 @@ function connectorHelpText(): string {
     "/new",
     "/approve <toolCallId>",
     "/reject <toolCallId>",
-    "/always <toolCallId>",
     "/answer <questionId> <answer>",
     "/model <name>",
     "/help",
@@ -392,15 +387,6 @@ class WeChatAccountRunner {
           });
           await this.sendText(peerId, `Rejected ${command.toolCallId}.`);
           return;
-        case "always":
-          await this.client.tool.acceptForSession.mutate({
-            toolCallId: command.toolCallId,
-          });
-          await this.sendText(
-            peerId,
-            `Allowed ${command.toolCallId} for the rest of this session.`,
-          );
-          return;
         case "answer":
           await this.client.question.answer.mutate({
             id: command.questionId,
@@ -438,7 +424,7 @@ class WeChatAccountRunner {
                   break;
                 case "tool_approval_request":
                   sideMessages.push(
-                    `Approval needed for ${event.name}.\n/approve ${event.id}\n/reject ${event.id}\n/always ${event.id}`,
+                    `Approval needed for ${event.name}.\n/approve ${event.id}\n/reject ${event.id}`,
                   );
                   break;
                 case "user_question":

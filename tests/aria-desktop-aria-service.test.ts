@@ -42,10 +42,6 @@ function createFakeController(options: {
   };
 
   return {
-    acceptToolCallForSession: async () => {
-      state = { ...state, pendingApproval: null };
-      return publish();
-    },
     answerQuestion: async (_questionId, answer) => {
       state = {
         ...state,

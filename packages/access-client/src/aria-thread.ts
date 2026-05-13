@@ -135,9 +135,6 @@ export interface AriaChatClient {
     approve?: {
       mutate(input: { toolCallId: string; approved: boolean }): Promise<unknown>;
     };
-    acceptForSession?: {
-      mutate(input: { toolCallId: string }): Promise<unknown>;
-    };
   };
   question?: {
     answer?: {
@@ -171,7 +168,6 @@ export interface AriaChatController {
   searchSessions(query: string, limit?: number): Promise<AriaChatSessionSummary[]>;
   openSession(sessionId: string): Promise<AriaChatState>;
   approveToolCall(toolCallId: string, approved: boolean): Promise<AriaChatState>;
-  acceptToolCallForSession(toolCallId: string): Promise<AriaChatState>;
   answerQuestion(questionId: string, answer: string): Promise<AriaChatState>;
 }
 
@@ -561,10 +557,6 @@ export function createAriaChatController(
     },
     async approveToolCall(toolCallId: string, approved: boolean) {
       await client.tool?.approve?.mutate({ toolCallId, approved });
-      return setState({ pendingApproval: null });
-    },
-    async acceptToolCallForSession(toolCallId: string) {
-      await client.tool?.acceptForSession?.mutate({ toolCallId });
       return setState({ pendingApproval: null });
     },
     async answerQuestion(questionId: string, answer: string) {

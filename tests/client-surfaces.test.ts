@@ -264,7 +264,6 @@ describe("client surfaces", () => {
 
   test("tracks pending approvals and questions from stream events and resolves them through controller actions", async () => {
     const approvals: Array<{ toolCallId: string; approved: boolean }> = [];
-    const accepts: string[] = [];
     const answers: Array<{ id: string; answer: string }> = [];
     const controller = createAriaChatController(
       {
@@ -309,11 +308,6 @@ describe("client surfaces", () => {
               approvals.push(input);
             },
           },
-          acceptForSession: {
-            mutate: async ({ toolCallId }) => {
-              accepts.push(toolCallId);
-            },
-          },
         },
         question: {
           answer: {
@@ -342,10 +336,6 @@ describe("client surfaces", () => {
     const afterApprove = await controller.approveToolCall("tool-1", true);
     expect(approvals).toEqual([{ toolCallId: "tool-1", approved: true }]);
     expect(afterApprove.pendingApproval).toBeNull();
-
-    const afterAccept = await controller.acceptToolCallForSession("tool-1");
-    expect(accepts).toEqual(["tool-1"]);
-    expect(afterAccept.pendingApproval).toBeNull();
 
     const afterAnswer = await controller.answerQuestion("question-1", "Yes");
     expect(answers).toEqual([{ id: "question-1", answer: "Yes" }]);

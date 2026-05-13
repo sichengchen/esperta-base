@@ -802,14 +802,6 @@ export function App({ client }: AppProps) {
     [client],
   );
 
-  const handleToolAcceptForSession = useCallback(
-    (toolCallId: string) => {
-      client.tool.acceptForSession.mutate({ toolCallId });
-      setPendingApproval(null);
-    },
-    [client],
-  );
-
   const handleQuestionAnswer = useCallback(
     (questionId: string, answer: string) => {
       client.question.answer.mutate({ id: questionId, answer });
@@ -864,7 +856,6 @@ export function App({ client }: AppProps) {
           args={pendingApproval.args}
           onApprove={handleToolApprove}
           onReject={handleToolReject}
-          onAcceptForSession={handleToolAcceptForSession}
         />
       ) : pendingQuestion ? (
         <UserQuestion

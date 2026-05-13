@@ -374,7 +374,7 @@ describe("server connector flow", () => {
       expect(runtime.store.listApprovals({ sessionId: created.session.id })).toEqual([
         expect.objectContaining({
           approvalId: "approval-exec",
-          status: "approved",
+          status: "approve_once",
         }),
       ]);
       expect(coordinator.pendingApprovals.has("approval-exec")).toBe(false);

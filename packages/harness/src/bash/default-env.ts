@@ -1,4 +1,6 @@
-import { Bash, InMemoryFs, OverlayFs, type CustomCommand, type IFileSystem } from "just-bash";
+import { InMemoryFs, OverlayFs, type CustomCommand, type IFileSystem } from "just-bash";
+import { SandboxManager } from "@aria/sandbox";
+import { createJustBashSandboxProvider } from "@aria/sandbox-justbash";
 import { toolIntentRequiresApproval } from "@aria/policy/capability-policy";
 import type { ToolIntent } from "@aria/policy/capability-policy";
 import type { AriaHarnessHost } from "../host.js";
@@ -63,23 +65,24 @@ interface JustBashSessionEnvOptions {
   allowlistedNetwork?: string[];
 }
 
-function createBash(options: JustBashSessionEnvOptions): Bash {
+function createCustomCommands(options: JustBashSessionEnvOptions): CustomCommand[] {
   const customCommands: CustomCommand[] = options.host
     ? options.commands.map((lease) => commandLeaseToJustBashCommand(lease, options.host!))
     : [];
-  return new Bash({
-    fs: options.fs,
-    cwd: options.cwd,
-    customCommands,
-    network:
-      options.allowlistedNetwork && options.allowlistedNetwork.length > 0
-        ? { allowedUrlPrefixes: options.allowlistedNetwork }
-        : undefined,
-  });
+  return customCommands;
 }
 
 function createJustBashSessionEnv(options: JustBashSessionEnvOptions): AriaSessionEnv {
-  const bash = createBash(options);
+  const sandbox = new SandboxManager({
+    providers: [
+      createJustBashSandboxProvider({
+        fs: options.fs,
+        cwd: options.cwd,
+        customCommands: createCustomCommands(options),
+        allowlistedNetwork: options.allowlistedNetwork,
+      }),
+    ],
+  });
   const resolvePath = (path: string) => resolveFromCwd(options.cwd, path);
   const recordIntent = async (intent: ToolIntent) => {
     await options.host?.recordAudit({ type: "tool_intent", toolName: intent.toolName, intent });
@@ -126,17 +129,32 @@ function createJustBashSessionEnv(options: JustBashSessionEnvOptions): AriaSessi
         timer = setTimeout(() => controller.abort(), shellOptions.timeout * 1000);
       }
       try {
-        const result = await bash.exec(command, {
+        const result = await sandbox.execute({
+          action: "exec",
+          toolName: "bash",
+          command,
           cwd,
           env: shellOptions?.env,
           signal,
         });
-        return { stdout: result.stdout, stderr: result.stderr, exitCode: result.exitCode };
+        return {
+          stdout: result.stdout ?? "",
+          stderr: result.stderr ?? "",
+          exitCode: result.exitCode ?? (result.status === "completed" ? 0 : 1),
+        };
       } finally {
         if (timer) clearTimeout(timer);
       }
     },
-    readFile: (path) => options.fs.readFile(resolvePath(path)),
+    async readFile(path): Promise<string> {
+      const result = await sandbox.execute({
+        action: "read_file",
+        toolName: "read",
+        path: resolvePath(path),
+      });
+      if (result.status !== "completed") throw new Error(result.stderr ?? result.message);
+      return String(result.result ?? "");
+    },
     readFileBuffer: (path) => options.fs.readFileBuffer(resolvePath(path)),
     async writeFile(path, content): Promise<void> {
       const resolved = resolvePath(path);
@@ -152,7 +170,13 @@ function createJustBashSessionEnv(options: JustBashSessionEnvOptions): AriaSessi
         leases: toolLeaseIds("write"),
         cwd: options.cwd,
       });
-      await options.fs.writeFile(resolved, content);
+      const result = await sandbox.execute({
+        action: "write_file",
+        toolName: "write",
+        path: resolved,
+        content,
+      });
+      if (result.status !== "completed") throw new Error(result.stderr ?? result.message);
     },
     async stat(path): Promise<FileStat> {
       const stat = await options.fs.stat(resolvePath(path));
@@ -165,7 +189,15 @@ function createJustBashSessionEnv(options: JustBashSessionEnvOptions): AriaSessi
         mtime: stat.mtime,
       };
     },
-    readdir: (path) => options.fs.readdir(resolvePath(path)),
+    async readdir(path): Promise<string[]> {
+      const result = await sandbox.execute({
+        action: "list_files",
+        toolName: "read",
+        path: resolvePath(path),
+      });
+      if (result.status !== "completed") throw new Error(result.stderr ?? result.message);
+      return Array.isArray(result.result) ? result.result.map(String) : [];
+    },
     exists: (path) => options.fs.exists(resolvePath(path)),
     mkdir: (path, mkdirOptions) => options.fs.mkdir(resolvePath(path), mkdirOptions),
     async rm(path, rmOptions): Promise<void> {

@@ -1,4 +1,4 @@
-import { Bash, InMemoryFs } from "just-bash";
+import { Bash, InMemoryFs, type CustomCommand, type IFileSystem } from "just-bash";
 import {
   DEFAULT_SANDBOX_PROVIDER,
   unsupportedSandboxResult,
@@ -16,14 +16,25 @@ export const JUSTBASH_SUPPORTED_ACTIONS = [
 
 export interface JustBashSandboxProviderOptions {
   cwd?: string;
+  fs?: IFileSystem;
+  customCommands?: CustomCommand[];
+  allowlistedNetwork?: string[];
 }
 
 export function createJustBashSandboxProvider(
   options: JustBashSandboxProviderOptions = {},
 ): SandboxProvider {
-  const fs = new InMemoryFs();
+  const fs = options.fs ?? new InMemoryFs();
   const cwd = options.cwd ?? "/workspace";
-  const bash = new Bash({ fs, cwd });
+  const bash = new Bash({
+    fs,
+    cwd,
+    customCommands: options.customCommands,
+    network:
+      options.allowlistedNetwork && options.allowlistedNetwork.length > 0
+        ? { allowedUrlPrefixes: options.allowlistedNetwork }
+        : undefined,
+  });
 
   return {
     name: DEFAULT_SANDBOX_PROVIDER,
@@ -39,7 +50,11 @@ export function createJustBashSandboxProvider(
               stderr: "Missing command",
             };
           }
-          const result = await bash.exec(request.command, { cwd: request.cwd ?? cwd });
+          const result = await bash.exec(request.command, {
+            cwd: request.cwd ?? cwd,
+            env: request.env,
+            signal: request.signal,
+          });
           return {
             provider: DEFAULT_SANDBOX_PROVIDER,
             status: result.exitCode === 0 ? "completed" : "failed",

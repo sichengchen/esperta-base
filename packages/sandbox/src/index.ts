@@ -22,6 +22,8 @@ export interface SandboxExecutionRequest {
   toolName: string;
   command?: string;
   cwd?: string;
+  env?: Record<string, string>;
+  signal?: AbortSignal;
   path?: string;
   content?: string | Uint8Array;
   metadata?: Record<string, unknown>;

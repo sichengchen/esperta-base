@@ -14,7 +14,7 @@ import { ConfigManager } from "@aria/server/config";
 import { MCPManager } from "@aria/server/mcp";
 import { SessionArchiveManager } from "@aria/server/session-archive";
 import { SessionManager } from "@aria/server/sessions";
-import type { EngineRuntime } from "@aria/server/runtime";
+import type { EngineRuntime } from "@aria/node-runtime/runtime";
 import type { KnownProvider } from "@mariozechner/pi-ai";
 
 const allocatedGatewayPorts = new Set<number>();

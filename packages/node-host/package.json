@@ -1,0 +1,16 @@
+{
+  "name": "@aria/node-host",
+  "version": "0.0.0",
+  "private": true,
+  "description": "Aria Node Runtime host lifecycle and process supervision",
+  "type": "module",
+  "main": "./src/index.ts",
+  "types": "./src/index.ts",
+  "exports": {
+    ".": "./src/index.ts",
+    "./brand": "./src/brand.ts",
+    "./daemon": "./src/daemon.ts",
+    "./discovery": "./src/discovery.ts",
+    "./process": "./src/process.ts"
+  }
+}

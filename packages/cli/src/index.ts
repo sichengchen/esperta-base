@@ -12,7 +12,7 @@ import { gatewayCommand } from "./gateway.js";
 import { loadConnectorRuntimeEnv } from "./connector-env.js";
 import { createTuiClient } from "@aria/console/client.js";
 import { App } from "@aria/console/App.js";
-import { CLI_NAME, PRODUCT_NAME, RUNTIME_NAME, getRuntimeHome } from "@aria/server/brand";
+import { CLI_NAME, PRODUCT_NAME, RUNTIME_NAME, getRuntimeHome } from "@aria/node-host/brand";
 
 const runtimeHome = getRuntimeHome();
 const [subcommand, ...args] = process.argv.slice(2);
@@ -274,9 +274,13 @@ const COMMANDS: Record<string, (args: string[]) => Promise<void>> = {
     const { startDiscordConnector } = await import("@aria/connectors/discord");
     await startDiscordConnector(port);
   },
+  __node_host: async () => {
+    const { runAriaNodeDaemonHost } = await import("aria-node");
+    await runAriaNodeDaemonHost();
+  },
   __server_host: async () => {
-    const { runAriaServerDaemonHost } = await import("aria-server");
-    await runAriaServerDaemonHost();
+    const { runAriaNodeDaemonHost } = await import("aria-node");
+    await runAriaNodeDaemonHost();
   },
   help: async () => {
     console.log(`${PRODUCT_NAME} — Local-First Agent Platform\n`);

@@ -1,4 +1,4 @@
-import { HOME_PLACEHOLDER } from "@aria/server/brand";
+import { HOME_PLACEHOLDER } from "@aria/node-host/brand";
 
 /**
  * Content framing — wraps external data in `<data-*>` tags to signal

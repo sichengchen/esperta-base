@@ -1,4 +1,4 @@
-import { getRuntimeHome } from "@aria/server/brand";
+import { getRuntimeHome } from "@aria/node-host/brand";
 import { loadSecrets, saveSecrets } from "@aria/server/config/secrets";
 import type { SecretsFile, WeChatAccountSecret } from "@aria/server/config";
 

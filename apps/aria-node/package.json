@@ -1,7 +1,8 @@
 {
-  "name": "aria-server",
+  "name": "aria-node",
+  "version": "0.0.0",
   "private": true,
-  "description": "Compatibility entrypoint for the shared aria-node executable",
+  "description": "Shared Aria Node Runtime executable used by Desktop and Headless",
   "type": "module",
   "main": "./src/index.ts",
   "exports": {
@@ -9,7 +10,6 @@
     "./process": "./src/process.ts"
   },
   "scripts": {
-    "dev": "bun ./src/main.ts",
-    "start": "bun ./src/main.ts"
+    "dev": "bun run src/main.ts"
   }
 }

@@ -1,7 +1,7 @@
 import { existsSync } from "node:fs";
 import { join } from "node:path";
 import { queryAuditEntries, type AuditEntry } from "@aria/audit";
-import { CLI_NAME, PRODUCT_NAME, getRuntimeHome } from "@aria/server/brand";
+import { CLI_NAME, PRODUCT_NAME, getRuntimeHome } from "@aria/node-host/brand";
 
 /** ANSI color helpers */
 const COLORS: Record<string, string> = {

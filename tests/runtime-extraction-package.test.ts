@@ -84,11 +84,11 @@ function makeTool(
 }
 
 describe("phase-1 extraction package verification", () => {
-  test("@aria/runtime forwards runtime composition to the server-owned root", async () => {
+  test("@aria/runtime forwards runtime composition to the node-runtime root", async () => {
     const runtimeSource = await import("node:fs/promises").then((fs) =>
       fs.readFile(new URL("../packages/runtime/src/runtime.ts", import.meta.url), "utf-8"),
     );
-    expect(runtimeSource).toContain("@aria/server/runtime");
+    expect(runtimeSource).toContain("@aria/node-runtime/runtime");
     const runtimeIndexSource = await import("node:fs/promises").then((fs) =>
       fs.readFile(new URL("../packages/runtime/src/index.ts", import.meta.url), "utf-8"),
     );
@@ -117,7 +117,7 @@ describe("phase-1 extraction package verification", () => {
     expect(gatewayProceduresSource).toContain("@aria/tools/session-tool-environment");
     expect(gatewayProceduresSource).toContain("@aria/audit");
     expect(gatewayProceduresSource).toContain("@aria/policy/policy");
-    expect(gatewayProceduresSource).toContain("@aria/server/runtime");
+    expect(gatewayProceduresSource).toContain("@aria/node-runtime/runtime");
     expect(gatewayProceduresSource).toContain("@aria/server/session-coordinator");
 
     const toolsIndexSource = await import("node:fs/promises").then((fs) =>
@@ -158,11 +158,15 @@ describe("phase-1 extraction package verification", () => {
     expect(serverConfigSource).toContain("./config/manager.js");
     expect(serverConfigSource).toContain("./config/types.js");
     expect(serverConfigSource).toContain("ConfigManager");
+    const nodeRuntimeSource = await import("node:fs/promises").then((fs) =>
+      fs.readFile(new URL("../packages/node-runtime/src/runtime.ts", import.meta.url), "utf-8"),
+    );
+    expect(nodeRuntimeSource).toContain("export async function createRuntime");
+    expect(nodeRuntimeSource).toContain("new ConfigManager(runtimeHome)");
     const serverRuntimeSource = await import("node:fs/promises").then((fs) =>
       fs.readFile(new URL("../packages/server/src/runtime.ts", import.meta.url), "utf-8"),
     );
-    expect(serverRuntimeSource).toContain("export async function createRuntime");
-    expect(serverRuntimeSource).toContain("new ConfigManager(runtimeHome)");
+    expect(serverRuntimeSource).toContain("@aria/node-runtime/runtime");
     const serverSessionCoordinatorSource = await import("node:fs/promises").then((fs) =>
       fs.readFile(
         new URL("../packages/server/src/session-coordinator.ts", import.meta.url),

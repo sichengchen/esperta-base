@@ -1,5 +1,5 @@
 import { createAppRouter, createContext } from "@aria/gateway";
-import type { EngineRuntime } from "@aria/server/runtime";
+import type { EngineRuntime } from "@aria/node-runtime/runtime";
 import { execFile } from "node:child_process";
 import { promisify } from "node:util";
 import {

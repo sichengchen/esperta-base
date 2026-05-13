@@ -1,4 +1,4 @@
-import type { EngineRuntime } from "@aria/server/runtime";
+import type { EngineRuntime } from "@aria/node-runtime/runtime";
 import type { CronTask, WebhookTask } from "./config.js";
 import {
   registerCronTask,

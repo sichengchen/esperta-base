@@ -8,7 +8,7 @@ import { startServer, type EngineServer } from "@aria/gateway/server";
 import { createAriaRuntimeBackendAdapter } from "@aria/jobs/runtime-backend";
 import type { RuntimeBackendExecutionRequest } from "@aria/jobs/runtime-backend";
 import { createProjectsControlTool } from "@aria/server/projects-control-tool";
-import type { EngineRuntime } from "@aria/server/runtime";
+import type { EngineRuntime } from "@aria/node-runtime/runtime";
 import { getRuntimeSessionCoordinator } from "@aria/server/session-coordinator";
 import { ProjectsEngineRepository, ProjectsEngineStore } from "@aria/work";
 import { createTestRuntime, getAvailableGatewayPortPair } from "../helpers/server-runtime.js";

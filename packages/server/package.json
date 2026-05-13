@@ -17,6 +17,7 @@
     "./config/secrets": "./src/config/secrets.ts",
     "./config/types": "./src/config/types.ts",
     "./brand": "./src/brand.ts",
+    "./connectors": "./src/connectors.ts",
     "./mcp": "./src/mcp.ts",
     "./projects-control-tool": "./src/projects-control-tool.ts",
     "./runtime": "./src/runtime.ts",

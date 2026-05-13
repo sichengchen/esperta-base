@@ -1,5 +1,5 @@
 import { createTuiClient } from "@aria/console/client.js";
-import { CLI_NAME, RUNTIME_NAME } from "@aria/server/brand";
+import { CLI_NAME, RUNTIME_NAME } from "@aria/node-host/brand";
 import { ensureEngine } from "./engine.js";
 
 function printHelp(): void {

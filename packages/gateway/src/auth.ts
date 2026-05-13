@@ -2,7 +2,7 @@ import { createHash, randomBytes, timingSafeEqual } from "node:crypto";
 import { writeFile, unlink } from "node:fs/promises";
 import { readFileSync, existsSync } from "node:fs";
 import { join } from "node:path";
-import { getRuntimeHome } from "@aria/server/brand";
+import { getRuntimeHome } from "@aria/node-host/brand";
 import type { OperationalStore } from "@aria/persistence/operational-store";
 
 const TOKEN_BYTES = 32;

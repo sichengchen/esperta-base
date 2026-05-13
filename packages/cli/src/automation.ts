@@ -1,6 +1,6 @@
-import { ensureEngine } from "@aria/server/daemon";
+import { ensureEngine } from "@aria/node-host/daemon";
 import { createTuiClient } from "@aria/console/client.js";
-import { CLI_NAME } from "@aria/server/brand";
+import { CLI_NAME } from "@aria/node-host/brand";
 
 function formatDateTime(value?: string | null): string {
   if (!value) return "n/a";

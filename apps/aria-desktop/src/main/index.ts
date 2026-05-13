@@ -1,7 +1,7 @@
 import { app, BrowserWindow } from "electron";
 import { join, dirname } from "node:path";
 import { fileURLToPath } from "node:url";
-import { ensureEngine } from "@aria/server/daemon";
+import { ensureEngine } from "@aria/node-host/daemon";
 import { DesktopAriaService } from "./desktop-aria-service.js";
 import { DesktopProjectsService } from "./desktop-projects-service.js";
 import { DesktopSettingsService } from "./desktop-settings-service.js";

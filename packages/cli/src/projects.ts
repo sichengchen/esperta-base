@@ -1,6 +1,6 @@
 import { join } from "node:path";
 import { randomUUID } from "node:crypto";
-import { CLI_NAME, getRuntimeHome } from "@aria/server/brand";
+import { CLI_NAME, getRuntimeHome } from "@aria/node-host/brand";
 import { ProjectsDispatchService, listRuntimeBackends, runDispatchExecution } from "@aria/jobs";
 import {
   THREAD_TYPES,
@@ -25,7 +25,7 @@ import {
 } from "@aria/work";
 import { ProjectsWorktreeService } from "@aria/workspaces";
 import { HandoffService, HandoffStore } from "@aria/handoff";
-import { createRuntime } from "@aria/server/runtime";
+import { createRuntime } from "@aria/node-runtime/runtime";
 
 const THREAD_TYPE_SET = new Set<ThreadType>(THREAD_TYPES);
 const WORKSPACE_HOST_SET = new Set<WorkspaceHost>(["desktop_local", "aria_server"]);

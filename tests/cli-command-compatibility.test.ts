@@ -133,7 +133,7 @@ function resetState() {
 beforeAll(async () => {
   runtimeHome = await mkdtemp(join(tmpdir(), "aria-cli-compat-"));
   process.env.ARIA_HOME = runtimeHome;
-  const daemonModule = await import("@aria/server/daemon");
+  const daemonModule = await import("@aria/node-host/daemon");
   vi.spyOn(daemonModule, "ensureEngine").mockResolvedValue(undefined);
   const consoleClientModule = await import("@aria/console/client.js");
   vi.spyOn(consoleClientModule, "createTuiClient").mockImplementation(() => mockClient as never);

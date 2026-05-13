@@ -5,7 +5,7 @@ import { Agent } from "@aria/agent";
 import { createEngineClient } from "@aria/access-client";
 import { flushProcedureState } from "@aria/gateway/procedures";
 import { startServer, type EngineServer } from "@aria/gateway/server";
-import type { EngineRuntime } from "@aria/server/runtime";
+import type { EngineRuntime } from "@aria/node-runtime/runtime";
 import { getRuntimeSessionCoordinator } from "@aria/server/session-coordinator";
 import { createTestRuntime, getAvailableGatewayPortPair } from "../helpers/server-runtime.js";
 

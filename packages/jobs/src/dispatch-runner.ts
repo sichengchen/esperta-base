@@ -2,7 +2,7 @@ import { ProjectsDispatchService } from "./dispatch.js";
 import { createRuntimeBackendRegistry } from "./backend-registry.js";
 import type { DispatchExecutionEvent } from "./bridge.js";
 import type { ProjectsEngineRepository } from "@aria/work";
-import type { EngineRuntime } from "@aria/server/runtime";
+import type { EngineRuntime } from "@aria/node-runtime/runtime";
 import type { RuntimeBackendAdapter, RuntimeBackendExecutionEvent } from "./runtime-backend.js";
 
 function buildDispatchPrompt(repository: ProjectsEngineRepository, dispatchId: string): string {

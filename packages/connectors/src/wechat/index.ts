@@ -5,7 +5,7 @@ import { setTimeout as delay } from "node:timers/promises";
 import { createChatSDKClient } from "../chat-sdk/client.js";
 import { formatToolResult, splitMessage } from "../chat-sdk/formatter.js";
 import { installConnectorSignalHandlers, type ConnectorRuntimeHandle } from "../shared/runtime.js";
-import { getRuntimeHome } from "@aria/server/brand";
+import { getRuntimeHome } from "@aria/node-host/brand";
 import type { WeChatAccountSecret } from "@aria/server/config";
 import { DEFAULT_WECHAT_API_BASE_URL, loadWeChatAccounts, upsertWeChatAccount } from "./config.js";
 

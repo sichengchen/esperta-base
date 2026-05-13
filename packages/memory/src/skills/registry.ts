@@ -2,7 +2,7 @@ import { dirname, join, resolve } from "node:path";
 import { existsSync } from "node:fs";
 import { readFile, readdir, stat } from "node:fs/promises";
 import { isPathInside } from "@aria/policy/path-boundary";
-import { getRuntimeHome } from "@aria/server/brand";
+import { getRuntimeHome } from "@aria/node-host/brand";
 import { BUNDLED_SKILLS_DIR, EMBEDDED_SKILLS } from "./assets.js";
 import {
   listEmbeddedFiles,

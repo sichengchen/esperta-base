@@ -2,7 +2,7 @@ import { mkdir, writeFile } from "node:fs/promises";
 import { join } from "node:path";
 import type { AgentEvent } from "@aria/agent";
 import type { Message } from "@mariozechner/pi-ai";
-import type { EngineRuntime } from "@aria/server/runtime";
+import type { EngineRuntime } from "@aria/node-runtime/runtime";
 import { createAriaHarnessContext, type AriaHarnessHost } from "@aria/harness";
 import { toolIntentRequiresApproval } from "@aria/policy";
 import { createSessionToolEnvironment, mergeAllowedTools } from "@aria/tools";

@@ -13,7 +13,7 @@ import { ConfigManager } from "@aria/server/config";
 import { MCPManager } from "@aria/server/mcp";
 import { SessionArchiveManager } from "@aria/server/session-archive";
 import { SessionManager } from "@aria/server/sessions";
-import type { EngineRuntime } from "@aria/server/runtime";
+import type { EngineRuntime } from "@aria/node-runtime/runtime";
 import { makeLiveRouter, resolveLiveProviderSelection } from "./live-model.js";
 
 export interface CreateLiveRuntimeOptions {

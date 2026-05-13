@@ -17,7 +17,7 @@ import {
   runAriaServerHost,
 } from "aria-server";
 import type { EngineServer } from "@aria/gateway/server";
-import type { EngineRuntime } from "@aria/server/runtime";
+import type { EngineRuntime } from "@aria/node-runtime/runtime";
 
 describe("server host surface", () => {
   test("starts and stops the server shell through the public package boundary", async () => {
@@ -77,13 +77,13 @@ describe("server host surface", () => {
 
     expect(bootstrap.host).toEqual(ariaServerHost);
     expect(bootstrap.host).toMatchObject({
-      shellPackage: "@aria/server",
+      shellPackage: "@aria/node-runtime",
       command: "aria",
       displayName: PRODUCT_NAME,
     });
     expect(bootstrap.host.sharedPackages).toEqual([
-      "@aria/server",
-      "@aria/runtime",
+      "@aria/node-runtime",
+      "@aria/node-host",
       "@aria/gateway",
     ]);
     expect(bootstrap.discoveryPaths).toEqual(getRuntimeDiscoveryPaths("/tmp/aria-server-app"));

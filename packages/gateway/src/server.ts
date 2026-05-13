@@ -5,7 +5,7 @@ import { applyWSSHandler } from "@trpc/server/adapters/ws";
 import { WebSocketServer } from "ws";
 import { createAppRouter, flushProcedureState, type AppRouter } from "./procedures.js";
 import { createContext } from "./context.js";
-import type { EngineRuntime } from "@aria/server/runtime";
+import type { EngineRuntime } from "@aria/node-runtime/runtime";
 import { heartbeatState } from "@aria/automation/scheduler";
 import { frameAsData } from "@aria/agent/content-frame";
 import {
@@ -14,7 +14,7 @@ import {
   upsertHeartbeatTaskRecord,
   upsertWebhookTaskRecord,
 } from "@aria/automation/automation";
-import { RUNTIME_NAME, getRuntimeHome } from "@aria/server/brand";
+import { RUNTIME_NAME, getRuntimeHome } from "@aria/node-host/brand";
 
 const DEFAULT_PORT = 7420;
 

@@ -35,14 +35,17 @@ const currentBootstrapFiles = [
   "package.json",
   "packages/cli/src/index.ts",
   "packages/cli/src/engine.ts",
-  "packages/server/src/app.ts",
+  "packages/node-runtime/src/app.ts",
+  "packages/node-host/src/daemon.ts",
+  "apps/aria-node/src/index.ts",
   "apps/aria-server/src/index.ts",
 ] as const;
 const coreRuntimeBootstrapFiles = [
   "packages/cli/src/index.ts",
   "packages/cli/src/engine.ts",
-  "packages/server/src/app.ts",
-  "apps/aria-server/src/main.ts",
+  "packages/node-runtime/src/app.ts",
+  "packages/node-host/src/daemon.ts",
+  "apps/aria-node/src/main.ts",
 ] as const;
 
 type RootPackageJson = {
@@ -75,27 +78,37 @@ describe("cli and runtime stability", () => {
     }
   });
 
-  test("preserves current CLI and server bootstrap wiring", () => {
+  test("preserves current CLI and node bootstrap wiring", () => {
     const cliIndex = readRepoFile("packages/cli/src/index.ts");
     const cliEngine = readRepoFile("packages/cli/src/engine.ts");
     const runtimeDiscovery = readRepoFile("packages/runtime/src/discovery.ts");
-    const serverDaemon = readRepoFile("packages/server/src/daemon.ts");
+    const nodeDaemon = readRepoFile("packages/node-host/src/daemon.ts");
+    const nodeIndex = readRepoFile("apps/aria-node/src/index.ts");
+    const nodeProcess = readRepoFile("apps/aria-node/src/process.ts");
+    const nodeMain = readRepoFile("apps/aria-node/src/main.ts");
     const appIndex = readRepoFile("apps/aria-server/src/index.ts");
     const appProcess = readRepoFile("apps/aria-server/src/process.ts");
     const appMain = readRepoFile("apps/aria-server/src/main.ts");
 
-    expect(cliIndex).toContain('await import("aria-server");');
+    expect(cliIndex).toContain('await import("aria-node");');
+    expect(cliIndex).toContain("__node_host");
     expect(cliIndex).toContain("__server_host");
-    expect(cliEngine).toContain('from "@aria/server/daemon";');
-    expect(runtimeDiscovery).toContain('from "@aria/server/discovery";');
-    expect(serverDaemon).toContain('from "aria-server/process";');
-    expect(serverDaemon).toContain("spawnAriaServerDaemonHost");
-    expect(appIndex).toContain('from "@aria/server"');
+    expect(cliEngine).toContain('from "@aria/node-host/daemon";');
+    expect(runtimeDiscovery).toContain('from "@aria/node-host/discovery";');
+    expect(nodeDaemon).toContain('from "./process.js";');
+    expect(nodeDaemon).toContain("spawnAriaNodeDaemonHost");
+    expect(nodeIndex).toContain('from "@aria/node-runtime"');
+    expect(nodeIndex).toContain("ARIA_NODE_DAEMON_COMMAND");
+    expect(nodeIndex).toContain("spawnAriaNodeDaemonHost");
+    expect(nodeProcess).toContain('export * from "@aria/node-host/process";');
+    expect(nodeMain).toContain('import { RUNTIME_NAME } from "@aria/node-host/brand";');
+    expect(nodeMain).toContain('import { runAriaNodeDaemonHost } from "./index.js";');
+    expect(nodeMain).toContain("runAriaNodeDaemonHost().catch");
+    expect(appIndex).toContain('from "aria-node"');
     expect(appIndex).toContain("ARIA_SERVER_DAEMON_COMMAND");
     expect(appIndex).toContain("spawnAriaServerDaemonHost");
-    expect(appProcess).toContain('fileURLToPath(new URL("./main.ts", import.meta.url))');
-    expect(appProcess).toContain("cli_hidden_command");
-    expect(appMain).toContain('import { RUNTIME_NAME } from "@aria/server";');
+    expect(appProcess).toContain('from "@aria/node-host/process"');
+    expect(appMain).toContain('import { RUNTIME_NAME } from "@aria/node-host/brand";');
     expect(appMain).toContain('import { runAriaServerDaemonHost } from "./index.js";');
     expect(appMain).toContain("runAriaServerDaemonHost().catch");
   });
@@ -105,8 +118,9 @@ describe("cli and runtime stability", () => {
 
     expect(rootPackage.main).toBe("packages/cli/src/index.ts");
     expect(rootPackage.bin?.aria).toBe("dist/index.mjs");
-    expect(rootPackage.scripts?.dev).toBe("bun run dev:server");
-    expect(rootPackage.scripts?.["dev:server"]).toBe("cd apps/aria-server && bun run dev");
+    expect(rootPackage.scripts?.dev).toBe("bun run dev:node");
+    expect(rootPackage.scripts?.["dev:node"]).toBe("cd apps/aria-node && bun run dev");
+    expect(rootPackage.scripts?.["dev:server"]).toBe("cd apps/aria-node && bun run dev");
     expect(rootPackage.scripts?.["dev:desktop"]).toBe("cd apps/aria-desktop && bun run dev");
     expect(rootPackage.scripts?.["dev:mobile"]).toBeUndefined();
     expect(rootPackage.scripts?.build).toBe("vp run repo:build");

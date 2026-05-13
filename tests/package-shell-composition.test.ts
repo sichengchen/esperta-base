@@ -1,33 +1,33 @@
 import { describe, expect, test } from "bun:test";
 
-import { ariaServerApp, createAriaServerBootstrap } from "@aria/server";
+import { ariaNodeRuntimeApp, createAriaNodeRuntimeBootstrap } from "@aria/node-runtime";
 
 describe("package shell composition", () => {
-  test("@aria/server exposes package-owned server shell metadata and bootstrap discovery", () => {
-    const bootstrap = createAriaServerBootstrap({
+  test("@aria/node-runtime exposes package-owned runtime metadata and bootstrap discovery", () => {
+    const bootstrap = createAriaNodeRuntimeBootstrap({
       runtimeHome: "/tmp/aria-shell-test",
       hostname: "127.0.0.1",
       port: 7420,
     });
 
-    expect(ariaServerApp).toMatchObject({
-      id: "aria-server",
+    expect(ariaNodeRuntimeApp).toMatchObject({
+      id: "aria-node-runtime",
       displayName: "Esperta Aria",
       runtimeName: "Aria Runtime",
       cliName: "aria",
-      surface: "server",
+      surface: "node-runtime",
     });
-    expect(ariaServerApp.capabilities).toContain("aria-agent-host");
-    expect(ariaServerApp.ownership).toMatchObject({
-      ariaAgent: "server-only",
-      memory: "server-only",
-      automation: "server-only",
-      connectors: "server-only",
-      projectLocalExecution: "unsupported",
+    expect(ariaNodeRuntimeApp.capabilities).toContain("aria-agent-host");
+    expect(ariaNodeRuntimeApp.ownership).toMatchObject({
+      ariaAgent: "node-owned",
+      memory: "node-owned",
+      automation: "node-owned",
+      connectors: "node-owned",
+      projectLocalExecution: "configured-provider",
     });
-    expect(ariaServerApp.sharedPackages).toEqual(["@aria/runtime", "@aria/gateway"]);
+    expect(ariaNodeRuntimeApp.sharedPackages).toEqual(["@aria/node-runtime", "@aria/gateway"]);
     expect(bootstrap).toMatchObject({
-      app: ariaServerApp,
+      app: ariaNodeRuntimeApp,
       runtimeHome: "/tmp/aria-shell-test",
       hostname: "127.0.0.1",
       port: 7420,

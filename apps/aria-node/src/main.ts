@@ -1,7 +1,7 @@
 import { RUNTIME_NAME } from "@aria/node-host/brand";
-import { runAriaServerDaemonHost } from "./index.js";
+import { runAriaNodeDaemonHost } from "./index.js";
 
-runAriaServerDaemonHost().catch((error) => {
+runAriaNodeDaemonHost().catch((error) => {
   console.error(`${RUNTIME_NAME} failed to start`, error);
   process.exit(1);
 });

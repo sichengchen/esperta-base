@@ -3,7 +3,7 @@ import { TRPCError } from "@trpc/server";
 import { writeFileSync } from "node:fs";
 import { join } from "node:path";
 import { router, publicProcedure, middleware } from "./trpc.js";
-import type { EngineRuntime } from "@aria/server/runtime";
+import type { EngineRuntime } from "@aria/node-runtime/runtime";
 import { getRuntimeSessionCoordinator } from "@aria/server/session-coordinator";
 import { HandoffService, HandoffStore } from "@aria/handoff";
 import { ProjectsEngineRepository, ProjectsEngineStore } from "@aria/work";

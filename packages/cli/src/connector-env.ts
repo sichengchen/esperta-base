@@ -2,7 +2,7 @@ import { existsSync } from "node:fs";
 import { join } from "node:path";
 import { ConfigManager } from "@aria/server/config";
 import { loadSecrets } from "@aria/server/config/secrets";
-import { getRuntimeHome } from "@aria/server/brand";
+import { getRuntimeHome } from "@aria/node-host/brand";
 
 /**
  * Load connector-facing environment variables from the runtime home.

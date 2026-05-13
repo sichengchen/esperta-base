@@ -64,6 +64,7 @@ export interface HarnessChatOptions extends Pick<
   | "toolLoopDetection"
   | "maxToolResultChars"
   | "onToolApproval"
+  | "executeTool"
   | "onAskUser"
   | "modelOverride"
 > {
@@ -360,6 +361,7 @@ export class AriaHarnessSession {
         toolLoopDetection: options.toolLoopDetection,
         maxToolResultChars: options.maxToolResultChars,
         onToolApproval: options.onToolApproval,
+        executeTool: options.executeTool,
         onAskUser: options.onAskUser,
         modelOverride: options.modelOverride,
       });

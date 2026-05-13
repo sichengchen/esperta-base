@@ -21,6 +21,15 @@ export interface ToolResult {
   isError?: boolean;
 }
 
+export interface ToolExecutionRequest {
+  toolName: string;
+  toolCallId: string;
+  args: Record<string, unknown>;
+  execute: () => Promise<ToolResult>;
+}
+
+export type ToolExecutionCallback = (request: ToolExecutionRequest) => Promise<ToolResult>;
+
 /** Callback for tool approval — returns true if approved, false if rejected */
 export type ToolApprovalCallback = (
   toolName: string,
@@ -56,6 +65,8 @@ export interface AgentOptions {
   maxToolResultChars?: number;
   /** Optional callback for tool approval. If provided, called before tool execution. */
   onToolApproval?: ToolApprovalCallback;
+  /** Optional execution boundary. Production runtimes use this to route ToolIntent outside Agent. */
+  executeTool?: ToolExecutionCallback;
   /** Optional callback for ask_user tool. If provided, the agent can ask the user questions mid-turn. */
   onAskUser?: AskUserCallback;
   /** Override the router's active model for this agent instance (e.g. for cron task model overrides) */
@@ -67,6 +78,7 @@ export type AgentEvent =
   | { type: "text_delta"; delta: string }
   | { type: "thinking_delta"; delta: string }
   | { type: "tool_start"; name: string; id: string; args: Record<string, unknown> }
+  | { type: "tool_intent_created"; name: string; id: string; args: Record<string, unknown> }
   | { type: "tool_end"; name: string; id: string; result: ToolResult }
   | { type: "tool_approval_request"; name: string; id: string; args: Record<string, unknown> }
   | { type: "user_question"; id: string; question: string; options?: string[] }

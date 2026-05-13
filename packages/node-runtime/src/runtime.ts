@@ -443,6 +443,7 @@ export async function createRuntime(): Promise<EngineRuntime> {
                 return approved;
               }
             : undefined,
+          executeTool: async ({ execute }) => execute(),
           onAskUser: options.onAskUser,
         });
       },

@@ -24,6 +24,68 @@ function mockRouter() {
 }
 
 describe("Agent — retry context rebuild", () => {
+  it("emits ToolIntent and delegates execution to the runtime boundary", async () => {
+    mock.module("@mariozechner/pi-ai", () => ({
+      stream: async function* () {
+        yield {
+          type: "toolcall_end",
+          toolCall: { id: "tc-intent", name: "intent_tool", arguments: { value: "x" } },
+        };
+        yield {
+          type: "done",
+          reason: "toolUse",
+          message: {
+            role: "assistant",
+            content: "",
+            toolCalls: [{ id: "tc-intent", name: "intent_tool", arguments: { value: "x" } }],
+            timestamp: Date.now(),
+          },
+        };
+        yield {
+          type: "done",
+          reason: "endTurn",
+          message: { role: "assistant", content: "done", timestamp: Date.now() },
+        };
+      },
+    }));
+
+    const { Agent } = await import("./agent.js");
+    const { Type } = await import("@sinclair/typebox");
+    const executed: string[] = [];
+
+    const agent = new Agent({
+      router: mockRouter() as any,
+      timeoutMs: 5000,
+      toolLoopDetection: false,
+      tools: [
+        {
+          name: "intent_tool",
+          description: "Uses runtime execution boundary",
+          dangerLevel: "safe",
+          parameters: Type.Object({}),
+          execute: async () => {
+            executed.push("tool");
+            return { content: "ok" };
+          },
+        },
+      ],
+      executeTool: async ({ toolName, toolCallId, args, execute }) => {
+        executed.push(`${toolName}:${toolCallId}:${String(args.value)}`);
+        return execute();
+      },
+    });
+
+    const events = await collectEvents(agent.chat("use the tool"));
+
+    expect(events).toContainEqual({
+      type: "tool_intent_created",
+      name: "intent_tool",
+      id: "tc-intent",
+      args: { value: "x" },
+    });
+    expect(executed).toEqual(["intent_tool:tc-intent:x", "tool"]);
+  });
+
   it("passes sanitized history to stream on retry after retryable error", async () => {
     let callCount = 0;
     // Store raw array references — NOT spreads — so we can assert identity

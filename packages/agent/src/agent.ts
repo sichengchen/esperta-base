@@ -253,19 +253,23 @@ export class Agent {
                       continue;
                     }
 
+                    const toolArgs = tc.arguments as Record<string, unknown>;
+                    yield {
+                      type: "tool_intent_created",
+                      name: tc.name,
+                      id: tc.id,
+                      args: toolArgs,
+                    };
+
                     // If an approval callback is set, request approval first
                     if (this.options.onToolApproval) {
                       yield {
                         type: "tool_approval_request",
                         name: tc.name,
                         id: tc.id,
-                        args: tc.arguments as Record<string, unknown>,
+                        args: toolArgs,
                       };
-                      const approved = await this.options.onToolApproval(
-                        tc.name,
-                        tc.id,
-                        tc.arguments as Record<string, unknown>,
-                      );
+                      const approved = await this.options.onToolApproval(tc.name, tc.id, toolArgs);
                       if (!approved) {
                         const rejected = {
                           content: `Tool "${tc.name}" was rejected by the user.`,
@@ -287,10 +291,7 @@ export class Agent {
 
                     // Check loop detection BEFORE executing
                     if (loopDetector) {
-                      const preCheck = loopDetector.checkBeforeExecution(
-                        tc.name,
-                        tc.arguments as Record<string, unknown>,
-                      );
+                      const preCheck = loopDetector.checkBeforeExecution(tc.name, toolArgs);
 
                       if (preCheck.level === "block") {
                         const blocked = {
@@ -318,7 +319,14 @@ export class Agent {
                       }
                     }
 
-                    const rawResult = await this.registry.execute(tc.name, tc.arguments);
+                    const rawResult = await (this.options.executeTool
+                      ? this.options.executeTool({
+                          toolName: tc.name,
+                          toolCallId: tc.id,
+                          args: toolArgs,
+                          execute: () => this.registry.execute(tc.name, toolArgs),
+                        })
+                      : this.registry.execute(tc.name, toolArgs));
 
                     // Sanitize + cap tool result size
                     const sanitized = {
@@ -331,7 +339,7 @@ export class Agent {
                     if (loopDetector) {
                       const postCheck = loopDetector.recordResult(
                         tc.name,
-                        tc.arguments as Record<string, unknown>,
+                        toolArgs,
                         result.content,
                       );
                       if (postCheck.level === "warn") {

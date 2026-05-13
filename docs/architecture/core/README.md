@@ -1,10 +1,6 @@
-# Architecture Core
+# Core Architecture
 
-This group defines the system-level model of Esperta Aria.
-
-Read these pages when you need the overall system shape, deployment boundary, durable entities, or monorepo ownership model.
-
-## Documents
+Read these pages for the top-level Aria Node Runtime architecture.
 
 - [overview.md](./overview.md)
 - [deployment.md](./deployment.md)

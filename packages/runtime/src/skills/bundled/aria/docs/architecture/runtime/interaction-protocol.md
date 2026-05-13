@@ -1,82 +1,105 @@
 # Interaction Protocol
 
-This page defines the transport-agnostic interaction contract used across console, desktop, mobile, connectors, gateway-published network paths, and automation.
+All clients and integrations use the same node protocol.
 
-## Protocol Goals
+Desktop local sessions and Mobile remote sessions are both sessions against the
+same Aria Node Runtime protocol.
 
-1. One runtime event model for all frontends.
-2. Streaming-first delivery with durable run identity.
-3. Native support for approvals, questions, actions, interrupts, and attachments.
-4. Frontends stay thin and do not invent connector-specific execution semantics.
-5. Direct, LAN, VPN, and tunnel-published gateway connections preserve the same protocol shape.
+## Command API
+
+```text
+create_thread
+append_message
+request_run
+cancel_run
+create_project_job
+approve_action
+deny_action
+configure_automation
+configure_connector
+update_memory
+configure_provider
+set_sandbox_provider
+```
+
+## Query API
+
+```text
+list_threads
+get_thread
+get_run
+list_jobs
+get_job
+list_projects
+get_artifact
+list_approvals
+search_memory
+get_audit_records
+get_node_status
+get_sandbox_config
+```
+
+## Event API
+
+```text
+subscribe_node_events
+stream_run_timeline
+stream_job_progress
+stream_approval_changes
+stream_connector_events
+stream_automation_events
+stream_sandbox_events
+```
 
 ## Event Families
 
-### Inbound
+Inbound:
 
 - user message
 - operator action
 - approval response
-- question response
-- interrupt
+- interrupt or cancellation
 - attachment upload
 - automation trigger
+- connector event
 
-### Outbound
+Outbound:
 
-- text delta
-- reasoning delta
-- tool started
-- tool finished
+- assistant delta
+- reasoning or status delta
+- tool intent created
 - approval requested
-- question asked
-- reaction emitted
-- attachment available
-- status changed
+- tool execution completed
+- artifact available
+- job progress changed
 - run completed
 - run failed
 
 ## Identity Model
 
-Every protocol envelope should carry as much canonical identity as is available:
+Protocol envelopes should carry as much canonical identity as available:
 
-- `serverId`
-- `workspaceId`
-- `projectId`
-- `environmentId`
-- `threadId`
+- `nodeId`
+- `deviceId`
+- `principalId`
 - `sessionId`
+- `threadId`
 - `runId`
 - `jobId`
-- `taskId`
-- `agentId`
-- `actorId`
+- `projectId`
+- `workspaceId`
+- `toolIntentId`
+- `toolExecutionId`
+- `approvalRequestId`
+- `automationId`
+- `connectorId`
+- `artifactId`
 
-At minimum, server-hosted streaming events should make `threadId`, `sessionId`, and `runId` explicit so correlation never depends on transport state.
-
-## Delivery Rules
-
-- the same event semantics apply over console, gateway, connector adapters, and any operator-managed network path in front of the gateway
-- reconnect must resume against canonical server-owned thread and run identity
-- attachments and long-running jobs should be reclaimable without inventing shadow state on the client or any external networking layer
+At minimum, streamed run events should include `nodeId`, `threadId`, and
+`runId` so correlation never depends on transport state.
 
 ## Frontend Rules
 
-Each frontend adapts the protocol to its own UI constraints, but it must not redefine:
-
-- approval meaning
-- interrupt behavior
-- task and run status semantics
-- tool execution meaning
-- thread and run correlation
-
-## Ownership
-
-`@aria/protocol` owns request, event, identity, and streaming contracts. Gateway, runtime, and client packages should consume those contracts instead of re-declaring near-duplicates.
-
-## Related Reading
-
-- [runtime.md](./runtime.md)
-- [../core/domain-model.md](../core/domain-model.md)
-- [../surfaces/gateway-access.md](../surfaces/gateway-access.md)
-- [../surfaces/server.md](../surfaces/server.md)
+Frontends adapt the protocol to UI constraints, but must not redefine approval
+meaning, cancellation behavior, task and run status semantics, tool execution
+meaning, or thread and run correlation.

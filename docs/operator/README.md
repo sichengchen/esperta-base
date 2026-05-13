@@ -1,9 +1,8 @@
-# Operator Guides
+# Operator Docs
 
-These pages are written for people running Aria.
+Operator docs describe how humans operate Aria Node Runtime through CLI,
+Desktop, Headless, and remote clients.
 
-## Guide Groups
-
-- [core/README.md](./core/README.md)
-- [operations/README.md](./operations/README.md)
-- [extensions/README.md](./extensions/README.md)
+- [core](./core/README.md)
+- [operations](./operations/README.md)
+- [extensions](./extensions/README.md)

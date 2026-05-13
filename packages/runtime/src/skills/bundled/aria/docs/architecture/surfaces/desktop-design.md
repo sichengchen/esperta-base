@@ -141,7 +141,7 @@ The user must still be able to:
 - switch screens
 - inspect panels
 - search sessions
-- select a server
+- select a node
 - choose an environment
 
 The shell should degrade to missing data, not missing navigation.
@@ -153,7 +153,7 @@ The shell should degrade to missing data, not missing navigation.
 The top chrome owns:
 
 - product identity
-- active server switcher
+- active node switcher
 - connection status
 - active space
 - active screen
@@ -214,7 +214,7 @@ Recommended operator path:
 4. switch the active thread onto that environment
 
 The desktop may use desktop-local persistence for workspace and environment drafts,
-but server-hosted Aria state remains server-owned.
+but node-hosted Aria state remains node-owned.
 
 ## Center work area
 
@@ -354,7 +354,7 @@ Minimum shell state:
 
 ```ts
 type DesktopShellState = {
-  activeServerId: string;
+  activeNodeId: string;
   activeSpaceId: "aria" | "projects";
   activeScreenId: string;
   activeContextPanelId: "review" | "changes" | "environment" | "job" | "approvals" | "artifacts";
@@ -382,7 +382,7 @@ The desktop must expose pure transition functions for every visible interaction:
 - `selectSpace(spaceId)`
 - `selectScreen(screenId)`
 - `selectContextPanel(panelId)`
-- `switchServer(serverId)`
+- `switchNode(nodeId)`
 - `selectThread(threadId)`
 - `selectEnvironment(environmentId)`
 - `openSession(sessionId)`
@@ -404,7 +404,7 @@ The following paths must work before the desktop shell is considered usable.
 
 ### Global
 
-1. switch server
+1. switch node
 2. switch space
 3. switch center screen inside a space
 4. switch inspector panel
@@ -432,7 +432,7 @@ The following paths must work before the desktop shell is considered usable.
 
 1. no thread selected but space/screen navigation still works
 2. no sessions found but search still works
-3. disconnected server still leaves navigation and switching intact
+3. disconnected node still leaves navigation and switching intact
 
 ## Visual System
 
@@ -482,7 +482,7 @@ Tests must verify:
 - space switching
 - screen switching
 - context panel switching
-- server switching
+- node switching
 - thread selection
 - environment switching
 - session loading and searching
@@ -492,7 +492,7 @@ Tests must verify:
 
 Tests must verify that visible controls are wired:
 
-- server switcher
+- node switcher
 - sidebar space tabs
 - sidebar screen tabs
 - thread buttons

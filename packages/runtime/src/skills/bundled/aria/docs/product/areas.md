@@ -1,26 +1,42 @@
 # Product Areas
 
-Esperta Aria is one product with four areas.
+Esperta Aria's product areas map to one node-owned runtime model.
 
-## Aria Local
+## Aria Desktop
 
-Run and supervise agent work on the operator's own machine. This is the primary product surface and the source of truth for live execution.
+Primary operator app for local work and remote node control.
 
-## Aria Remote
+Desktop starts or attaches to a local Aria Node Runtime and can also connect to
+Headless nodes through the same protocol.
 
-Control Aria from paired devices. Remote control attaches to the same runtime rather than creating a second execution system.
+## Aria Headless
 
-## Aria Automations
+Service-managed Aria Node Runtime without Desktop UI.
 
-Run scheduled and webhook-triggered work on the same runtime substrate used by interactive sessions.
+Headless is the preferred always-on host for automations, connectors, remote
+jobs, mobile access, API access, and long-running work.
+
+## Aria Mobile
+
+Remote client for existing nodes.
+
+Mobile can chat, approve, deny, monitor, review, and receive notifications.
+Mobile cannot execute tools or host Aria Agent.
 
 ## Aria Projects
 
-Track durable work, dispatch runtime executions, manage repos and worktrees, and record review/publish state.
+Projects model repos, folders, workspaces, jobs, artifacts, checkpoints,
+patches, and reviewable output.
 
-## Shared Guarantees
+Project work becomes:
 
-- local-first operation
-- durable state across restart
-- one protocol across all surfaces
-- explicit policy for tools, approvals, and remote trust
+```text
+Project -> Thread -> Run -> Job -> Workspace -> ToolIntent -> SandboxExecution -> Artifact -> Review
+```
+
+## Aria Automations
+
+Automations are node-hosted command producers.
+
+Scheduled, webhook, and event triggers all enter the Kernel through the Command
+Bus and become normal runs.

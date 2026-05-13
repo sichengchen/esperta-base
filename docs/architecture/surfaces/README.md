@@ -1,12 +1,9 @@
-# Architecture Surfaces
+# Surfaces
 
-This group defines the server and client surfaces around the runtime.
+Surface docs define how Desktop, Headless, Mobile, and Gateway relate to Aria
+Node Runtime.
 
-Read these pages when you need the ownership split between `Aria Server`, `Aria Server Gateway`, `Aria Desktop`, and `Aria Mobile`.
-
-## Documents
-
-- [server.md](./server.md)
-- [gateway-access.md](./gateway-access.md)
-- [desktop-and-mobile.md](./desktop-and-mobile.md)
-- [desktop-design.md](./desktop-design.md)
+- [server.md](./server.md): Aria Node Runtime internal surface and Headless package.
+- [desktop-and-mobile.md](./desktop-and-mobile.md): client responsibilities for Desktop and Mobile.
+- [gateway-access.md](./gateway-access.md): pairing, auth, reachability, and gateway boundary.
+- [desktop-design.md](./desktop-design.md): Desktop UI design guidance.

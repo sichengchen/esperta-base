@@ -1,36 +1,25 @@
 # Getting Started
 
-## Install
+Install dependencies:
 
 ```bash
 bun install
 ```
 
-## First Run
+Start the current development node surface:
 
 ```bash
 bun run dev:server
 ```
 
-If `ARIA_HOME/config.json` does not exist, Aria opens onboarding first.
-If you plan to use MiniMax, have `MINIMAX_API_KEY` ready for the provider setup step.
-For the general SDK-style path, prefer the `MiniMax ... (Anthropic-compatible)` preset during onboarding or in `aria config`.
-That preset exposes the official MiniMax text model list directly in the picker: `MiniMax-M2.7`, `MiniMax-M2.7-highspeed`, `MiniMax-M2.5`, `MiniMax-M2.5-highspeed`, `MiniMax-M2.1`, `MiniMax-M2.1-highspeed`, and `MiniMax-M2`.
+The target product model is:
 
-## App Dev Loops
-
-```bash
-bun run dev:server
-bun run dev:desktop
-bun run dev:mobile
+```text
+Desktop = Aria Node Runtime + Desktop UI
+Headless = same Aria Node Runtime without Desktop UI
+Mobile = remote client only
 ```
 
-## First Commands To Learn
-
-- `aria`
-- `aria config`
-- `aria engine status`
-- `aria automation`
-- `aria memory`
-- `aria projects`
-- `aria gateway`
+The current repository may still expose legacy command names while migration is
+in progress. New operator docs should describe behavior in terms of Aria Node
+Runtime, not a separate server runtime.

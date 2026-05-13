@@ -1,75 +1,26 @@
-# Sessions
+# Sessions And Runs
 
-Every interactive or automated runtime interaction happens inside a durable session.
+Sessions represent authenticated client access to a node. Threads and runs
+represent durable work.
 
-`SessionManager` lives under `packages/server/src/sessions.ts`.
+## Runtime Concepts
 
-## Session ID Format
+- `Session`: authenticated principal and device access to a node.
+- `Thread`: user-visible conversation or project thread.
+- `Run`: one execution attempt inside a thread.
+- `RunStep`: meaningful execution step.
+- `RunTimelineEvent`: streamed user-visible activity.
 
-Session IDs use:
+## Operator Tasks
 
-```text
-<prefix>:<uuid>
-```
+- list active sessions
+- revoke a session
+- inspect a thread
+- inspect a run
+- cancel a run
+- review pending approvals
+- resume after approval
+- review artifacts and audit records
 
-- the prefix identifies the connector or execution context
-- the suffix is a full UUID from `crypto.randomUUID()`
-- the prefix may itself contain colons
-
-Examples:
-
-- `main:550e8400-e29b-41d4-a716-446655440000`
-- `tui:550e8400-e29b-41d4-a716-446655440001`
-- `telegram:123456:550e8400-e29b-41d4-a716-446655440002`
-- `cron:daily-summary:550e8400-e29b-41d4-a716-446655440003`
-
-## Session Classes
-
-| Class                     | Example prefix                                          | Purpose                                                 |
-| ------------------------- | ------------------------------------------------------- | ------------------------------------------------------- |
-| Main                      | `main`                                                  | runtime-owned engine-level work                         |
-| Connector                 | `tui`, `telegram:<chatId>`, `discord:<channelId>`, etc. | user-facing conversations                               |
-| Automation                | `cron:<taskName>`, `webhook:<slug>`                     | isolated automation work                                |
-| Projects-driven execution | `dispatch:<dispatchId>`                                 | runtime execution correlated back to a tracked dispatch |
-
-## Session Lifecycle
-
-1. create or resolve the session
-2. bind or resume runtime state
-3. run live work within that session
-4. persist durable messages and summaries
-5. archive longer-lived transcripts and summaries
-6. keep the session queryable after active execution ends
-
-## Session Ownership
-
-Frontends do not own session state. They reference runtime sessions through the shared interaction protocol and the runtime auth model.
-
-## Archive Behavior
-
-Session archives preserve:
-
-- transcript history
-- summaries
-- searchable metadata
-
-`chat.history`, `session.listArchived`, and `session.search` can fall back to archive-backed state when a live agent instance is no longer present.
-
-## Session Utilities
-
-Important session utilities remain:
-
-- `create(prefix, connectorType)`
-- `getSession(id)`
-- `listSessions()`
-- `listByPrefix(prefix)`
-- `getLatest(prefix)`
-- `touchSession(id)`
-- `destroySession(id)`
-- `transferSession(id, connectorId, connectorType?)`
-
-## Approval and Session Attachment Interaction
-
-- approval state is durable per run and per session
-- session attachments target runtime sessions, not separate remote session objects
-- projects dispatch execution now correlates durable dispatches to runtime session IDs
+Clients observe node-owned state. They do not own thread, run, approval, or
+tool execution semantics.

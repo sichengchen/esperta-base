@@ -1,35 +1,22 @@
-# Release
+# Release Guidance
 
-## CI
+Before shipping substantial changes, run:
 
-CI runs:
+```bash
+bun run check
+bun run test
+bun run build
+```
 
-- secret scan
-- lint
-- typecheck
-- tests
-- build
+Docs-only changes may skip runtime checks when no executable code, generated
+runtime assets, or package metadata changed. State the exemption in the handoff.
 
-## Pre-finalization checks
+Architecture-affecting releases should verify:
 
-Before merge/finalization on a release branch:
-
-- `vp run repo:check`
-- `vp run repo:test`
-- `vp run repo:build`
-- `bun run audit:history -- origin/main..HEAD`
-
-The history audit checks that the pending branch-range commits do not contain
-system-generated `auto-checkpoint` wording and that they include the required
-Lore trailers.
-
-## Release Flow
-
-Tagged releases build the Bun bundle, publish GitHub artifacts, and update the Homebrew formula.
-
-## Artifacts
-
-The current build publishes:
-
-- the CLI bundle under `dist/`
-- the desktop Electron build under `apps/aria-desktop/dist/`
+- Desktop and Headless still use the same runtime path or move closer to it.
+- Mobile remains remote-only.
+- Side effects go through Capability Broker and Sandbox Manager.
+- Policy decisions remain `allow`, `ask`, or `deny`.
+- Approval decisions remain `approve_once` or `deny`.
+- justbash remains the default sandbox provider.
+- Unsupported justbash actions do not silently escape to host execution.

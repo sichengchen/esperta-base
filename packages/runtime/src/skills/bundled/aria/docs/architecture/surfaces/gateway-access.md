@@ -1,138 +1,59 @@
 # Gateway Access
 
-This page defines the secure connection model for `Aria Server`.
+Gateway is the only Aria-owned access boundary.
 
-The rule is:
+## Responsibilities
 
-`Aria Server Gateway` is the only Aria-owned entrypoint. Reachability is external infrastructure.
+- device pairing
+- session authentication
+- authorization
+- command API
+- query API
+- event stream API
+- gateway audit events
 
-## Why
+Gateway does not own agent execution, tool execution, workspace mutation,
+memory writes, job orchestration, automation semantics, or project semantics.
 
-Aria should not bind operators to an Aria-operated network broker or any proprietary network path.
+## Pairing Flow
 
-Operators may choose:
+```text
+1. Node creates pairing code or pairing link.
+2. Client presents pairing credential.
+3. Gateway verifies pairing.
+4. Node creates device identity.
+5. Node issues session credentials.
+6. All future requests are authenticated and audited.
+```
 
-- loopback-only access on the same machine
-- LAN reachability on a trusted home or office network
-- private overlay reachability such as Tailscale
-- a published reverse proxy or tunnel such as Cloudflare Tunnel
+## Recommended Roles
 
-Those choices change network topology, not assistant semantics.
+- `owner`
+- `operator`
+- `viewer`
+- `automation`
+- `connector`
+- `api_client`
 
-## Ownership Split
+## Reachability
 
-### `Aria Server Gateway` owns
+Default bind should be loopback-first.
 
-- request authentication
-- device/session enrollment
-- pairing code validation
-- bearer session issuance
-- authorization checks
-- request and realtime protocol handling
-- audit of gateway auth events
+Operators may explicitly expose Gateway over:
 
-### External infrastructure owns
+- same-machine loopback
+- LAN
+- VPN
+- tunnel
+- reverse proxy
+- direct public endpoint
 
-- DNS
-- inbound routing
-- NAT traversal
-- TLS termination if placed in front of Aria
-- WAF / IP allowlists / private-network policy
-- private mesh connectivity
-
-## Reachability Modes
-
-### 1. Loopback-first
-
-Default mode:
-
-- bind to `127.0.0.1`
-- use local console/desktop on the same host
-- expose nothing to the LAN by default
-
-### 2. LAN reachability
-
-Operator intentionally binds the gateway to a LAN-facing address.
-
-Use this when:
-
-- all clients are on the same trusted network
-- the operator wants mobile/tablet access at home or in the office
-
-Requirements:
-
-- strong gateway auth still applies
-- operator accepts LAN exposure explicitly
-
-### 3. Private overlay reachability
-
-Examples:
-
-- Tailscale
-- WireGuard-based private mesh
-- ZeroTier
-
-Recommended properties:
-
-- only the overlay publishes the route
-- Aria still authenticates every client itself
-- no Aria-specific access broker is required
-
-### 4. Published gateway reachability
-
-Examples:
-
-- Cloudflare Tunnel
-- Caddy / Nginx / Traefik reverse proxy
-- cloud load balancer in front of the host
-
-Recommended properties:
-
-- TLS in front of the gateway
-- optional IP allowlists, Access policies, or mTLS
-- gateway auth remains mandatory even behind the proxy
+External network publication does not change runtime semantics. It only changes
+reachability.
 
 ## Security Rules
 
-### Pairing code issuance
-
-Pairing codes are the bootstrap secret for a new device.
-
-Therefore:
-
-- pairing code generation must be local/admin initiated
-- pairing code retrieval must not be a public unauthenticated API
-- pairing codes are one-time and short-lived
-- pairing success returns a narrower bearer session token
-
-### Session tokens
-
-Session tokens should remain:
-
-- scoped to connector/device identity
-- durable only within TTL
-- revocable
-- auditable
-
-### Network publication
-
-External infra may publish the gateway, but it must not:
-
-- issue Aria session tokens on Aria's behalf
-- become the source of truth for thread/run identity
-- change approval semantics
-- store assistant memory as an access-layer concern
-
-## Recommended Connection Order
-
-Prefer:
-
-1. loopback or same-LAN access
-2. private overlay access
-3. published tunnel or reverse proxy
-
-This keeps the design simple:
-
-- one gateway
-- one auth model
-- many possible network paths
+- Pairing code generation is a local/admin action.
+- Every command is authenticated, authorized, and audited.
+- Gateway forwards valid commands into Kernel.
+- Gateway does not bypass Capability, Approval, Sandbox, or Audit.

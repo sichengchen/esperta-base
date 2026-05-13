@@ -1,8 +1,8 @@
-# Operator Extensions
+# Extensions
 
-This group covers operator-managed extension and delegation surfaces.
-
-## Documents
+Extensions are node-owned runtime surfaces or prompt assets.
 
 - [skills.md](./skills.md)
-- [subagents.md](./subagents.md)
+
+Legacy subagent documentation was removed because the target architecture has
+one Aria Agent running inside Aria Node Runtime.

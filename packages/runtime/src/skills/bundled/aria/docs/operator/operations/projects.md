@@ -1,43 +1,35 @@
-# Projects
+# Project Operations
 
-`aria projects` is the operator surface for durable tracked work.
+Project work is durable node-owned work.
 
-## What You Can Manage
+## Flow
 
-- projects
-- repos
-- tasks
-- threads
-- jobs
-- dispatches
-- worktrees
-- reviews
-- publish runs
-- external references
-- handoffs
+```text
+Project
+  -> Thread
+  -> Run
+  -> Job
+  -> Workspace
+  -> ToolIntent
+  -> SandboxExecution
+  -> Artifact
+  -> Review
+```
 
-## Typical Workflow
+## Operator Tasks
 
-1. register or update a project and repo
-2. create a task or thread
-3. append a job
-4. create or queue a dispatch
-5. run the dispatch
-6. record review and publish state
+- register a project
+- bind a project to a thread
+- choose node, project, or run sandbox provider
+- create a project job
+- monitor job progress
+- review artifacts and patches
+- approve applying a patch to the real workspace
+- cancel or retry jobs
 
-## Handoff
+## Workspace Mutation
 
-Use:
+Default workflow avoids uncontrolled direct mutation of real workspaces.
 
-- `handoff-submit` to create an idempotent submission
-- `handoff-process` to materialize it into thread/job/dispatch records
-
-Server clients can use the same flow through:
-
-- `projects.handoff.submit`
-- `projects.handoff.list`
-- `projects.handoff.materialize`
-
-## Ownership Reminder
-
-Projects state is durable. Runtime execution is live. The CLI spans both, but the ownership remains split between Projects Engine and Runtime.
+Applying a patch to a real workspace requires Capability Broker, Policy, Simple
+Approval, Workspace Engine, and Audit.

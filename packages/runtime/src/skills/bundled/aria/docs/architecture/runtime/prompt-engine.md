@@ -1,72 +1,54 @@
 # Prompt Engine
 
-This page defines the target-state prompt assembly model for Aria.
+Prompt and context are dedicated Agent Plane responsibilities.
 
-The prompt engine is a dedicated subsystem owned by `@aria/prompt`. Prompt assembly is not performed through scattered inline string construction.
+Aria Agent uses Prompt and Context to build model input for a run, but it does
+not directly read or mutate every domain store. Context inputs are loaded
+through node-owned domain APIs and assembled with source metadata.
 
 ## Responsibilities
 
-The prompt engine assembles model input from structured sources:
+- load run context
+- collect relevant thread, project, memory, approval, and policy context
+- compile prompt sections
+- attach source attribution
+- mark cacheable and volatile sections
+- record excluded context reasons
+- pass structured input to Model Router
 
-1. runtime identity and policy
-2. user profile
-3. project context
-4. session state
-5. relevant memory layers
-6. harness-generated tool affordances
-7. active skills resolved by the harness
-8. connector, automation, or task overlays
+## Inputs
 
-## Context Inputs
+Prompt assembly can include:
 
-### Identity and Policy
+- runtime identity
+- principal and device context
+- thread and run state
+- recent messages and summaries
+- project context and workspace metadata
+- memory records returned by node memory APIs
+- active tool manifests and capability constraints
+- connector, automation, or API overlays
+- approval and sandbox constraints for the current run
 
-Identity, operator-facing behavior, safety policy, tool narration rules, and capability constraints are injected as structured prompt components.
-Role overlays are applied as `call role > session role > agent role > Aria default identity`; roles are prompt overlays, not persisted fake messages.
+## Project Context
 
-### Project Context
+Project context files are loaded intentionally and with source metadata.
 
-Project context files are loaded intentionally in this precedence order:
+Recommended precedence:
 
 1. `.aria.md`
 2. `AGENTS.md`
-3. `CLAUDE.md`
+3. other explicitly configured project context
 
-Project context is attached with source metadata and is eligible for summarization and caching. The runtime may also inspect additional directory-local context files when tool calls move into subtrees.
+## Memory Context
 
-### Memory Layers
-
-Aria maintains explicit memory layers:
-
-| Layer              | Purpose                                                                      |
-| ------------------ | ---------------------------------------------------------------------------- |
-| Profile memory     | Stable user preferences and identity facts                                   |
-| Project memory     | Durable project-specific context, decisions, conventions                     |
-| Operational memory | Runtime facts such as approvals, capabilities, current execution constraints |
-| Journal memory     | Chronological summaries of prior work and outcomes                           |
-| Semantic retrieval | Indexed snippets retrieved by meaning and text relevance                     |
-
-Each layer has distinct retention, summarization, and policy rules.
-
-## Compression
-
-The prompt engine performs rolling context compression:
-
-- transcript summarization
-- selective replay of recent high-value turns
-- tool output compaction
-- durable run summaries
-- memory extraction from completed work
-
-Compression preserves continuity while avoiding full transcript replay.
-
-## Prompt Caching
-
-Prompt caching is provider-aware. The runtime may reuse stable prompt prefixes that include identity, policy, tool catalogs, and stable project context while varying the volatile suffix for recent session state.
+Memory is node-owned. Prompt assembly may request memory search or retrieval,
+but memory writes, updates, deletes, and retractions go through the Memory
+domain engine.
 
 ## Output Contract
 
-The prompt engine returns a structured assembly result that includes:
+The prompt engine returns a structured assembly result:
 
 - ordered prompt sections
 - source references

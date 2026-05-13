@@ -1,13 +1,8 @@
-# Security Execution
+# Execution Security
 
-This group covers runtime execution controls and policy enforcement.
+All tool execution goes through Sandbox Manager.
 
-## Documents
+The default provider is `justbash`. Future full sandbox providers can be added
+later and selected explicitly by user or configuration.
 
-- [content-framing.md](./content-framing.md)
-- [bash-environments.md](./bash-environments.md)
-- [exec-classifier.md](./exec-classifier.md)
-- [exec-fence.md](./exec-fence.md)
 - [sandbox.md](./sandbox.md)
-- [security-modes.md](./security-modes.md)
-- [url-policy.md](./url-policy.md)

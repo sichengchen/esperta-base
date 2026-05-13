@@ -1,33 +1,68 @@
 # Product Overview
 
-Esperta Aria is one flagship product built around a durable local runtime and one shared interaction model.
+Esperta Aria gives an operator one agent-bearing runtime that can run locally
+through Desktop or always-on through Headless.
 
-## Public Identity
+## Desktop
 
-- Product: `Esperta Aria`
-- Runtime: `Aria Runtime`
-- CLI: `aria`
-- Runtime home: `~/.aria/` or `ARIA_HOME`
+Desktop packages:
 
-## Product Commitments
+- Desktop UI
+- Desktop Client SDK
+- Node Supervisor
+- Aria Node Runtime
+- Local Gateway
+- Local Store
+- Local Tools
+- Local Workspaces
 
-- Local-first by default
-- Durable across restart
-- Protocol-first across every surface
-- Policy-driven tool and approval model
-- Extensible through built-in tools, MCP, connectors, and skills
+A local Desktop session is:
 
-## Product Shape
+```text
+Desktop UI -> local Aria Node Runtime
+```
 
-Aria is not a loose bundle of tools. It is one suite with four product areas:
+A remote Mobile session into the same machine is:
 
-- Local
-- Remote
-- Automations
-- Projects
+```text
+Mobile UI -> same Aria Node Runtime on the desktop machine
+```
 
-All four are built on the same runtime and durable state model rather than separate backends.
+Both are sessions on the same node.
 
-## Compatibility
+## Headless
 
-Aria favors the intended architecture over preserving legacy naming or folder structure. If an older shape conflicts with the product model, it should be removed rather than protected indefinitely.
+Headless packages the same Aria Node Runtime without Desktop UI.
+
+It is optimized for:
+
+- remote jobs
+- scheduled automations
+- webhook automations
+- IM connectors
+- mobile access
+- desktop remote access
+- API access
+- approval flows
+- audit
+- memory
+- secrets
+
+The only differences from Desktop are startup mode, service management,
+frontend availability, default gateway exposure, and operator workflow.
+
+## Mobile
+
+Mobile is a remote client only.
+
+Mobile supports:
+
+- chat with an existing node
+- approve or deny actions
+- monitor jobs
+- review artifacts
+- view automation status
+- control remote sessions
+
+Mobile must not host runtime execution, local shell execution, local project
+execution, automations, connectors, or sandboxing.

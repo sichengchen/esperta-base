@@ -1,17 +1,9 @@
 # Development
 
-This section covers the current repo workflows that still matter day to day.
+Development docs describe how to move the repository toward the Aria Node
+Runtime target architecture.
 
-- [setup.md](./setup.md)
-- [testing/README.md](./testing/README.md)
-- [testing/plan/README.md](./testing/plan/README.md)
-- [aria-node-transition-plan.md](./aria-node-transition-plan.md)
-- [release.md](./release.md)
 - [migration.md](./migration.md)
-
-Testing docs are split intentionally:
-
-- [testing/README.md](./testing/README.md) is the entrypoint
-- [testing/plan/foundations/README.md](./testing/plan/foundations/README.md) covers capability boundaries
-- [testing/plan/workflows/README.md](./testing/plan/workflows/README.md) covers end-to-end flows
-- [testing/plan/execution/README.md](./testing/plan/execution/README.md) covers live AI, suite ownership, and release gates
+- [setup.md](./setup.md)
+- [release.md](./release.md)
+- [testing/README.md](./testing/README.md)

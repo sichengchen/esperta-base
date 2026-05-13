@@ -1,17 +1,21 @@
 # Security
 
-Aria enforces trust boundaries across runtime execution, gateway access, connectors, automation, and tracked work.
+Aria security is built around node ownership and side-effect control.
 
-## Security Groups
+The main safety system is:
 
-- [access/README.md](./access/README.md)
-- [execution/README.md](./execution/README.md)
-- [data/README.md](./data/README.md)
+```text
+Capability Broker
+Policy
+Sandbox
+Audit
+```
 
-## Core Properties
+Approval is intentionally small and answers only whether a requested action can
+proceed.
 
-- local runtime auth is explicit and token-based
-- dangerous actions are policy-gated
-- secrets are encrypted at rest
-- audit is always on
-- gateway authentication is explicit, scoped, and auditable
+## Sections
+
+- [access](./access/README.md): gateway auth, approvals, and audit.
+- [data](./data/README.md): secrets and durable data rules.
+- [execution](./execution/README.md): sandbox provider model and justbash default.

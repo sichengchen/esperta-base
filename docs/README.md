@@ -1,62 +1,52 @@
-# Esperta Aria Docs
+# Aria Documentation
 
-## Start Here
+This tree is the canonical documentation source for Esperta Aria.
 
-- Product overview: [product/overview.md](./product/overview.md)
-- Getting started as an operator: [operator/core/README.md](./operator/core/README.md)
-- System map: [architecture/README.md](./architecture/README.md)
-- Security model: [security/README.md](./security/README.md)
-- Contributing and shipping: [development/README.md](./development/README.md)
+The target architecture is one shared runtime:
 
-## Documentation Map
+```text
+Aria Node Runtime
+```
 
-### Architecture
+Desktop and Headless are installation forms around that runtime. Mobile is a
+remote client only and never carries Aria Agent, local tool execution,
+automations, connectors, workspace execution, or sandboxing.
 
-- [architecture/README.md](./architecture/README.md)
-- [architecture/core/README.md](./architecture/core/README.md)
-- [architecture/runtime/README.md](./architecture/runtime/README.md)
-- [architecture/surfaces/README.md](./architecture/surfaces/README.md)
+## Current Architecture Contract
 
-### Product
+```text
+Gateway accepts.
+Kernel coordinates.
+Domain engines own product state.
+Agent reasons.
+Capability controls side effects.
+Approval stays simple.
+Sandbox executes.
+Storage records.
+Clients observe.
+```
 
-- [product/README.md](./product/README.md)
+## Read First
+
 - [product/aria-platform.md](./product/aria-platform.md)
-- [product/overview.md](./product/overview.md)
-- [product/areas.md](./product/areas.md)
-- [product/glossary.md](./product/glossary.md)
-
-### Operator Guides
-
-- [operator/README.md](./operator/README.md)
-- [operator/core/README.md](./operator/core/README.md)
-- [operator/operations/README.md](./operator/operations/README.md)
-- [operator/extensions/README.md](./operator/extensions/README.md)
-
-### Security
-
-- [security/README.md](./security/README.md)
-- [security/access/README.md](./security/access/README.md)
-- [security/execution/README.md](./security/execution/README.md)
-- [security/data/README.md](./security/data/README.md)
-
-### Reference
-
-- [reference/README.md](./reference/README.md)
-- [reference/tools/README.md](./reference/tools/README.md)
-
-### Development
-
-- [development/README.md](./development/README.md)
-- [development/aria-node-transition-plan.md](./development/aria-node-transition-plan.md)
-- [development/setup.md](./development/setup.md)
-- [development/testing/README.md](./development/testing/README.md)
-- [development/testing/plan/README.md](./development/testing/plan/README.md)
-- [development/testing/plan/foundations/README.md](./development/testing/plan/foundations/README.md)
-- [development/testing/plan/workflows/README.md](./development/testing/plan/workflows/README.md)
-- [development/testing/plan/execution/README.md](./development/testing/plan/execution/README.md)
-- [development/release.md](./development/release.md)
+- [architecture/core/overview.md](./architecture/core/overview.md)
+- [architecture/runtime/runtime.md](./architecture/runtime/runtime.md)
+- [architecture/runtime/tool-runtime.md](./architecture/runtime/tool-runtime.md)
+- [architecture/runtime/automation.md](./architecture/runtime/automation.md)
+- [architecture/runtime/interaction-protocol.md](./architecture/runtime/interaction-protocol.md)
+- [architecture/surfaces/server.md](./architecture/surfaces/server.md)
 - [development/migration.md](./development/migration.md)
 
-## Documentation Rule
+## Documentation Groups
 
-When behavior changes, update the most specific page in this tree in the same change. Product and architecture pages define the model; operator pages describe workflows; development pages describe how the repo is built and maintained.
+- [product](./product/README.md): product model, naming, areas, and glossary.
+- [architecture](./architecture/README.md): runtime, package, protocol, storage, and surface design.
+- [security](./security/README.md): gateway auth, approvals, audit, secrets, and sandboxing.
+- [operator](./operator/README.md): CLI and operator-facing workflows.
+- [development](./development/README.md): migration, setup, release, and verification guidance.
+
+## Removed Legacy Docs
+
+Docs that described legacy transition plans, older execution ownership, older
+approval taxonomies, or raw tool reference inventory were deleted. New docs
+should describe the target Node Runtime model directly.

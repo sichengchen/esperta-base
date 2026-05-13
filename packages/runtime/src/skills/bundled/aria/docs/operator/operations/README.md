@@ -1,10 +1,8 @@
-# Operator Operations
+# Operations
 
-This group covers runtime operations and durable server-owned workflows.
+Operations docs describe node-hosted runtime workflows.
 
-## Documents
-
-- [gateway.md](./gateway.md)
 - [automation.md](./automation.md)
-- [sessions.md](./sessions.md)
+- [gateway.md](./gateway.md)
 - [projects.md](./projects.md)
+- [sessions.md](./sessions.md)

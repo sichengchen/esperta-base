@@ -1,32 +1,62 @@
 # Esperta Aria
 
-Esperta Aria is a local-first agent platform built around one durable runtime, one shared interaction protocol, and one monorepo.
+Esperta Aria is a local-first agent platform built around one shared runtime:
+`Aria Node Runtime`.
 
-## Product Areas
+Desktop and Headless are packaging forms around the same runtime. Mobile is a
+remote client only.
 
-- `Aria Local`: run and supervise agent work on your own machine
-- `Aria Remote`: control active work from paired devices
-- `Aria Automations`: run scheduled and webhook-triggered tasks on the same runtime substrate
-- `Aria Projects`: track durable work, dispatch agent runs, manage repos/worktrees, and handle review/publish flow
+```text
+Desktop = Aria Node Runtime + Desktop UI
+Headless = Aria Node Runtime without Desktop UI
+Mobile = Remote Client SDK + Mobile UI
+```
 
-## Core Architecture
+## Product Model
 
-- `packages/runtime` is the compatibility-facing runtime shell over target-owned memory, automation, prompt, tools, policy, audit, store, and gateway surfaces
-- `packages/harness` owns Aria's agent-facing sessions, capabilities, shell/file environments, roles, skills, tasks, and typed results
-- `packages/work`, `packages/workspaces`, and `packages/jobs` own tracked-work coordination, repo/worktree behavior, and remote-job orchestration
-- `packages/agent` owns the user-facing Aria agent, including Aria-native coding execution
-- `packages/server` owns the server composition root and daemon/discovery lifecycle helpers
-- `packages/handoff` turns local or runtime-originated work into tracked project work through idempotent submissions
-- `packages/console` and `packages/connectors` own the console and IM connector surfaces
+- `Desktop Package`: local desktop UI, node supervisor, local gateway, local store, local tools, and local workspaces.
+- `Headless Package`: service-managed Aria Node Runtime for always-on work, remote jobs, automations, connectors, and API access.
+- `Mobile Client`: remote chat, approval, artifact review, job monitoring, and notification UX for an existing node.
 
-Legacy compatibility surfaces such as `@aria/runtime` still remain, but the old tracked-work, shared-types, provider, and connector wrapper packages have been removed.
+The most important runtime rule is:
 
-One tracked dispatch creates one runtime execution.
+```text
+Aria Agent runs only inside Aria Node Runtime.
+```
+
+## Architecture
+
+The target runtime lifecycle is:
+
+```text
+Gateway
+  -> Application Kernel
+  -> Run or Job
+  -> Aria Agent
+  -> ToolIntent
+  -> Capability Broker
+  -> Simple Approval if needed
+  -> Sandbox Manager
+  -> configured provider
+  -> ToolExecution
+  -> Artifact or Result
+  -> Audit
+```
+
+Core ownership:
+
+- Gateway is the only Aria-owned access boundary.
+- Kernel coordinates commands, transactions, workflows, and outbox delivery.
+- Domain engines own product state.
+- Aria Agent reasons and proposes work, but never executes side effects directly.
+- Capability, policy, approval, sandbox, and audit control side effects.
+- SQLite-first storage records operational state, timelines, artifacts, audit, secrets, and workflow tasks.
 
 ## Public Identity
 
 - Product: `Esperta Aria`
 - Runtime: `Aria Runtime`
+- Node runtime: `Aria Node Runtime`
 - CLI: `aria`
 - Runtime home: `~/.aria/` or `ARIA_HOME`
 
@@ -37,74 +67,51 @@ bun install
 bun run dev:server
 ```
 
-On first run, Aria writes operator state under `~/.aria/` and opens the onboarding flow if needed.
-That flow can configure provider presets such as Anthropic, OpenAI, Google, OpenRouter, and MiniMax.
-
-## CLI
-
-Core commands:
-
-- `aria`
-- `aria onboard`
-- `aria config`
-- `aria automation`
-- `aria audit`
-- `aria memory`
-- `aria projects`
-- `aria gateway`
-- `aria engine start|stop|status|logs`
-- `aria stop`
-- `aria restart`
-- `aria shutdown`
-
-Connector and integration surfaces:
-
-- `aria telegram`
-- `aria discord`
-- `aria slack`
-- `aria teams`
-- `aria gchat`
-- `aria github`
-- `aria linear`
-- `aria wechat`
-
-Configured connectors now auto-start with `Aria Server` when their credentials are present.
-The connector commands remain available for standalone/debug runs.
-
-`aria slack` supports either webhook mode (`aria slack [port]`) or Slack Socket Mode
-(`aria slack socket`) when `SLACK_APP_TOKEN` is configured.
+The current repository still contains implementation packages that predate the
+target package layout. Documentation describes the target architecture and the
+migration direction.
 
 ## Repo Layout
 
+Target layout:
+
 ```text
-docs/                canonical documentation tree
+apps/
+  aria-desktop/
+  aria-node/
+  aria-mobile/
 packages/
-  access-client/
-  agent/
-  audit/
-  automation/
-  cli/
-  connectors/
-  console/
+  node-runtime/
+  node-host/
   gateway/
-  handoff/
-  harness/
+  protocol/
+  client/
+  kernel/
+  persistence/
+  identity/
+  threads/
+  agent-runtime/
+  prompt/
+  model-router/
+  capability/
+  policy/
+  approvals/
+  sandbox/
+  sandbox-justbash/
+  sandbox-full/
+  tools/
+  workspace/
+  projects/
   jobs/
   memory/
-  policy/
-  persistence/
-  prompt/
-  protocol/
-  runtime/
-  server/
-  tools/
-  work/
-  workspaces/
-apps/
-  aria-server/
-  aria-desktop/
-scripts/             build, embedding, migration, release helpers
-tests/               unit, integration, workflow, and live-gated tests
+  automation/
+  connectors/
+  audit/
+  secrets/
+  supervisor/
+  cli/
+docs/
+  canonical documentation tree
 ```
 
 ## Development
@@ -112,21 +119,9 @@ tests/               unit, integration, workflow, and live-gated tests
 Primary checks:
 
 ```bash
-vp run repo:check
-vp run repo:test
-vp run repo:build
-vp run repo:verify
-```
-
-Convenience wrappers are also available:
-
-```bash
-bun run dev:server
-bun run dev:desktop
 bun run check
 bun run test
 bun run build
-bun run verify
 ```
 
 ## Documentation
@@ -136,9 +131,9 @@ Canonical docs live under [docs](./docs).
 Recommended entry points:
 
 - [docs/README.md](./docs/README.md)
-- [docs/product/overview.md](./docs/product/overview.md)
+- [docs/product/aria-platform.md](./docs/product/aria-platform.md)
 - [docs/architecture/core/overview.md](./docs/architecture/core/overview.md)
+- [docs/architecture/runtime/runtime.md](./docs/architecture/runtime/runtime.md)
+- [docs/architecture/runtime/tool-runtime.md](./docs/architecture/runtime/tool-runtime.md)
 - [docs/architecture/surfaces/server.md](./docs/architecture/surfaces/server.md)
-- [docs/architecture/core/packages.md](./docs/architecture/core/packages.md)
-- [docs/architecture/surfaces/gateway-access.md](./docs/architecture/surfaces/gateway-access.md)
-- [docs/operator/core/getting-started.md](./docs/operator/core/getting-started.md)
+- [docs/development/migration.md](./docs/development/migration.md)

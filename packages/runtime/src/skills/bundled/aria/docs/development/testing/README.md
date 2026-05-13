@@ -1,51 +1,40 @@
 # Testing
 
-This page is the entrypoint for all testing docs.
+Testing should enforce the Aria Node Runtime architecture.
 
-Use it for:
+## Required Checks
 
-- commands
-- repo-wide testing conventions
-- links into the detailed server test plan
-
-## Main Checks
+For substantial changes:
 
 ```bash
-vp run repo:check
-vp run repo:test
-vp run repo:build
-vp run repo:verify
-bun run test:live
+bun run check
+bun run test
+bun run build
 ```
 
-Convenience wrappers are also available through `bun run`.
+Docs-only changes are exempt unless they modify generated embedded skill output
+or package metadata. If exempt, state that explicitly in the handoff.
 
-`vp run repo:check` uses `Vite+` with `Oxc` for format and lint checks, then runs `tsc --noEmit` for TypeScript validation.
+## Architecture Gates
 
-`vp run repo:test` uses `Vitest` with the shared `vite.config.ts` configuration under the Bun runtime.
+Tests and static checks should prevent:
 
-`bun run test:live` runs only the `tests/live/` suites and fails before test
-startup if no live provider key is configured. Set at least one of
-`ANTHROPIC_API_KEY`, `OPENAI_API_KEY`, `GOOGLE_AI_API_KEY`, or
-`MINIMAX_API_KEY`.
+- Mobile importing runtime packages.
+- Desktop UI importing Kernel or tool implementations directly.
+- Agent Runtime importing tool implementations directly.
+- Gateway importing workspace, tools, memory internals, or agent runtime.
+- Policy selecting sandbox providers.
+- Tools executing outside Sandbox Manager.
+- justbash failures silently falling back to host execution.
 
-## Detailed Plans
+## Workflow Coverage
 
-- canonical `Aria Server` test plan: [plan/README.md](./plan/README.md)
-- capability coverage: [plan/foundations/README.md](./plan/foundations/README.md)
-- end-to-end workflow coverage: [plan/workflows/README.md](./plan/workflows/README.md)
-- live AI, suite ownership, and release gates: [plan/execution/README.md](./plan/execution/README.md)
+Critical workflows:
 
-## Test Layout
-
-- co-located runtime and connector tests under `packages/**`
-- repo-level workflow and integration tests under `tests/`
-- live-gated tests under `tests/live/`
-
-## Expectations
-
-- every bug fix gets a regression test
-- every documented architecture rule should map to automated coverage
-- workflow surfaces should have service-level, end-to-end, or transport-level tests
-- `Aria Server` changes should be evaluated against [plan/README.md](./plan/README.md), not only against file-local unit tests
-- live-model tests should assert structure and events, not exact prose
+- Desktop local chat against local Aria Node Runtime.
+- Mobile remote chat against Desktop-hosted and Headless-hosted nodes.
+- Project job producing artifacts or patches.
+- Approval request and `approve_once`/`deny` decision.
+- Scheduled automation creating a run.
+- Connector event creating a run and delivering a reply through Outbox.
+- Startup recovery of workflow tasks and pending approvals.

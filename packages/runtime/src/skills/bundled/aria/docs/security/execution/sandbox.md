@@ -1,49 +1,122 @@
-# Sandbox
+# Sandbox Architecture
 
-Execution sandboxing is owned by harness bash environments and external
-sandbox providers.
+All tool execution goes through Sandbox Manager.
 
-See [bash-environments.md](./bash-environments.md).
+The default provider is `justbash`. Future full sandbox providers can be added
+later.
 
----
+## Provider Selection
 
-## Current Boundary
+Provider selection is controlled by configuration, not policy.
 
-| Environment | Filesystem behavior                                | Isolation model                                 |
-| ----------- | -------------------------------------------------- | ----------------------------------------------- |
-| `default`   | just-bash with `InMemoryFs` or project `OverlayFs` | No host writes; project writes stay virtual     |
-| `host`      | Real local machine                                 | Explicit operator approval required             |
-| `external`  | Provider-backed sandbox                            | Adapter-selected isolated execution environment |
+Selection hierarchy:
 
-The removed legacy OS sandbox compatibility layer is not an architectural
-boundary. Aria now routes shell execution through `AriaSessionEnv`, classifies
-each request with `ToolIntent`, and delegates trust decisions to runtime and
-policy.
+```text
+Run-level explicit setting
+  overrides Project-level setting
+    overrides Node-level setting
+      overrides default provider
+```
 
----
+Default:
 
-## Removed Compatibility APIs
+```text
+sandbox.provider = "justbash"
+```
 
-The old direct exec sandbox shims have been removed:
+Possible future values:
 
-- `SeatbeltSandbox`
-- `NoopSandbox`
-- `configureSandbox`
-- `@aria/tools/sandbox`
-- `@aria/runtime/tools/sandbox`
+```text
+sandbox.provider = "daytona"
+sandbox.provider = "container"
+sandbox.provider = "remote_vm"
+```
 
-Code must request the appropriate harness environment instead of wrapping host
-commands after selection. If a command cannot run in `default` or `external`,
-the result must require escalation; it must not silently fall back to `host`.
+Future providers are not automatically chosen by risk policy. The user or
+administrator switches providers explicitly.
 
----
+## Responsibility Split
 
-## Design Philosophy
+Policy Engine decides:
 
-The durable trust boundary is:
+```text
+allow
+ask
+deny
+```
 
-- `@aria/harness` owns agent-facing capabilities and environment routing.
-- `@aria/policy` owns risk classification, path, URL, and network checks.
-- `@aria/runtime` owns approvals, audit, recovery, and gateway dispatch.
-- External sandbox providers are preferred for arbitrary binaries, dependency
-  installs, builds, tests, long-running servers, or untrusted code.
+Policy Engine does not decide:
+
+```text
+use justbash
+use Daytona
+use container
+use VM
+```
+
+Sandbox Manager decides only based on configuration:
+
+- which provider is configured
+- how to create session
+- how to mount inputs
+- how to execute tool
+- how to collect outputs
+- how to clean up
+
+## justbash Provider
+
+Use justbash for:
+
+- normal default execution
+- scratch command execution
+- agent working directory
+- virtual file operations
+- small code or text transformations
+- default project analysis path
+- patch generation when feasible
+
+If an action cannot be supported by justbash, the runtime should not silently
+escape to host execution.
+
+It should return:
+
+```text
+This action requires a different sandbox provider.
+Switch this run, project, or node to a full sandbox provider when available.
+```
+
+## Future Full Sandbox Provider
+
+A future full sandbox provider can support stronger execution environments:
+
+- isolated process execution
+- larger project workspaces
+- network-capable tasks
+- long-running builds or tests
+- workspace snapshots
+- artifact extraction
+- patch extraction
+- cleanup
+
+Full sandbox is not automatically selected. The user or administrator chooses
+it.
+
+## Applying Real Workspace Changes
+
+Default workflow should avoid uncontrolled direct mutation of real user
+workspaces.
+
+Preferred flow:
+
+```text
+1. Workspace prepares input for sandbox.
+2. justbash executes by default.
+3. Tool produces artifact or patch.
+4. User reviews result.
+5. Applying patch to real workspace requires approval.
+6. Workspace Engine applies approved change.
+7. Audit records the mutation.
+```
+
+Applying a patch to the real workspace is a workspace mutation controlled by
+Capability Broker, Policy, Simple Approval, Workspace Engine, and Audit.

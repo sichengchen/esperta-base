@@ -1,98 +1,206 @@
-# Aria Runtime
+# Aria Node Runtime
 
-This page defines the target-state runtime kernel for Aria.
+Aria Node Runtime is the shared runtime used by Desktop and Headless.
 
-`Aria Runtime` is the shared execution substrate for threads, runs, approvals, tool execution, and recovery. It is not the deployable server product. `Aria Server` composes it.
+Desktop bundles and supervises it. Headless runs it as a service. Mobile never
+contains it.
 
-## Responsibilities
+## Node Host Layer
 
-- accept protocol-dispatched work from console, gateway, connectors, and automation
-- create, resume, and complete sessions and runs
-- route execution into prompt, harness, tools compatibility, policy, projects, jobs, and persistence layers
-- coordinate approvals, questions, interrupts, and cancellation
-- keep run, tool, audit, and checkpoint state durable
-- restore incomplete work after restart
+The Node Host Layer lets Desktop and Headless share the same runtime.
 
-## Placement
+Responsibilities:
+
+- load config
+- resolve `ARIA_HOME`
+- acquire node process lock
+- run migrations
+- start Gateway
+- start scheduler
+- start connector runtime
+- start automation runtime
+- start workflow workers
+- handle graceful shutdown
+- expose health status
+
+Desktop-specific host features include desktop lifecycle integration, desktop
+notifications, local app updater, local tray/status UI, and local node
+supervision.
+
+Headless-specific host features include service-manager integration, server
+logs, daemon lifecycle, remote-first configuration, and operator CLI.
+
+The runtime below this layer must not care whether Desktop or Headless launched
+it.
+
+## Gateway Layer
+
+Gateway is the only Aria-owned access boundary.
+
+Responsibilities:
+
+- device pairing
+- session authentication
+- authorization
+- command API
+- query API
+- event stream API
+- gateway audit events
+
+Gateway forwards valid requests into the Application Kernel.
+
+## Application Kernel
+
+The Application Kernel is the runtime coordinator.
+
+Responsibilities:
+
+- validate commands
+- enforce idempotency
+- open transaction
+- load state
+- advance workflow
+- persist state
+- append run timeline events
+- append audit events
+- schedule follow-up work
+- publish outbox messages
+
+Kernel components:
+
+- Command Bus
+- Query Bus
+- Workflow Engine
+- Job Scheduler
+- Unit of Work
+- Idempotency Manager
+- Domain Event Bus
+- Outbox
+
+The Kernel coordinates work, but business rules live in domain engines and
+side effects go through Capability and Sandbox.
+
+## Domain Engines
+
+The core domain engines are:
+
+- Threads and Runs
+- Projects and Jobs
+- Workspace
+- Memory
+- Automation
+- Connectors
+- Simple Approvals
+- Identity and Devices
+
+## Execution Lifecycle
 
 ```text
-Client, Console, Connector, or Automation
-  -> Interaction Protocol
-  -> Aria Runtime
-      -> Prompt Engine
-      -> Aria Harness
-      -> Tool Runtime compatibility surface
-      -> Policy + Approvals
-      -> Projects Control / Job Orchestrator
-      -> Operational Store
+Command
+  -> Kernel
+  -> Run or Job
+  -> Aria Agent
+  -> ToolIntent
+  -> Capability Broker
+  -> Policy allow/ask/deny
+  -> Simple Approval if needed
+  -> Sandbox Manager
+  -> Configured Provider
+  -> ToolExecution
+  -> Artifact or Result
+  -> Audit
 ```
 
-## Execution Graph
+## Durable Storage
 
-The runtime should keep identity explicit across the full execution path.
+Use SQLite-first durable storage.
 
-- `thread` is the user-visible conversation or job surface
-- `session` is the continuity object behind a thread
-- `run` is one concrete model or tool execution inside a session
-- `job` is a durable long-running execution owned by a thread when needed
+Logical stores:
 
-One tracked dispatch creates one runtime execution.
+- Operational DB
+- Run Timeline
+- Artifact Store
+- Workspace Store
+- Secret Store
+- Audit Store
+- Outbox
 
-## Operational State
+Recommended layout:
 
-The operational store is authoritative for:
+```text
+ARIA_HOME/
+  node/
+    config.json
+    node-id.json
+    gateway.json
 
-- sessions
-- messages
-- runs
-- tool calls and results
-- approvals and questions
-- summaries and checkpoints
-- prompt-cache decisions
-- automation specs and runs
-- audit records and recovery metadata
+  data/
+    aria.sqlite
+    events.sqlite
+    read-models.sqlite
 
-Runtime-local state lives under `~/.aria/` by default. Important operator-local files include:
+  workspaces/
+    project-a/
+    project-b/
 
-- `aria.db`
-- `config.json`
-- `IDENTITY.md`
-- `USER.md`
-- `secrets.enc`
-- `memory/`
-- `skills/`
-- `automation/`
+  artifacts/
+    runs/
+    jobs/
 
-## Recovery
+  secrets/
+    encrypted-secrets.db
 
-On startup the runtime should:
+  logs/
+    node.log
+    gateway.log
+    tools.log
+```
 
-1. open the operational database
-2. run migrations
-3. rebuild ephemeral registries as needed
-4. restore incomplete work and pending approvals
-5. resume automation scheduling and resumable attachments
-6. re-expose durable thread and run state to callers
+## Transaction Rule
 
-## Boundary Rules
+Whenever possible, these happen in one transaction:
 
-- frontends attach to runtime state; they do not redefine execution semantics
-- gateway auth and session attachment live with the node-owned runtime model, not in an external broker layer
-- desktop-local execution runs through the Desktop node's `Aria Agent` and native tool runtime
-- runtime should coordinate target packages rather than absorbing their ownership back behind compatibility wrappers
-- agent-facing file, shell, skill, role, task, and typed-result capabilities live in `@aria/harness`
-- trust decisions remain runtime and policy owned through the harness host boundary
+```text
+update canonical state
+append run timeline event
+append audit event if needed
+enqueue outbox message
+commit
+```
 
-## Current Repo Note
+The architecture is relational operational state plus run timeline, audit log,
+outbox, and workflow scheduler. It does not require pure event sourcing.
 
-The repo is still reducing `@aria/runtime` toward a thinner compatibility-facing shell while target ownership continues moving into `@aria/prompt`, `@aria/harness`, `@aria/policy`, `@aria/memory`, `@aria/work`, `@aria/gateway`, and related packages. `@aria/tools` remains a temporary compatibility export surface and is no longer the architectural owner of agent-facing tools.
+## Workflow Tasks
 
-## Related Reading
+Recommended table:
 
-- [interaction-protocol.md](./interaction-protocol.md)
-- [prompt-engine.md](./prompt-engine.md)
-- [tool-runtime.md](./tool-runtime.md)
-- [harness.md](./harness.md)
-- [automation.md](./automation.md)
-- [../surfaces/server.md](../surfaces/server.md)
-- [../core/domain-model.md](../core/domain-model.md)
+```text
+workflow_tasks
+  id
+  workflow_type
+  aggregate_id
+  run_at
+  status
+  attempts
+  lock_owner
+  locked_until
+  payload
+  created_at
+  updated_at
+```
+
+Example workflow tasks:
+
+- continue_run_after_model_output
+- execute_tool_after_approval
+- resume_job_after_tool_result
+- retry_connector_delivery
+- run_scheduled_automation
+- rebuild_memory_index
+- send_mobile_notification
+- cleanup_sandbox_session
+
+On startup, release expired leases, recover pending model steps, mark uncertain
+tool executions for review, resume pending workflow tasks, and rebuild read
+models when needed.

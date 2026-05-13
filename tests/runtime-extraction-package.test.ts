@@ -114,7 +114,8 @@ describe("phase-1 extraction package verification", () => {
       fs.readFile(new URL("../packages/gateway/src/procedures.ts", import.meta.url), "utf-8"),
     );
     expect(gatewayProceduresSource).toContain("./trpc.js");
-    expect(gatewayProceduresSource).toContain("@aria/tools/session-tool-environment");
+    expect(gatewayProceduresSource).not.toContain("@aria/tools/session-tool-environment");
+    expect(gatewayProceduresSource).toContain("@aria/harness");
     expect(gatewayProceduresSource).toContain("@aria/audit");
     expect(gatewayProceduresSource).toContain("@aria/policy/policy");
     expect(gatewayProceduresSource).toContain("@aria/node-runtime/runtime");

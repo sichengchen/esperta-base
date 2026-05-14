@@ -17,6 +17,7 @@ import {
 } from "@aria/automation";
 import { AuthManager } from "@aria/gateway/auth";
 import { HandoffService, HandoffStore } from "@aria/handoff";
+import { createKernelRuntime, SqliteKernelStore, type KernelRuntime } from "@aria/kernel";
 import {
   createAriaHarnessContext,
   type AriaHarnessHost,
@@ -101,6 +102,7 @@ export interface EngineRuntime {
   securityMode: SecurityModeManager;
   projects?: ProjectsEngineRepository;
   handoffs?: HandoffService;
+  kernel: KernelRuntime;
   agentName: string;
   mainSessionId: string;
   createSessionTitleTool: typeof createSessionTitleTool;
@@ -137,6 +139,7 @@ export async function createRuntime(): Promise<EngineRuntime> {
   const handoffStore = new HandoffStore(join(config.homeDir, "aria.db"));
   await handoffStore.init();
   const handoffs = new HandoffService(handoffStore);
+  const kernel = createKernelRuntime(new SqliteKernelStore(join(config.homeDir, "aria.db")));
 
   const checkpoints = new CheckpointManager(config.homeDir, ariaConfig.runtime.checkpoints);
   const mcp = new MCPManager(
@@ -676,6 +679,7 @@ export async function createRuntime(): Promise<EngineRuntime> {
     securityMode,
     projects,
     handoffs,
+    kernel,
     agentName: ariaConfig.identity.name,
     mainSessionId: mainSession.id,
     createSessionTitleTool,
@@ -693,6 +697,7 @@ export async function createRuntime(): Promise<EngineRuntime> {
       scheduler.stop();
       await mcp.close();
       handoffs.close();
+      kernel.close();
       projects.close();
       archive.close();
       store.close();

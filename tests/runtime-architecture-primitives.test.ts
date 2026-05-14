@@ -1,4 +1,7 @@
 import { describe, expect, test } from "bun:test";
+import { mkdtemp } from "node:fs/promises";
+import { tmpdir } from "node:os";
+import { join } from "node:path";
 import { CapabilityBroker, type ToolIntentRecord } from "@aria/capability";
 import {
   DEFAULT_SANDBOX_PROVIDER,
@@ -13,7 +16,9 @@ import {
   JobScheduler,
   Outbox,
   QueryBus,
+  SqliteKernelStore,
   WorkflowEngine,
+  createKernelRuntime,
 } from "@aria/kernel";
 
 function intent(overrides: Partial<ToolIntentRecord> = {}): ToolIntentRecord {
@@ -188,5 +193,63 @@ describe("runtime architecture primitives", () => {
     expect(commandRuns).toBe(1);
     expect(await queries.execute({ type: "list_workflows", payload: {} })).toHaveLength(2);
     expect(outbox.drain()).toHaveLength(1);
+  });
+
+  test("kernel primitives persist idempotency, workflows, and outbox across restarts", async () => {
+    const dir = await mkdtemp(join(tmpdir(), "aria-kernel-test-"));
+    const dbPath = join(dir, "kernel.db");
+    const first = createKernelRuntime(new SqliteKernelStore(dbPath));
+
+    first.commands.register("request_run", (command, ctx) => {
+      ctx.workflows.enqueue({
+        id: "workflow-persisted",
+        workflowType: "resume_run",
+        aggregateId: "run-1",
+        runAt: "2026-05-14T00:00:00.000Z",
+        payload: command.payload,
+      });
+      ctx.outbox.enqueue({
+        id: "outbox-persisted",
+        topic: "run.requested",
+        payload: command.payload,
+        createdAt: "2026-05-14T00:00:00.000Z",
+      });
+      return { runId: "run-1" };
+    });
+
+    await first.commands.execute({
+      type: "request_run",
+      payload: { threadId: "thread-1" },
+      idempotencyKey: "request-persisted",
+    });
+    first.close();
+
+    const second = createKernelRuntime(new SqliteKernelStore(dbPath));
+    second.commands.register("request_run", () => {
+      throw new Error("idempotent command should not re-run after restart");
+    });
+
+    await expect(
+      second.commands.execute({
+        type: "request_run",
+        payload: { threadId: "thread-1" },
+        idempotencyKey: "request-persisted",
+      }),
+    ).resolves.toEqual({ runId: "run-1" });
+    expect(second.workflows.list("pending")).toEqual([
+      expect.objectContaining({
+        id: "workflow-persisted",
+        payload: { threadId: "thread-1" },
+      }),
+    ]);
+    expect(second.outbox.drain()).toEqual([
+      expect.objectContaining({
+        id: "outbox-persisted",
+        topic: "run.requested",
+        payload: { threadId: "thread-1" },
+      }),
+    ]);
+    expect(second.outbox.drain()).toEqual([]);
+    second.close();
   });
 });

@@ -5,6 +5,7 @@ import type { ToolImpl } from "@aria/agent";
 import { Scheduler, createHeartbeatTask } from "@aria/automation";
 import { AuditLogger } from "@aria/audit";
 import { AuthManager } from "@aria/gateway/auth";
+import { createKernelRuntime } from "@aria/kernel";
 import { SkillRegistry } from "@aria/memory/skills";
 import { SecurityModeManager } from "@aria/policy";
 import { OperationalStore } from "@aria/persistence/operational-store";
@@ -126,6 +127,7 @@ export async function createLiveRuntime(
     transcriber: { transcribe: async () => "", backend: null } as any,
     audit: new AuditLogger(runtimeHome),
     securityMode: new SecurityModeManager(),
+    kernel: createKernelRuntime(),
     agentName: "Live Test",
     mainSessionId: mainSession.id,
     createSessionTitleTool,

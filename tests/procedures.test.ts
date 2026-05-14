@@ -9,6 +9,7 @@ import { createContext } from "@aria/gateway/context";
 import { createAppRouter } from "@aria/gateway/procedures";
 import { ModelRouter } from "@aria/gateway/router";
 import { AriaHarnessSession } from "@aria/harness";
+import { createKernelRuntime } from "@aria/kernel";
 import { SkillRegistry } from "@aria/memory/skills";
 import { SecurityModeManager } from "@aria/policy";
 import { ConfigManager } from "@aria/server/config";
@@ -156,6 +157,7 @@ async function createTestRuntime(runtimeHome: string): Promise<EngineRuntime> {
     transcriber: { transcribe: async () => "", backend: null } as any,
     audit: new AuditLogger(runtimeHome),
     securityMode: new SecurityModeManager(),
+    kernel: createKernelRuntime(),
     agentName: "Test",
     mainSessionId: mainSession.id,
     createSessionTitleTool,

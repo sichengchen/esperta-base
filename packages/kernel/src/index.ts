@@ -1,3 +1,7 @@
+import { mkdirSync } from "node:fs";
+import { dirname } from "node:path";
+import { Database } from "bun:sqlite";
+
 export interface KernelCommand<TPayload = unknown> {
   type: string;
   payload: TPayload;
@@ -19,15 +23,68 @@ export class ImmediateUnitOfWork implements UnitOfWork {
   }
 }
 
+export interface KernelStore {
+  getIdempotencyResult(key: string): unknown | undefined;
+  setIdempotencyResult(key: string, result: unknown): void;
+  enqueueWorkflowTask(task: WorkflowTask): void;
+  listWorkflowTasks(status?: WorkflowTask["status"]): WorkflowTask[];
+  markWorkflowTask(id: string, status: WorkflowTask["status"]): WorkflowTask | undefined;
+  enqueueOutboxMessage(message: OutboxMessage): void;
+  drainOutboxMessages(): OutboxMessage[];
+  close?(): void;
+}
+
+export class InMemoryKernelStore implements KernelStore {
+  private readonly idempotencyResults = new Map<string, unknown>();
+  private readonly workflowTasks = new Map<string, WorkflowTask>();
+  private readonly outboxMessages: OutboxMessage[] = [];
+
+  getIdempotencyResult(key: string): unknown | undefined {
+    return this.idempotencyResults.get(key);
+  }
+
+  setIdempotencyResult(key: string, result: unknown): void {
+    this.idempotencyResults.set(key, result);
+  }
+
+  enqueueWorkflowTask(task: WorkflowTask): void {
+    this.workflowTasks.set(task.id, task);
+  }
+
+  listWorkflowTasks(status?: WorkflowTask["status"]): WorkflowTask[] {
+    return [...this.workflowTasks.values()].filter((task) => !status || task.status === status);
+  }
+
+  markWorkflowTask(id: string, status: WorkflowTask["status"]): WorkflowTask | undefined {
+    const task = this.workflowTasks.get(id);
+    if (!task) return undefined;
+    const next = {
+      ...task,
+      status,
+      attempts: status === "running" ? task.attempts + 1 : task.attempts,
+    };
+    this.workflowTasks.set(id, next);
+    return next;
+  }
+
+  enqueueOutboxMessage(message: OutboxMessage): void {
+    this.outboxMessages.push(message);
+  }
+
+  drainOutboxMessages(): OutboxMessage[] {
+    return this.outboxMessages.splice(0);
+  }
+}
+
 export class IdempotencyStore<TResult = unknown> {
-  private readonly results = new Map<string, TResult>();
+  constructor(private readonly store: KernelStore = new InMemoryKernelStore()) {}
 
   get(key: string): TResult | undefined {
-    return this.results.get(key);
+    return this.store.getIdempotencyResult(key) as TResult | undefined;
   }
 
   set(key: string, result: TResult): void {
-    this.results.set(key, result);
+    this.store.setIdempotencyResult(key, result);
   }
 }
 
@@ -109,28 +166,20 @@ export interface WorkflowTask<TPayload = unknown> {
 }
 
 export class WorkflowEngine {
-  private readonly tasks = new Map<string, WorkflowTask>();
+  constructor(private readonly store: KernelStore = new InMemoryKernelStore()) {}
 
   enqueue(task: Omit<WorkflowTask, "status" | "attempts">): WorkflowTask {
     const record: WorkflowTask = { ...task, status: "pending", attempts: 0 };
-    this.tasks.set(record.id, record);
+    this.store.enqueueWorkflowTask(record);
     return record;
   }
 
   list(status?: WorkflowTask["status"]): WorkflowTask[] {
-    return [...this.tasks.values()].filter((task) => !status || task.status === status);
+    return this.store.listWorkflowTasks(status);
   }
 
   mark(id: string, status: WorkflowTask["status"]): WorkflowTask | undefined {
-    const task = this.tasks.get(id);
-    if (!task) return undefined;
-    const next = {
-      ...task,
-      status,
-      attempts: status === "running" ? task.attempts + 1 : task.attempts,
-    };
-    this.tasks.set(id, next);
-    return next;
+    return this.store.markWorkflowTask(id, status);
   }
 }
 
@@ -142,14 +191,14 @@ export interface OutboxMessage<TPayload = unknown> {
 }
 
 export class Outbox {
-  private readonly messages: OutboxMessage[] = [];
+  constructor(private readonly store: KernelStore = new InMemoryKernelStore()) {}
 
   enqueue(message: OutboxMessage): void {
-    this.messages.push(message);
+    this.store.enqueueOutboxMessage(message);
   }
 
   drain(): OutboxMessage[] {
-    return this.messages.splice(0);
+    return this.store.drainOutboxMessages();
   }
 }
 
@@ -159,4 +208,220 @@ export class JobScheduler {
   schedule(task: Omit<WorkflowTask, "status" | "attempts">): WorkflowTask {
     return this.workflows.enqueue(task);
   }
+}
+
+const KERNEL_SCHEMA_SQL = `
+CREATE TABLE IF NOT EXISTS kernel_idempotency (
+  key TEXT PRIMARY KEY,
+  result_json TEXT NOT NULL,
+  updated_at TEXT NOT NULL
+);
+
+CREATE TABLE IF NOT EXISTS kernel_workflow_tasks (
+  id TEXT PRIMARY KEY,
+  workflow_type TEXT NOT NULL,
+  aggregate_id TEXT NOT NULL,
+  run_at TEXT NOT NULL,
+  status TEXT NOT NULL,
+  attempts INTEGER NOT NULL,
+  payload_json TEXT NOT NULL
+);
+
+CREATE TABLE IF NOT EXISTS kernel_outbox_messages (
+  id TEXT PRIMARY KEY,
+  topic TEXT NOT NULL,
+  payload_json TEXT NOT NULL,
+  created_at TEXT NOT NULL
+);
+
+CREATE INDEX IF NOT EXISTS idx_kernel_workflow_status_run_at
+  ON kernel_workflow_tasks(status, run_at);
+CREATE INDEX IF NOT EXISTS idx_kernel_outbox_created
+  ON kernel_outbox_messages(created_at);
+`;
+
+function parseJson(value: string): unknown {
+  return JSON.parse(value) as unknown;
+}
+
+export class SqliteKernelStore implements KernelStore {
+  private readonly db: Database;
+
+  constructor(dbPath: string) {
+    mkdirSync(dirname(dbPath), { recursive: true });
+    this.db = new Database(dbPath);
+    this.db.exec("PRAGMA journal_mode=WAL");
+    this.db.exec(KERNEL_SCHEMA_SQL);
+  }
+
+  getIdempotencyResult(key: string): unknown | undefined {
+    const row = this.db
+      .prepare("SELECT result_json FROM kernel_idempotency WHERE key = ?")
+      .get(key) as { result_json: string } | undefined;
+    return row ? parseJson(row.result_json) : undefined;
+  }
+
+  setIdempotencyResult(key: string, result: unknown): void {
+    this.db
+      .prepare(
+        `
+        INSERT INTO kernel_idempotency (key, result_json, updated_at)
+        VALUES (?, ?, ?)
+        ON CONFLICT(key) DO UPDATE SET
+          result_json = excluded.result_json,
+          updated_at = excluded.updated_at
+      `,
+      )
+      .run(key, JSON.stringify(result), new Date().toISOString());
+  }
+
+  enqueueWorkflowTask(task: WorkflowTask): void {
+    this.db
+      .prepare(
+        `
+        INSERT INTO kernel_workflow_tasks (
+          id, workflow_type, aggregate_id, run_at, status, attempts, payload_json
+        ) VALUES (?, ?, ?, ?, ?, ?, ?)
+        ON CONFLICT(id) DO UPDATE SET
+          workflow_type = excluded.workflow_type,
+          aggregate_id = excluded.aggregate_id,
+          run_at = excluded.run_at,
+          status = excluded.status,
+          attempts = excluded.attempts,
+          payload_json = excluded.payload_json
+      `,
+      )
+      .run(
+        task.id,
+        task.workflowType,
+        task.aggregateId,
+        task.runAt,
+        task.status,
+        task.attempts,
+        JSON.stringify(task.payload),
+      );
+  }
+
+  listWorkflowTasks(status?: WorkflowTask["status"]): WorkflowTask[] {
+    const rows = (
+      status
+        ? this.db
+            .prepare(
+              `
+              SELECT id, workflow_type, aggregate_id, run_at, status, attempts, payload_json
+              FROM kernel_workflow_tasks
+              WHERE status = ?
+              ORDER BY run_at ASC, id ASC
+            `,
+            )
+            .all(status)
+        : this.db
+            .prepare(
+              `
+              SELECT id, workflow_type, aggregate_id, run_at, status, attempts, payload_json
+              FROM kernel_workflow_tasks
+              ORDER BY run_at ASC, id ASC
+            `,
+            )
+            .all()
+    ) as Array<Record<string, unknown>>;
+    return rows.map((row) => ({
+      id: String(row.id),
+      workflowType: String(row.workflow_type),
+      aggregateId: String(row.aggregate_id),
+      runAt: String(row.run_at),
+      status: String(row.status) as WorkflowTask["status"],
+      attempts: Number(row.attempts),
+      payload: parseJson(String(row.payload_json)),
+    }));
+  }
+
+  markWorkflowTask(id: string, status: WorkflowTask["status"]): WorkflowTask | undefined {
+    const existing = this.listWorkflowTasks().find((task) => task.id === id);
+    if (!existing) return undefined;
+    const next = {
+      ...existing,
+      status,
+      attempts: status === "running" ? existing.attempts + 1 : existing.attempts,
+    };
+    this.enqueueWorkflowTask(next);
+    return next;
+  }
+
+  enqueueOutboxMessage(message: OutboxMessage): void {
+    this.db
+      .prepare(
+        `
+        INSERT INTO kernel_outbox_messages (id, topic, payload_json, created_at)
+        VALUES (?, ?, ?, ?)
+        ON CONFLICT(id) DO UPDATE SET
+          topic = excluded.topic,
+          payload_json = excluded.payload_json,
+          created_at = excluded.created_at
+      `,
+      )
+      .run(message.id, message.topic, JSON.stringify(message.payload), message.createdAt);
+  }
+
+  drainOutboxMessages(): OutboxMessage[] {
+    const rows = this.db
+      .prepare(
+        `
+        SELECT id, topic, payload_json, created_at
+        FROM kernel_outbox_messages
+        ORDER BY created_at ASC, id ASC
+      `,
+      )
+      .all() as Array<Record<string, unknown>>;
+    const messages = rows.map((row) => ({
+      id: String(row.id),
+      topic: String(row.topic),
+      payload: parseJson(String(row.payload_json)),
+      createdAt: String(row.created_at),
+    }));
+    const tx = this.db.transaction(() => {
+      for (const message of messages) {
+        this.db.prepare("DELETE FROM kernel_outbox_messages WHERE id = ?").run(message.id);
+      }
+    });
+    tx();
+    return messages;
+  }
+
+  close(): void {
+    this.db.close(false);
+  }
+}
+
+export interface KernelRuntime {
+  store: KernelStore;
+  unitOfWork: UnitOfWork;
+  workflows: WorkflowEngine;
+  outbox: Outbox;
+  commands: CommandBus;
+  queries: QueryBus;
+  scheduler: JobScheduler;
+  close(): void;
+}
+
+export function createKernelRuntime(store: KernelStore = new InMemoryKernelStore()): KernelRuntime {
+  const workflows = new WorkflowEngine(store);
+  const outbox = new Outbox(store);
+  const context = {
+    unitOfWork: new ImmediateUnitOfWork(),
+    workflows,
+    outbox,
+  };
+  return {
+    store,
+    unitOfWork: context.unitOfWork,
+    workflows,
+    outbox,
+    commands: new CommandBus(context, new IdempotencyStore(store)),
+    queries: new QueryBus(context),
+    scheduler: new JobScheduler(workflows),
+    close() {
+      store.close?.();
+    },
+  };
 }

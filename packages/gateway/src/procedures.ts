@@ -965,7 +965,7 @@ export function createAppRouter(runtime: EngineRuntime) {
           const intent = getToolIntent(event.name, event.args);
           toolEventMeta.set(event.id, decision);
 
-          runtime.store.recordToolCallStart({
+          await runtime.recordToolCallStart({
             toolCallId: event.id,
             runId,
             sessionId: sid,
@@ -1031,7 +1031,7 @@ export function createAppRouter(runtime: EngineRuntime) {
               getDangerLevel(event.name),
               approvalMode,
             );
-          runtime.store.recordToolCallEnd({
+          await runtime.recordToolCallEnd({
             toolCallId: event.id,
             status: event.result.isError ? "failed" : "completed",
             result: event.result,

@@ -187,6 +187,12 @@ export async function createLiveRuntime(
     async listApprovals(request) {
       return store.listApprovals(request);
     },
+    async recordToolCallStart(request) {
+      store.recordToolCallStart(request);
+    },
+    async recordToolCallEnd(request) {
+      store.recordToolCallEnd(request);
+    },
     listToolsets: () => listToolsets(tools),
     executeToolWithCapability: async (request) => request.execute(),
     async refreshSystemPrompt() {

@@ -31,7 +31,12 @@ import { SkillRegistry } from "@aria/memory/skills";
 import { SecurityModeManager } from "@aria/policy";
 import { toolIntentRequiresApproval, type ToolIntent } from "@aria/policy";
 import { PromptEngine } from "@aria/prompt";
-import { OperationalStore, type ApprovalRecord, type ApprovalStatus } from "@aria/persistence";
+import {
+  OperationalStore,
+  type ApprovalRecord,
+  type ApprovalStatus,
+  type ToolCallStatus,
+} from "@aria/persistence";
 import { ProjectsEngineRepository, ProjectsEngineStore } from "@aria/work";
 import {
   askUserTool,
@@ -118,6 +123,22 @@ export interface RuntimeApprovalListRequest {
   limit?: number;
 }
 
+export interface RuntimeToolCallStartRequest {
+  toolCallId: string;
+  runId: string;
+  sessionId: string;
+  toolName: string;
+  args: Record<string, unknown>;
+  startedAt?: number;
+}
+
+export interface RuntimeToolCallEndRequest {
+  toolCallId: string;
+  status: ToolCallStatus;
+  result: { content: string; isError?: boolean };
+  endedAt?: number;
+}
+
 export interface EngineRuntime {
   config: ConfigManager;
   router: ModelRouter;
@@ -157,6 +178,8 @@ export interface EngineRuntime {
   recordApprovalPending(request: RuntimeApprovalPendingRequest): Promise<void>;
   resolveApproval(request: RuntimeApprovalResolveRequest): Promise<void>;
   listApprovals(request?: RuntimeApprovalListRequest): Promise<ApprovalRecord[]>;
+  recordToolCallStart(request: RuntimeToolCallStartRequest): Promise<void>;
+  recordToolCallEnd(request: RuntimeToolCallEndRequest): Promise<void>;
   listToolsets(): ReturnType<typeof listToolsets>;
   executeToolWithCapability(request: RuntimeCapabilityToolExecutionRequest): Promise<ToolResult>;
   createAgent(
@@ -229,6 +252,16 @@ export async function createRuntime(): Promise<EngineRuntime> {
   kernel.queries.register("runtime.approvals.list", (query) => {
     const payload = query.payload as RuntimeApprovalListRequest | undefined;
     return store.listApprovals(payload);
+  });
+  kernel.commands.register("runtime.tool_call.start", (command) => {
+    const payload = command.payload as RuntimeToolCallStartRequest;
+    store.recordToolCallStart(payload);
+    return { toolCallId: payload.toolCallId };
+  });
+  kernel.commands.register("runtime.tool_call.end", (command) => {
+    const payload = command.payload as RuntimeToolCallEndRequest;
+    store.recordToolCallEnd(payload);
+    return { toolCallId: payload.toolCallId };
   });
 
   const checkpoints = new CheckpointManager(config.homeDir, ariaConfig.runtime.checkpoints);
@@ -849,6 +882,20 @@ export async function createRuntime(): Promise<EngineRuntime> {
       return kernel.queries.execute({
         type: "runtime.approvals.list",
         payload: request,
+      });
+    },
+    async recordToolCallStart(request) {
+      await kernel.commands.execute({
+        type: "runtime.tool_call.start",
+        payload: request,
+        idempotencyKey: `runtime.tool_call.start:${request.toolCallId}`,
+      });
+    },
+    async recordToolCallEnd(request) {
+      await kernel.commands.execute({
+        type: "runtime.tool_call.end",
+        payload: request,
+        idempotencyKey: `runtime.tool_call.end:${request.toolCallId}:${request.status}:${request.endedAt ?? ""}`,
       });
     },
     listToolsets() {

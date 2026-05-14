@@ -331,7 +331,7 @@ async function runAutomationAttempt(
         responseText += event.delta;
       }
       if (event.type === "tool_start") {
-        runtime.store.recordToolCallStart({
+        await runtime.recordToolCallStart({
           toolCallId: event.id,
           runId,
           sessionId: session.id,
@@ -340,7 +340,7 @@ async function runAutomationAttempt(
         });
       }
       if (event.type === "tool_end") {
-        runtime.store.recordToolCallEnd({
+        await runtime.recordToolCallEnd({
           toolCallId: event.id,
           status: event.result.isError ? "failed" : "completed",
           result: event.result,

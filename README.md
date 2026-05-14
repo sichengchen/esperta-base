@@ -67,10 +67,6 @@ bun install
 bun run dev:server
 ```
 
-The current repository still contains implementation packages that predate the
-target package layout. Documentation describes the target architecture and the
-migration direction.
-
 ## Repo Layout
 
 Target layout:

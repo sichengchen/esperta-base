@@ -31,6 +31,9 @@ persistence, or sandbox providers.
 
 ## Mobile Client
 
+No Mobile app is implemented in this repo yet. The rules below define the
+reserved Mobile boundary for future work.
+
 Mobile contains:
 
 - Mobile UI

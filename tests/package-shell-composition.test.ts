@@ -1,4 +1,5 @@
 import { describe, expect, test } from "bun:test";
+import { readFile } from "node:fs/promises";
 
 import { ariaNodeRuntimeApp, createAriaNodeRuntimeBootstrap } from "@aria/node-runtime";
 
@@ -37,6 +38,17 @@ describe("package shell composition", () => {
       urlFile: "/tmp/aria-shell-test/engine.url",
       logFile: "/tmp/aria-shell-test/engine.log",
       restartMarkerFile: "/tmp/aria-shell-test/engine.restart",
+    });
+  });
+
+  test("desktop package declares local aria-node supervision dependency", async () => {
+    const desktopPackage = JSON.parse(
+      await readFile(new URL("../apps/aria-desktop/package.json", import.meta.url), "utf-8"),
+    ) as { dependencies?: Record<string, string> };
+
+    expect(desktopPackage.dependencies).toMatchObject({
+      "@aria/node-host": "workspace:*",
+      "aria-node": "workspace:*",
     });
   });
 });

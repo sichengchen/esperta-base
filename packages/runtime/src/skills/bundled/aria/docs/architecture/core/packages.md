@@ -15,7 +15,7 @@ apps/
     Used by Desktop and Headless.
 
   aria-mobile/
-    Remote client only.
+    Planned remote client only. No Mobile app is implemented in this repo yet.
 ```
 
 ## Packages
@@ -117,7 +117,8 @@ Desktop UI may depend on `client`, `protocol`, and `supervisor`. It must not
 directly depend on `kernel`, `agent-runtime`, `tools`, `memory`, `workspace`,
 `persistence`, or sandbox providers.
 
-Mobile may depend on `client` and `protocol`. It must not depend on
+Mobile may depend on `client` and `protocol`. Until a Mobile app is added, this
+is enforced as a reserved boundary: no mobile source tree may import
 `node-runtime`, `agent-runtime`, `tools`, `workspace`, `automation`,
 `connectors`, or `sandbox`.
 

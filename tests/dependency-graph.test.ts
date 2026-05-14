@@ -1,5 +1,5 @@
 import { describe, expect, test } from "bun:test";
-import { readdir, readFile } from "node:fs/promises";
+import { readdir, readFile, stat } from "node:fs/promises";
 import { extname, join } from "node:path";
 import { fileURLToPath } from "node:url";
 
@@ -33,6 +33,14 @@ async function findForbiddenImports(
   return offenders;
 }
 
+async function directoryExists(relativeDir: string): Promise<boolean> {
+  try {
+    return (await stat(join(ROOT, relativeDir))).isDirectory();
+  } catch {
+    return false;
+  }
+}
+
 describe("target dependency graph", () => {
   test("desktop renderer stays on client/protocol style boundaries", async () => {
     await expect(
@@ -60,6 +68,19 @@ describe("target dependency graph", () => {
     await expect(
       findForbiddenImports("packages/policy/src", [
         /from ["']@aria\/sandbox(?:-justbash|-full)?\b/,
+      ]),
+    ).resolves.toEqual([]);
+  });
+
+  test("mobile is absent or remains a remote-client-only package", async () => {
+    if (!(await directoryExists("apps/aria-mobile"))) {
+      expect(await directoryExists("apps/aria-mobile")).toBe(false);
+      return;
+    }
+
+    await expect(
+      findForbiddenImports("apps/aria-mobile", [
+        /from ["']@aria\/(?:kernel|node-runtime|agent|tools|persistence|memory|workspaces|workspace|automation|connectors|sandbox(?:-[^"']+)?)\b/,
       ]),
     ).resolves.toEqual([]);
   });

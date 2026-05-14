@@ -298,11 +298,7 @@ export class AriaHarnessSession {
           role,
         ),
         messages: this.modelMessages,
-        tools: this.createModelTools().map((tool) => ({
-          name: tool.name,
-          description: tool.description,
-          parameters: tool.parameters,
-        })),
+        tools: [],
       };
 
       for await (const event of stream(model as never, context)) {
@@ -321,10 +317,10 @@ export class AriaHarnessSession {
       }
 
       for (const toolCall of toolCalls) {
-        const tool = this.createModelTools().find((candidate) => candidate.name === toolCall.name);
-        const result = tool
-          ? await tool.execute((toolCall.arguments ?? {}) as Record<string, unknown>)
-          : { content: `Unknown tool: ${toolCall.name}`, isError: true };
+        const result = {
+          content: "Tool execution boundary is not configured for harness prompt execution.",
+          isError: true,
+        };
         const toolResult: ToolResultMessage = {
           role: "toolResult",
           toolCallId: toolCall.id,

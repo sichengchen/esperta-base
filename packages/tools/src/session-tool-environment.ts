@@ -1,4 +1,4 @@
-import type { ToolImpl } from "@aria/agent";
+import type { ToolExecutionCallback, ToolImpl } from "@aria/agent";
 import type { ModelRouter } from "@aria/gateway/router";
 import { Orchestrator } from "@aria/agent/orchestrator";
 import { SubAgent } from "@aria/agent/sub-agent";
@@ -31,6 +31,7 @@ export interface SessionDelegationOptions {
   maxConcurrent?: number;
   maxSubAgentsPerTurn?: number;
   resultRetentionMs?: number;
+  createToolExecutor?: (sessionId: string) => ToolExecutionCallback;
 }
 
 export interface SessionToolEnvironmentOptions {
@@ -114,6 +115,8 @@ export function createSessionToolEnvironment(
       return new SubAgent(delegation.router, subAgentEnvironment.tools, {
         ...subAgentOptions,
         memoryWrite: subAgentOptions.memoryWrite ?? delegation.memoryWriteDefault,
+        executeTool:
+          subAgentOptions.executeTool ?? delegation.createToolExecutor?.(subAgentOptions.id),
         systemPrompt: [
           "You are a focused sub-agent executing a specific delegated task.",
           `Workspace path: ${workingDir}`,

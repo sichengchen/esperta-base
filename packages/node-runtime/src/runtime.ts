@@ -660,7 +660,16 @@ export async function createRuntime(): Promise<EngineRuntime> {
         mainAgent,
         notify: notifyTool
           ? async (message: string) => {
-              const result = await notifyTool.execute({ message });
+              const args = { message };
+              const result = await executeToolWithCapability({
+                sessionId: mainSession.id,
+                toolCallId: `heartbeat-notify:${crypto.randomUUID()}`,
+                toolName: "notify",
+                args,
+                dangerLevel: notifyTool.dangerLevel,
+                policyDecision: "allow",
+                execute: () => notifyTool.execute(args),
+              });
               if (result.isError) {
                 console.warn("[heartbeat] Notify failed:", result.content);
               }

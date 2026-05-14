@@ -7,7 +7,7 @@
 
 import { Agent } from "./agent.js";
 import type { ModelRouter } from "@aria/gateway/router";
-import type { ToolImpl } from "./types.js";
+import type { ToolExecutionCallback, ToolImpl } from "./types.js";
 
 export interface SubAgentOptions {
   /** Unique sub-agent ID: "subagent:<parentSessionId>:<uuid>" */
@@ -24,6 +24,8 @@ export interface SubAgentOptions {
   memoryWrite?: boolean;
   /** Optional focused system prompt override */
   systemPrompt?: string;
+  /** Execution boundary for sub-agent tool calls. */
+  executeTool?: ToolExecutionCallback;
 }
 
 export interface SubAgentResult {
@@ -75,6 +77,7 @@ export class SubAgent {
       timeoutMs: options.timeoutMs ?? DEFAULT_SUBAGENT_TIMEOUT_MS,
       // Auto-approve all tool calls — subagent runs without user interaction
       onToolApproval: async () => true,
+      executeTool: options.executeTool,
     });
   }
 

@@ -326,7 +326,11 @@ export class Agent {
                           args: toolArgs,
                           execute: () => this.registry.execute(tc.name, toolArgs),
                         })
-                      : this.registry.execute(tc.name, toolArgs));
+                      : {
+                          content:
+                            "Tool execution boundary is not configured for this agent session.",
+                          isError: true,
+                        });
 
                     // Sanitize + cap tool result size
                     const sanitized = {

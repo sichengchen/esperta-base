@@ -9,6 +9,8 @@ export type {
   DangerLevel,
   AgentOptions,
   AgentEvent,
+  ToolExecutionCallback,
+  ToolExecutionRequest,
   ToolApprovalCallback,
   AskUserCallback,
   ToolLoopConfig,

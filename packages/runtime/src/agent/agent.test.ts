@@ -287,6 +287,7 @@ describe("Agent — timeout AbortController", () => {
       router: mockRouter() as any,
       timeoutMs: 50,
       toolLoopDetection: false,
+      executeTool: async ({ execute }) => execute(),
       tools: [
         {
           name: "fast_tool",
@@ -347,6 +348,7 @@ describe("Agent — timeout AbortController", () => {
       router: mockRouter() as any,
       timeoutMs: 50,
       toolLoopDetection: false,
+      executeTool: async ({ execute }) => execute(),
       tools: [
         {
           name: "slow_tool",

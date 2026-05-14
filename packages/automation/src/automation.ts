@@ -1,6 +1,6 @@
 import { mkdir, writeFile } from "node:fs/promises";
 import { join } from "node:path";
-import type { AgentEvent } from "@aria/agent";
+import type { AgentEvent, ToolExecutionCallback } from "@aria/agent";
 import type { Message } from "@mariozechner/pi-ai";
 import type { EngineRuntime } from "@aria/node-runtime/runtime";
 import { createAriaHarnessContext, type AriaHarnessHost } from "@aria/harness";
@@ -177,6 +177,24 @@ export function buildDelegationOptions(runtime: EngineRuntime) {
     maxConcurrent: orchestration?.maxConcurrent,
     maxSubAgentsPerTurn: orchestration?.maxSubAgentsPerTurn,
     resultRetentionMs: orchestration?.resultRetentionMs,
+    createToolExecutor:
+      (sessionId: string): ToolExecutionCallback =>
+      async ({ toolName, toolCallId, args, execute }) => {
+        const dangerLevel =
+          runtime.tools.find((tool) => tool.name === toolName)?.dangerLevel ?? "dangerous";
+        const intent = getAutomationToolIntent(toolName, args);
+        const requiresApproval = toolIntentRequiresApproval(intent) || dangerLevel === "dangerous";
+        return runtime.executeToolWithCapability({
+          sessionId,
+          toolCallId,
+          toolName,
+          args,
+          dangerLevel,
+          policyDecision: requiresApproval ? "ask" : "allow",
+          approvalDecision: requiresApproval ? "approve_once" : undefined,
+          execute,
+        });
+      },
   };
 }
 
@@ -519,7 +537,16 @@ export async function deliverAutomationResult(
   }
 
   try {
-    const result = await notifyTool.execute({ message: responseText, connector });
+    const args = { message: responseText, connector };
+    const result = await runtime.executeToolWithCapability({
+      sessionId: `automation-delivery:${crypto.randomUUID()}`,
+      toolCallId: `automation-delivery:${crypto.randomUUID()}`,
+      toolName: "notify",
+      args,
+      dangerLevel: notifyTool.dangerLevel,
+      policyDecision: "allow",
+      execute: () => notifyTool.execute(args),
+    });
     if (result.isError) {
       return {
         status: "failed",

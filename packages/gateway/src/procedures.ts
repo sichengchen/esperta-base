@@ -1355,7 +1355,17 @@ export function createAppRouter(runtime: EngineRuntime) {
               cwd: sessionToolEnvironments.get(input.sessionId)?.workingDir,
               fetchUrl: webFetchTool
                 ? async (url: string) => {
-                    const result = await webFetchTool.execute({ url });
+                    const args = { url };
+                    const result = await runtime.executeToolWithCapability({
+                      sessionId: input.sessionId,
+                      runId: activeRunsBySession.get(input.sessionId),
+                      toolCallId: `context-ref:${crypto.randomUUID()}`,
+                      toolName: "web_fetch",
+                      args,
+                      dangerLevel: webFetchTool.dangerLevel,
+                      policyDecision: "allow",
+                      execute: () => webFetchTool.execute(args),
+                    });
                     return result.content;
                   }
                 : undefined,

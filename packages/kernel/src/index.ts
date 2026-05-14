@@ -30,7 +30,9 @@ export interface KernelStore {
   listWorkflowTasks(status?: WorkflowTask["status"]): WorkflowTask[];
   markWorkflowTask(id: string, status: WorkflowTask["status"]): WorkflowTask | undefined;
   enqueueOutboxMessage(message: OutboxMessage): void;
-  drainOutboxMessages(): OutboxMessage[];
+  listOutboxMessages(topic?: string): OutboxMessage[];
+  deleteOutboxMessage(id: string): void;
+  drainOutboxMessages(topic?: string): OutboxMessage[];
   close?(): void;
 }
 
@@ -71,8 +73,23 @@ export class InMemoryKernelStore implements KernelStore {
     this.outboxMessages.push(message);
   }
 
-  drainOutboxMessages(): OutboxMessage[] {
-    return this.outboxMessages.splice(0);
+  listOutboxMessages(topic?: string): OutboxMessage[] {
+    return this.outboxMessages.filter((message) => !topic || message.topic === topic);
+  }
+
+  deleteOutboxMessage(id: string): void {
+    const index = this.outboxMessages.findIndex((message) => message.id === id);
+    if (index !== -1) {
+      this.outboxMessages.splice(index, 1);
+    }
+  }
+
+  drainOutboxMessages(topic?: string): OutboxMessage[] {
+    const messages = this.listOutboxMessages(topic);
+    for (const message of messages) {
+      this.deleteOutboxMessage(message.id);
+    }
+    return messages;
   }
 }
 
@@ -197,8 +214,16 @@ export class Outbox {
     this.store.enqueueOutboxMessage(message);
   }
 
-  drain(): OutboxMessage[] {
-    return this.store.drainOutboxMessages();
+  list(topic?: string): OutboxMessage[] {
+    return this.store.listOutboxMessages(topic);
+  }
+
+  ack(id: string): void {
+    this.store.deleteOutboxMessage(id);
+  }
+
+  drain(topic?: string): OutboxMessage[] {
+    return this.store.drainOutboxMessages(topic);
   }
 }
 
@@ -363,25 +388,34 @@ export class SqliteKernelStore implements KernelStore {
       .run(message.id, message.topic, JSON.stringify(message.payload), message.createdAt);
   }
 
-  drainOutboxMessages(): OutboxMessage[] {
+  listOutboxMessages(topic?: string): OutboxMessage[] {
     const rows = this.db
       .prepare(
         `
         SELECT id, topic, payload_json, created_at
         FROM kernel_outbox_messages
+        WHERE (? IS NULL OR topic = ?)
         ORDER BY created_at ASC, id ASC
       `,
       )
-      .all() as Array<Record<string, unknown>>;
-    const messages = rows.map((row) => ({
+      .all(topic ?? null, topic ?? null) as Array<Record<string, unknown>>;
+    return rows.map((row) => ({
       id: String(row.id),
       topic: String(row.topic),
       payload: parseJson(String(row.payload_json)),
       createdAt: String(row.created_at),
     }));
+  }
+
+  deleteOutboxMessage(id: string): void {
+    this.db.prepare("DELETE FROM kernel_outbox_messages WHERE id = ?").run(id);
+  }
+
+  drainOutboxMessages(topic?: string): OutboxMessage[] {
+    const messages = this.listOutboxMessages(topic);
     const tx = this.db.transaction(() => {
       for (const message of messages) {
-        this.db.prepare("DELETE FROM kernel_outbox_messages WHERE id = ?").run(message.id);
+        this.deleteOutboxMessage(message.id);
       }
     });
     tx();

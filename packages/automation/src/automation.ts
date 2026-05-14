@@ -49,6 +49,11 @@ interface AutomationDeliveryResult {
   error?: string | null;
 }
 
+interface AutomationDeliveryOutboxPayload {
+  connector: string;
+  message: string;
+}
+
 interface AutomationAttemptResult {
   taskRunId?: string;
   responseText: string;
@@ -73,6 +78,8 @@ export interface AutomationAgentLike {
 }
 
 export type AutomationAgentFactory = (input: AutomationAgentFactoryInput) => AutomationAgentLike;
+
+const AUTOMATION_DELIVERY_TOPIC = "automation.delivery.notify";
 
 function sleep(ms: number): Promise<void> {
   return new Promise((resolve) => setTimeout(resolve, ms));
@@ -524,6 +531,32 @@ export async function deliverAutomationResult(
     return { status: "not_requested", attemptedAt: null, error: null };
   }
 
+  const messageId = `automation-delivery:${crypto.randomUUID()}`;
+  runtime.kernel.outbox.enqueue({
+    id: messageId,
+    topic: AUTOMATION_DELIVERY_TOPIC,
+    payload: {
+      connector,
+      message: responseText,
+    } satisfies AutomationDeliveryOutboxPayload,
+    createdAt: new Date().toISOString(),
+  });
+
+  return dispatchAutomationDeliveryOutbox(runtime, messageId);
+}
+
+export async function dispatchAutomationDeliveryOutbox(
+  runtime: EngineRuntime,
+  messageId?: string,
+): Promise<AutomationDeliveryResult> {
+  const messages = runtime.kernel.outbox
+    .list(AUTOMATION_DELIVERY_TOPIC)
+    .filter((message) => !messageId || message.id === messageId);
+
+  if (messages.length === 0) {
+    return { status: "not_requested", attemptedAt: null, error: null };
+  }
+
   const notifyTool = runtime.tools.find((tool) => tool.name === "notify");
   if (!notifyTool) {
     return {
@@ -533,36 +566,56 @@ export async function deliverAutomationResult(
     };
   }
 
-  try {
-    const args = { message: responseText, connector };
-    const result = await runtime.executeToolWithCapability({
-      sessionId: `automation-delivery:${crypto.randomUUID()}`,
-      toolCallId: `automation-delivery:${crypto.randomUUID()}`,
-      toolName: "notify",
-      args,
-      dangerLevel: notifyTool.dangerLevel,
-      policyDecision: "allow",
-      execute: () => notifyTool.execute(args),
-    });
-    if (result.isError) {
+  let latestResult: AutomationDeliveryResult = {
+    status: "not_requested",
+    attemptedAt: null,
+    error: null,
+  };
+
+  for (const message of messages) {
+    const payload = message.payload as Partial<AutomationDeliveryOutboxPayload>;
+    const connector = typeof payload.connector === "string" ? payload.connector : "";
+    const text = typeof payload.message === "string" ? payload.message : "";
+    if (!connector || !text.trim()) {
+      runtime.kernel.outbox.ack(message.id);
+      latestResult = { status: "not_requested", attemptedAt: null, error: null };
+      continue;
+    }
+
+    try {
+      const args = { message: text, connector };
+      const result = await runtime.executeToolWithCapability({
+        sessionId: message.id,
+        toolCallId: message.id,
+        toolName: "notify",
+        args,
+        dangerLevel: notifyTool.dangerLevel,
+        policyDecision: "allow",
+        execute: () => notifyTool.execute(args),
+      });
+      if (result.isError) {
+        return {
+          status: "failed",
+          attemptedAt: Date.now(),
+          error: result.content,
+        };
+      }
+      runtime.kernel.outbox.ack(message.id);
+      latestResult = {
+        status: "delivered",
+        attemptedAt: Date.now(),
+        error: null,
+      };
+    } catch {
       return {
         status: "failed",
         attemptedAt: Date.now(),
-        error: result.content,
+        error: "delivery failed",
       };
     }
-    return {
-      status: "delivered",
-      attemptedAt: Date.now(),
-      error: null,
-    };
-  } catch {
-    return {
-      status: "failed",
-      attemptedAt: Date.now(),
-      error: "delivery failed",
-    };
   }
+
+  return latestResult;
 }
 
 export async function logAutomationResult(

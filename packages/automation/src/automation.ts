@@ -294,16 +294,12 @@ async function runAutomationAttempt(
   let responseText = "";
   const toolCalls: Array<{ name: string; content: string }> = [];
   let status: "success" | "error" = "success";
-  const runId = crypto.randomUUID();
   const taskRunId = task.taskId ? crypto.randomUUID() : undefined;
   const startedAt = Date.now();
-  runtime.store.createRun({
-    runId,
+  const runId = await runtime.startRun({
     sessionId: session.id,
     trigger: "automation",
-    status: "running",
     inputText: task.prompt,
-    startedAt,
   });
   if (taskRunId && task.taskType) {
     runtime.store.recordAutomationRunStart({
@@ -352,7 +348,8 @@ async function runAutomationAttempt(
     const completedAt = Date.now();
     const finalSummary = responseText.slice(0, 200) || "(no response)";
     const finalRunStatus: AutomationRunStatus = status === "success" ? "success" : "error";
-    runtime.store.finishRun(runId, {
+    await runtime.finishRun({
+      runId,
       status: status === "success" ? "completed" : "failed",
       completedAt,
       stopReason: status === "success" ? "automation_complete" : undefined,

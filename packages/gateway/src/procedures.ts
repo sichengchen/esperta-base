@@ -108,7 +108,8 @@ export async function flushProcedureState(
 
   const completedAt = Date.now();
   for (const runId of activeRunsBySession.values()) {
-    runtime.store.finishRun(runId, {
+    await runtime.finishRun({
+      runId,
       status: "interrupted",
       completedAt,
       errorMessage: reason,
@@ -533,12 +534,12 @@ export function createAppRouter(runtime: EngineRuntime) {
     await persistSessionArchiveForRuntime(runtime, sessionId);
   }
 
-  function cancelActiveRun(sessionId: string, errorMessage: string): boolean {
+  async function cancelActiveRun(sessionId: string, errorMessage: string): Promise<boolean> {
     const runId = activeRunsBySession.get(sessionId);
     if (!runId) {
       return false;
     }
-    finishRun(sessionId, runId, {
+    await finishRun(sessionId, runId, {
       status: "cancelled",
       errorMessage,
     });
@@ -583,27 +584,23 @@ export function createAppRouter(runtime: EngineRuntime) {
     }
   }
 
-  function startRun(
+  async function startRun(
     sessionId: string,
     trigger: string,
     inputText: string,
     parentRunId?: string,
-  ): string {
-    const runId = crypto.randomUUID();
-    runtime.store.createRun({
-      runId,
+  ): Promise<string> {
+    const runId = await runtime.startRun({
       sessionId,
       trigger,
-      status: "running",
       inputText,
-      startedAt: Date.now(),
       parentRunId,
     });
     activeRunsBySession.set(sessionId, runId);
     return runId;
   }
 
-  function finishRun(
+  async function finishRun(
     sessionId: string,
     runId: string,
     updates: {
@@ -611,11 +608,12 @@ export function createAppRouter(runtime: EngineRuntime) {
       stopReason?: string;
       errorMessage?: string;
     },
-  ): void {
+  ): Promise<void> {
     if (activeRunsBySession.get(sessionId) === runId) {
       activeRunsBySession.delete(sessionId);
     }
-    runtime.store.finishRun(runId, {
+    await runtime.finishRun({
+      runId,
       status: updates.status,
       completedAt: Date.now(),
       stopReason: updates.stopReason,
@@ -1229,7 +1227,7 @@ export function createAppRouter(runtime: EngineRuntime) {
 
           const renameCommand = parseAriaRenameSlashCommand(input.message);
           if (renameCommand) {
-            const runId = startRun(input.sessionId, "slash_command", input.message);
+            const runId = await startRun(input.sessionId, "slash_command", input.message);
             try {
               if (!renameCommand.title) {
                 yield withEventMeta(
@@ -1246,7 +1244,7 @@ export function createAppRouter(runtime: EngineRuntime) {
                     actorId: ctx.connectorId,
                   },
                 );
-                finishRun(input.sessionId, runId, {
+                await finishRun(input.sessionId, runId, {
                   status: "failed",
                   errorMessage: "Session title cannot be empty",
                 });
@@ -1281,7 +1279,7 @@ export function createAppRouter(runtime: EngineRuntime) {
                   actorId: ctx.connectorId,
                 },
               );
-              finishRun(input.sessionId, runId, {
+              await finishRun(input.sessionId, runId, {
                 status: "completed",
                 stopReason: "slash_command",
               });
@@ -1298,7 +1296,7 @@ export function createAppRouter(runtime: EngineRuntime) {
                   actorId: ctx.connectorId,
                 },
               );
-              finishRun(input.sessionId, runId, {
+              await finishRun(input.sessionId, runId, {
                 status: "failed",
                 errorMessage: message,
               });
@@ -1355,7 +1353,7 @@ export function createAppRouter(runtime: EngineRuntime) {
             connectorType,
           });
           const promptState = getSessionPrompt(input.sessionId);
-          const runId = startRun(input.sessionId, "chat", chatMessage);
+          const runId = await startRun(input.sessionId, "chat", chatMessage);
           let finalStatus: "completed" | "failed" | "interrupted" = "completed";
           let finalStopReason: string | undefined;
           let finalErrorMessage: string | undefined;
@@ -1401,7 +1399,7 @@ export function createAppRouter(runtime: EngineRuntime) {
               },
             );
           } finally {
-            finishRun(input.sessionId, runId, {
+            await finishRun(input.sessionId, runId, {
               status: finalStatus,
               stopReason: finalStopReason,
               errorMessage: finalErrorMessage,
@@ -1416,7 +1414,7 @@ export function createAppRouter(runtime: EngineRuntime) {
         .mutation(async ({ ctx, input }): Promise<{ cancelled: boolean }> => {
           requireOwnedSession(ctx, input.sessionId);
           const agent = sessionAgents.get(input.sessionId);
-          const cancelledRun = cancelActiveRun(input.sessionId, "Stopped by user");
+          const cancelledRun = await cancelActiveRun(input.sessionId, "Stopped by user");
           if (!agent && !cancelledRun) {
             return { cancelled: false };
           }
@@ -1457,7 +1455,7 @@ export function createAppRouter(runtime: EngineRuntime) {
 
           for (const sid of targetSessionIds) {
             const agent = sessionAgents.get(sid);
-            const cancelledRun = cancelActiveRun(sid, "Stopped by user");
+            const cancelledRun = await cancelActiveRun(sid, "Stopped by user");
             const aborted = agent?.abort() ?? false;
             const wasActive = cancelledRun || agent?.isRunning;
             if (!wasActive) {
@@ -1639,7 +1637,7 @@ export function createAppRouter(runtime: EngineRuntime) {
             connectorType,
           });
           const promptState = getSessionPrompt(input.sessionId);
-          const runId = startRun(input.sessionId, "audio_transcription", transcript);
+          const runId = await startRun(input.sessionId, "audio_transcription", transcript);
           let finalStatus: "completed" | "failed" | "interrupted" = "completed";
           let finalStopReason: string | undefined;
           let finalErrorMessage: string | undefined;
@@ -1684,7 +1682,7 @@ export function createAppRouter(runtime: EngineRuntime) {
               },
             );
           } finally {
-            finishRun(input.sessionId, runId, {
+            await finishRun(input.sessionId, runId, {
               status: finalStatus,
               stopReason: finalStopReason,
               errorMessage: finalErrorMessage,
@@ -1762,7 +1760,7 @@ export function createAppRouter(runtime: EngineRuntime) {
           }
           const session = requireOwnedSession(ctx, input.sessionId);
           sessionAgents.get(input.sessionId)?.abort();
-          cancelActiveRun(input.sessionId, "Session destroyed");
+          await cancelActiveRun(input.sessionId, "Session destroyed");
           resolvePendingApprovalsForSession(input.sessionId, "denied");
           resolvePendingEscalationsForSession(input.sessionId);
           rejectPendingQuestionsForSession(input.sessionId, "Session destroyed");
@@ -2001,7 +1999,7 @@ export function createAppRouter(runtime: EngineRuntime) {
                 }
               }
               sessionAgents.get(dispatch.executionSessionId)?.abort();
-              cancelActiveRun(
+              await cancelActiveRun(
                 dispatch.executionSessionId,
                 input.reason ?? "Project dispatch cancelled",
               );

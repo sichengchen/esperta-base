@@ -81,6 +81,21 @@ export interface RuntimeCapabilityToolExecutionRequest {
   execute: () => Promise<ToolResult>;
 }
 
+export interface RuntimeRunStartRequest {
+  sessionId: string;
+  trigger: string;
+  inputText: string;
+  parentRunId?: string | null;
+}
+
+export interface RuntimeRunFinishRequest {
+  runId: string;
+  status: "completed" | "failed" | "cancelled" | "interrupted";
+  completedAt?: number;
+  stopReason?: string;
+  errorMessage?: string;
+}
+
 export interface EngineRuntime {
   config: ConfigManager;
   router: ModelRouter;
@@ -115,6 +130,8 @@ export interface EngineRuntime {
     cwd?: string;
     projectRoot?: string;
   }): Promise<AriaHarnessSession>;
+  startRun(request: RuntimeRunStartRequest): Promise<string>;
+  finishRun(request: RuntimeRunFinishRequest): Promise<void>;
   listToolsets(): ReturnType<typeof listToolsets>;
   executeToolWithCapability(request: RuntimeCapabilityToolExecutionRequest): Promise<ToolResult>;
   createAgent(
@@ -148,6 +165,32 @@ export async function createRuntime(): Promise<EngineRuntime> {
   await handoffStore.init();
   const handoffs = new HandoffService(handoffStore);
   const kernel = createKernelRuntime(new SqliteKernelStore(join(config.homeDir, "aria.db")));
+  kernel.commands.register("runtime.run.start", (command) => {
+    const payload = command.payload as RuntimeRunStartRequest & {
+      runId: string;
+      startedAt: number;
+    };
+    store.createRun({
+      runId: payload.runId,
+      sessionId: payload.sessionId,
+      trigger: payload.trigger,
+      status: "running",
+      inputText: payload.inputText,
+      startedAt: payload.startedAt,
+      parentRunId: payload.parentRunId ?? undefined,
+    });
+    return { runId: payload.runId };
+  });
+  kernel.commands.register("runtime.run.finish", (command) => {
+    const payload = command.payload as RuntimeRunFinishRequest;
+    store.finishRun(payload.runId, {
+      status: payload.status,
+      completedAt: payload.completedAt ?? Date.now(),
+      stopReason: payload.stopReason,
+      errorMessage: payload.errorMessage,
+    });
+    return { runId: payload.runId };
+  });
 
   const checkpoints = new CheckpointManager(config.homeDir, ariaConfig.runtime.checkpoints);
   const mcp = new MCPManager(
@@ -732,6 +775,22 @@ export async function createRuntime(): Promise<EngineRuntime> {
       });
       const harnessAgent = await harnessContext.init({ id: options.id, environment: "default" });
       return harnessAgent.session(options.id);
+    },
+    async startRun(request) {
+      const runId = crypto.randomUUID();
+      const result = await kernel.commands.execute<{ runId: string }>({
+        type: "runtime.run.start",
+        payload: { ...request, runId, startedAt: Date.now() },
+        idempotencyKey: `runtime.run.start:${runId}`,
+      });
+      return result.runId;
+    },
+    async finishRun(request) {
+      await kernel.commands.execute({
+        type: "runtime.run.finish",
+        payload: request,
+        idempotencyKey: `runtime.run.finish:${request.runId}:${request.status}:${request.completedAt ?? ""}`,
+      });
     },
     listToolsets() {
       return listToolsets(runtime.tools);

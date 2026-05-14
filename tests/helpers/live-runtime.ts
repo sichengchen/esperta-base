@@ -157,6 +157,27 @@ export async function createLiveRuntime(
       const harnessAgent = await harnessContext.init({ id: options.id, environment: "default" });
       return harnessAgent.session(options.id);
     },
+    async startRun(request) {
+      const runId = crypto.randomUUID();
+      store.createRun({
+        runId,
+        sessionId: request.sessionId,
+        trigger: request.trigger,
+        status: "running",
+        inputText: request.inputText,
+        startedAt: Date.now(),
+        parentRunId: request.parentRunId ?? undefined,
+      });
+      return runId;
+    },
+    async finishRun(request) {
+      store.finishRun(request.runId, {
+        status: request.status,
+        completedAt: request.completedAt ?? Date.now(),
+        stopReason: request.stopReason,
+        errorMessage: request.errorMessage,
+      });
+    },
     listToolsets: () => listToolsets(tools),
     executeToolWithCapability: async (request) => request.execute(),
     async refreshSystemPrompt() {

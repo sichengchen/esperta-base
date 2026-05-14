@@ -230,6 +230,12 @@ async function createTestRuntime(runtimeHome: string): Promise<EngineRuntime> {
     async putPromptCache(request) {
       store.putPromptCache(request);
     },
+    async syncSessionMessages(request) {
+      store.syncSessionMessages(request.sessionId, request.messages);
+    },
+    async getSessionMessages(sessionId) {
+      return store.getSessionMessages(sessionId);
+    },
     listToolsets: () => listToolsets([]),
     executeToolWithCapability: async (request) => request.execute(),
     async refreshSystemPrompt() {

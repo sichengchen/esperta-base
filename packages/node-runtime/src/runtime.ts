@@ -157,6 +157,11 @@ export interface RuntimePromptCachePutRequest {
   updatedAt?: number;
 }
 
+export interface RuntimeSessionMessagesSyncRequest {
+  sessionId: string;
+  messages: readonly Message[];
+}
+
 export interface EngineRuntime {
   config: ConfigManager;
   router: ModelRouter;
@@ -201,6 +206,8 @@ export interface EngineRuntime {
   appendRunEvent(request: RuntimeRunEventAppendRequest): Promise<RunEventRecord>;
   getPromptCache(cacheKey: string): Promise<PromptCacheRecord | undefined>;
   putPromptCache(request: RuntimePromptCachePutRequest): Promise<void>;
+  syncSessionMessages(request: RuntimeSessionMessagesSyncRequest): Promise<void>;
+  getSessionMessages(sessionId: string): Promise<Message[]>;
   listToolsets(): ReturnType<typeof listToolsets>;
   executeToolWithCapability(request: RuntimeCapabilityToolExecutionRequest): Promise<ToolResult>;
   createAgent(
@@ -295,6 +302,14 @@ export async function createRuntime(): Promise<EngineRuntime> {
     const payload = command.payload as RuntimePromptCachePutRequest;
     store.putPromptCache(payload);
     return { cacheKey: payload.cacheKey };
+  });
+  kernel.commands.register("runtime.session_messages.sync", (command) => {
+    const payload = command.payload as RuntimeSessionMessagesSyncRequest;
+    store.syncSessionMessages(payload.sessionId, payload.messages);
+    return { sessionId: payload.sessionId };
+  });
+  kernel.queries.register("runtime.session_messages.get", (query) => {
+    return store.getSessionMessages(String(query.payload));
   });
 
   const checkpoints = new CheckpointManager(config.homeDir, ariaConfig.runtime.checkpoints);
@@ -948,6 +963,18 @@ export async function createRuntime(): Promise<EngineRuntime> {
         type: "runtime.prompt_cache.put",
         payload: request,
         idempotencyKey: `runtime.prompt_cache.put:${request.cacheKey}:${request.updatedAt ?? ""}`,
+      });
+    },
+    async syncSessionMessages(request) {
+      await kernel.commands.execute({
+        type: "runtime.session_messages.sync",
+        payload: request,
+      });
+    },
+    async getSessionMessages(sessionId) {
+      return kernel.queries.execute({
+        type: "runtime.session_messages.get",
+        payload: sessionId,
       });
     },
     listToolsets() {

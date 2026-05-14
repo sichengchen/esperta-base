@@ -152,7 +152,7 @@ async function persistSessionArchiveForRuntime(
   const session = runtime.sessions.getSession(sessionId);
   const agent = sessionAgents.get(sessionId);
   if (!session || !agent) return;
-  runtime.store.syncSessionMessages(session.id, agent.getMessages());
+  await runtime.syncSessionMessages({ sessionId: session.id, messages: agent.getMessages() });
   await runtime.archive.syncSession(session, agent.getMessages());
 }
 
@@ -707,7 +707,10 @@ export function createAppRouter(runtime: EngineRuntime) {
                 const refreshedSession = runtime.sessions.getSession(sessionId);
                 const liveAgent = sessionAgents.get(sessionId);
                 if (refreshedSession && liveAgent) {
-                  runtime.store.syncSessionMessages(refreshedSession.id, liveAgent.getMessages());
+                  await runtime.syncSessionMessages({
+                    sessionId: refreshedSession.id,
+                    messages: liveAgent.getMessages(),
+                  });
                   await runtime.archive.syncSession(refreshedSession, liveAgent.getMessages());
                 }
                 if (!savedTitle) {
@@ -744,7 +747,7 @@ export function createAppRouter(runtime: EngineRuntime) {
   ): Promise<string> {
     const promptState = getSessionPrompt(sessionId);
     const liveMessages =
-      sessionAgents.get(sessionId)?.getMessages() ?? runtime.store.getSessionMessages(sessionId);
+      sessionAgents.get(sessionId)?.getMessages() ?? (await runtime.getSessionMessages(sessionId));
     const sessionTools = sessionToolEnvironments.get(sessionId)?.tools;
     try {
       promptState.value = await runtime.promptEngine.buildSessionPrompt({
@@ -769,9 +772,9 @@ export function createAppRouter(runtime: EngineRuntime) {
     }
 
     const liveAgent = sessionAgents.get(sessionId);
-    const messages = liveAgent?.getMessages() ?? runtime.store.getSessionMessages(sessionId);
+    const messages = liveAgent?.getMessages() ?? (await runtime.getSessionMessages(sessionId));
     if (liveAgent) {
-      runtime.store.syncSessionMessages(refreshedSession.id, messages);
+      await runtime.syncSessionMessages({ sessionId: refreshedSession.id, messages });
     }
     await runtime.archive.syncSession(refreshedSession, messages);
   }
@@ -787,7 +790,7 @@ export function createAppRouter(runtime: EngineRuntime) {
         cwd: toolEnvironment.workingDir,
         projectRoot: toolEnvironment.projectRoot,
       });
-      const persistedMessages = runtime.store.getSessionMessages(sessionId);
+      const persistedMessages = await runtime.getSessionMessages(sessionId);
       if (persistedMessages.length > 0) {
         agent.hydrateHistory(persistedMessages);
       }
@@ -1514,7 +1517,7 @@ export function createAppRouter(runtime: EngineRuntime) {
 
           if (liveSession) {
             requireOwnedSession(ctx, input.sessionId);
-            const persistedMessages = runtime.store.getSessionMessages(input.sessionId);
+            const persistedMessages = await runtime.getSessionMessages(input.sessionId);
             if (persistedMessages.length > 0) {
               return {
                 sessionId: input.sessionId,

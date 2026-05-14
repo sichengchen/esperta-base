@@ -372,7 +372,7 @@ async function runAutomationAttempt(
         errorMessage: status === "error" ? responseText : undefined,
       });
     }
-    runtime.store.syncSessionMessages(session.id, agent.getMessages());
+    await runtime.syncSessionMessages({ sessionId: session.id, messages: agent.getMessages() });
     await runtime.archive.syncSession(session, agent.getMessages());
     runtime.sessions.destroySession(session.id);
   }

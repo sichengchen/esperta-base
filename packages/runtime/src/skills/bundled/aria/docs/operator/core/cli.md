@@ -6,8 +6,7 @@ The public CLI identity is:
 aria
 ```
 
-The CLI operates a node. Target command groups should align with Aria Node
-Runtime ownership:
+The CLI operates a node. Command groups align with Aria Node Runtime ownership:
 
 - `aria node`
 - `aria gateway`
@@ -19,9 +18,6 @@ Runtime ownership:
 - `aria audit`
 - `aria secrets`
 - `aria config`
-
-During migration, existing command names may remain as compatibility aliases.
-New docs and new user-facing copy should prefer the target command model.
 
 ## Runtime Rules
 

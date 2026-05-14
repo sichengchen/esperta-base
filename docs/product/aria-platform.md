@@ -15,7 +15,7 @@ doc should follow.
 
 | Form               | Contains                                                                                                                      | Does not contain                                                                                                            |
 | ------------------ | ----------------------------------------------------------------------------------------------------------------------------- | --------------------------------------------------------------------------------------------------------------------------- |
-| `Desktop Package`  | Desktop UI, Desktop Client SDK, Node Supervisor, Aria Node Runtime, Local Gateway, Local Store, Local Tools, Local Workspaces | A separate runtime from Headless                                                                                            |
+| `Desktop Package`  | Desktop UI, Desktop Client SDK, Node Supervisor, Aria Node Runtime, Local Gateway, Local Store, Local Tools, Local Workspaces | Headless service manager                                                                                                    |
 | `Headless Package` | Service Manager, Aria Node Runtime, Gateway, Store, Tools, Workspaces, Automations, Connectors                                | Desktop UI                                                                                                                  |
 | `Mobile Client`    | Mobile UI, Remote Client SDK, pairing/session management, notifications, small UX cache                                       | Aria Agent, Kernel, Tool Runtime, Sandbox Runtime, Workspace Manager, Automation Engine, Connector Runtime, local execution |
 

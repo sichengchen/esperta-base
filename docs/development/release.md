@@ -13,7 +13,7 @@ runtime assets, or package metadata changed. State the exemption in the handoff.
 
 Architecture-affecting releases should verify:
 
-- Desktop and Headless still use the same runtime path or move closer to it.
+- Desktop and Headless use the same Aria Node Runtime entrypoint.
 - Mobile remains remote-only.
 - Side effects go through Capability Broker and Sandbox Manager.
 - Policy decisions remain `allow`, `ask`, or `deny`.

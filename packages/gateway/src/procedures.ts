@@ -122,7 +122,11 @@ export async function flushProcedureState(
   }
 
   for (const [toolCallId, resolve] of pendingApprovals.entries()) {
-    runtime.store.resolveApproval(toolCallId, "interrupted", completedAt);
+    await runtime.resolveApproval({
+      approvalId: toolCallId,
+      status: "interrupted",
+      resolvedAt: completedAt,
+    });
     resolve(false);
     pendingApprovals.delete(toolCallId);
     pendingApprovalMeta.delete(toolCallId);
@@ -546,15 +550,15 @@ export function createAppRouter(runtime: EngineRuntime) {
     return true;
   }
 
-  function resolvePendingApprovalsForSession(
+  async function resolvePendingApprovalsForSession(
     sessionId: string,
     status: "denied" | "interrupted",
-  ): void {
+  ): Promise<void> {
     for (const [toolCallId, meta] of pendingApprovalMeta.entries()) {
       if (meta.sessionId !== sessionId) {
         continue;
       }
-      runtime.store.resolveApproval(toolCallId, status);
+      await runtime.resolveApproval({ approvalId: toolCallId, status });
       const resolver = pendingApprovals.get(toolCallId);
       if (resolver) {
         resolver(false);
@@ -834,7 +838,7 @@ export function createAppRouter(runtime: EngineRuntime) {
 
         if (level === "safe" && !intentRequiresApproval) {
           pendingApprovalMeta.delete(toolCallId);
-          runtime.store.resolveApproval(toolCallId, "approve_once");
+          await runtime.resolveApproval({ approvalId: toolCallId, status: "approve_once" });
           return true;
         }
 
@@ -846,7 +850,7 @@ export function createAppRouter(runtime: EngineRuntime) {
                 if (pendingApprovals.has(toolCallId)) {
                   pendingApprovals.delete(toolCallId);
                   pendingApprovalMeta.delete(toolCallId);
-                  runtime.store.resolveApproval(toolCallId, "denied");
+                  void runtime.resolveApproval({ approvalId: toolCallId, status: "denied" });
                   resolve(false);
                 }
               },
@@ -856,7 +860,7 @@ export function createAppRouter(runtime: EngineRuntime) {
         }
 
         pendingApprovalMeta.delete(toolCallId);
-        runtime.store.resolveApproval(toolCallId, "approve_once");
+        await runtime.resolveApproval({ approvalId: toolCallId, status: "approve_once" });
         return true;
       },
       executeTool: async ({
@@ -1094,7 +1098,7 @@ export function createAppRouter(runtime: EngineRuntime) {
             runId,
             intent,
           });
-          runtime.store.recordApprovalPending({
+          await runtime.recordApprovalPending({
             approvalId: event.id,
             runId,
             sessionId: sid,
@@ -1420,7 +1424,7 @@ export function createAppRouter(runtime: EngineRuntime) {
           }
           const cancelled = agent?.abort() ?? false;
 
-          resolvePendingApprovalsForSession(input.sessionId, "denied");
+          await resolvePendingApprovalsForSession(input.sessionId, "denied");
           resolvePendingEscalationsForSession(input.sessionId);
           rejectPendingQuestionsForSession(input.sessionId, "Stopped by user");
 
@@ -1466,7 +1470,7 @@ export function createAppRouter(runtime: EngineRuntime) {
               cancelled++;
             }
 
-            resolvePendingApprovalsForSession(sid, "denied");
+            await resolvePendingApprovalsForSession(sid, "denied");
             resolvePendingEscalationsForSession(sid);
             rejectPendingQuestionsForSession(sid, "Stopped by user");
           }
@@ -1761,7 +1765,7 @@ export function createAppRouter(runtime: EngineRuntime) {
           const session = requireOwnedSession(ctx, input.sessionId);
           sessionAgents.get(input.sessionId)?.abort();
           await cancelActiveRun(input.sessionId, "Session destroyed");
-          resolvePendingApprovalsForSession(input.sessionId, "denied");
+          await resolvePendingApprovalsForSession(input.sessionId, "denied");
           resolvePendingEscalationsForSession(input.sessionId);
           rejectPendingQuestionsForSession(input.sessionId, "Session destroyed");
           await persistSessionArchive(input.sessionId);
@@ -2003,7 +2007,7 @@ export function createAppRouter(runtime: EngineRuntime) {
                 dispatch.executionSessionId,
                 input.reason ?? "Project dispatch cancelled",
               );
-              resolvePendingApprovalsForSession(dispatch.executionSessionId, "denied");
+              await resolvePendingApprovalsForSession(dispatch.executionSessionId, "denied");
               resolvePendingEscalationsForSession(dispatch.executionSessionId);
               rejectPendingQuestionsForSession(
                 dispatch.executionSessionId,
@@ -2306,7 +2310,7 @@ export function createAppRouter(runtime: EngineRuntime) {
             .optional(),
         )
         .query(({ input }) => {
-          return runtime.store.listApprovals(input);
+          return runtime.listApprovals(input);
         }),
     }),
 
@@ -2328,7 +2332,7 @@ export function createAppRouter(runtime: EngineRuntime) {
             approved: z.boolean(),
           }),
         )
-        .mutation(({ ctx, input }): { acknowledged: boolean } => {
+        .mutation(async ({ ctx, input }): Promise<{ acknowledged: boolean }> => {
           const resolver = pendingApprovals.get(input.toolCallId);
           const meta = pendingApprovalMeta.get(input.toolCallId);
           if (!resolver) {
@@ -2340,10 +2344,10 @@ export function createAppRouter(runtime: EngineRuntime) {
           if (input.approved && meta) {
             approveToolIntentOnce(meta.sessionId, meta.intent);
           }
-          runtime.store.resolveApproval(
-            input.toolCallId,
-            input.approved ? "approve_once" : "denied",
-          );
+          await runtime.resolveApproval({
+            approvalId: input.toolCallId,
+            status: input.approved ? "approve_once" : "denied",
+          });
           pendingApprovals.delete(input.toolCallId);
           pendingApprovalMeta.delete(input.toolCallId);
 

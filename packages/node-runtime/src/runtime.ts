@@ -31,7 +31,7 @@ import { SkillRegistry } from "@aria/memory/skills";
 import { SecurityModeManager } from "@aria/policy";
 import { toolIntentRequiresApproval, type ToolIntent } from "@aria/policy";
 import { PromptEngine } from "@aria/prompt";
-import { OperationalStore } from "@aria/persistence";
+import { OperationalStore, type ApprovalRecord, type ApprovalStatus } from "@aria/persistence";
 import { ProjectsEngineRepository, ProjectsEngineStore } from "@aria/work";
 import {
   askUserTool,
@@ -96,6 +96,28 @@ export interface RuntimeRunFinishRequest {
   errorMessage?: string;
 }
 
+export interface RuntimeApprovalPendingRequest {
+  approvalId: string;
+  runId: string;
+  sessionId: string;
+  toolCallId: string;
+  toolName: string;
+  args: Record<string, unknown>;
+  createdAt?: number;
+}
+
+export interface RuntimeApprovalResolveRequest {
+  approvalId: string;
+  status: Exclude<ApprovalStatus, "pending">;
+  resolvedAt?: number;
+}
+
+export interface RuntimeApprovalListRequest {
+  sessionId?: string;
+  status?: ApprovalStatus;
+  limit?: number;
+}
+
 export interface EngineRuntime {
   config: ConfigManager;
   router: ModelRouter;
@@ -132,6 +154,9 @@ export interface EngineRuntime {
   }): Promise<AriaHarnessSession>;
   startRun(request: RuntimeRunStartRequest): Promise<string>;
   finishRun(request: RuntimeRunFinishRequest): Promise<void>;
+  recordApprovalPending(request: RuntimeApprovalPendingRequest): Promise<void>;
+  resolveApproval(request: RuntimeApprovalResolveRequest): Promise<void>;
+  listApprovals(request?: RuntimeApprovalListRequest): Promise<ApprovalRecord[]>;
   listToolsets(): ReturnType<typeof listToolsets>;
   executeToolWithCapability(request: RuntimeCapabilityToolExecutionRequest): Promise<ToolResult>;
   createAgent(
@@ -190,6 +215,20 @@ export async function createRuntime(): Promise<EngineRuntime> {
       errorMessage: payload.errorMessage,
     });
     return { runId: payload.runId };
+  });
+  kernel.commands.register("runtime.approval.pending", (command) => {
+    const payload = command.payload as RuntimeApprovalPendingRequest;
+    store.recordApprovalPending(payload);
+    return { approvalId: payload.approvalId };
+  });
+  kernel.commands.register("runtime.approval.resolve", (command) => {
+    const payload = command.payload as RuntimeApprovalResolveRequest;
+    store.resolveApproval(payload.approvalId, payload.status, payload.resolvedAt);
+    return { approvalId: payload.approvalId };
+  });
+  kernel.queries.register("runtime.approvals.list", (query) => {
+    const payload = query.payload as RuntimeApprovalListRequest | undefined;
+    return store.listApprovals(payload);
   });
 
   const checkpoints = new CheckpointManager(config.homeDir, ariaConfig.runtime.checkpoints);
@@ -790,6 +829,26 @@ export async function createRuntime(): Promise<EngineRuntime> {
         type: "runtime.run.finish",
         payload: request,
         idempotencyKey: `runtime.run.finish:${request.runId}:${request.status}:${request.completedAt ?? ""}`,
+      });
+    },
+    async recordApprovalPending(request) {
+      await kernel.commands.execute({
+        type: "runtime.approval.pending",
+        payload: request,
+        idempotencyKey: `runtime.approval.pending:${request.approvalId}`,
+      });
+    },
+    async resolveApproval(request) {
+      await kernel.commands.execute({
+        type: "runtime.approval.resolve",
+        payload: request,
+        idempotencyKey: `runtime.approval.resolve:${request.approvalId}:${request.status}:${request.resolvedAt ?? ""}`,
+      });
+    },
+    async listApprovals(request) {
+      return kernel.queries.execute({
+        type: "runtime.approvals.list",
+        payload: request,
       });
     },
     listToolsets() {

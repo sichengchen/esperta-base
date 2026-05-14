@@ -222,6 +222,15 @@ export async function createTestRuntime(
         errorMessage: request.errorMessage,
       });
     },
+    async recordApprovalPending(request) {
+      store.recordApprovalPending(request);
+    },
+    async resolveApproval(request) {
+      store.resolveApproval(request.approvalId, request.status, request.resolvedAt);
+    },
+    async listApprovals(request) {
+      return store.listApprovals(request);
+    },
     listToolsets: () => listToolsets([]),
     executeToolWithCapability: async (request) => request.execute(),
     async refreshSystemPrompt() {

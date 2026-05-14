@@ -14,7 +14,7 @@ let previousTestApiKey: string | undefined;
 beforeEach(async () => {
   previousAriaHome = process.env.ARIA_HOME;
   previousTestApiKey = process.env.TEST_API_KEY;
-  testDir = await mkdtemp(`${tmpdir()}/aria-server-chat-e2e-`);
+  testDir = await mkdtemp(`${tmpdir()}/aria-node-chat-e2e-`);
   process.env.ARIA_HOME = testDir;
 });
 

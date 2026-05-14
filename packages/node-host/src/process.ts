@@ -5,13 +5,11 @@ import { fileURLToPath } from "node:url";
 import { HOME_ENV_VAR } from "./brand.js";
 
 export const ARIA_NODE_DAEMON_COMMAND = "__node_host";
-export const ARIA_SERVER_DAEMON_COMMAND = ARIA_NODE_DAEMON_COMMAND;
 
 const ARIA_NODE_MAIN_SOURCE_ENTRY = fileURLToPath(
   new URL("../../../apps/aria-node/src/main.ts", import.meta.url),
 );
 const ARIA_NODE_MAIN_ENTRY_ENV_VAR = "ARIA_NODE_MAIN_ENTRY";
-const ARIA_SERVER_MAIN_ENTRY_ENV_VAR = "ARIA_SERVER_MAIN_ENTRY";
 
 export interface AriaNodeDaemonProcessSpec {
   executable: string;
@@ -31,10 +29,6 @@ export interface SpawnAriaNodeDaemonHostOptions extends ResolveAriaNodeDaemonPro
   logFile: string;
   env?: NodeJS.ProcessEnv;
 }
-
-export type AriaServerDaemonProcessSpec = AriaNodeDaemonProcessSpec;
-export type ResolveAriaServerDaemonProcessSpecOptions = ResolveAriaNodeDaemonProcessSpecOptions;
-export type SpawnAriaServerDaemonHostOptions = SpawnAriaNodeDaemonHostOptions;
 
 function isBunExecutable(executable: string): boolean {
   const name = basename(executable).toLowerCase();
@@ -94,16 +88,11 @@ function resolveDefaultAriaNodeMainEntry(env: NodeJS.ProcessEnv): string | null 
   const moduleDir = dirname(fileURLToPath(import.meta.url));
   const candidates = [
     env[ARIA_NODE_MAIN_ENTRY_ENV_VAR],
-    env[ARIA_SERVER_MAIN_ENTRY_ENV_VAR],
     ARIA_NODE_MAIN_SOURCE_ENTRY,
     join(moduleDir, "..", "..", "..", "aria-node", "src", "main.ts"),
     env.INIT_CWD ? join(env.INIT_CWD, "apps/aria-node/src/main.ts") : undefined,
     join(process.cwd(), "apps/aria-node/src/main.ts"),
     join(process.cwd(), "../aria-node/src/main.ts"),
-    join(moduleDir, "..", "..", "..", "aria-server", "src", "main.ts"),
-    env.INIT_CWD ? join(env.INIT_CWD, "apps/aria-server/src/main.ts") : undefined,
-    join(process.cwd(), "apps/aria-server/src/main.ts"),
-    join(process.cwd(), "../aria-server/src/main.ts"),
   ];
 
   for (const candidate of candidates) {
@@ -142,12 +131,6 @@ export function resolveAriaNodeDaemonProcessSpec(
   };
 }
 
-export function resolveAriaServerDaemonProcessSpec(
-  options: ResolveAriaServerDaemonProcessSpecOptions = {},
-): AriaServerDaemonProcessSpec {
-  return resolveAriaNodeDaemonProcessSpec(options);
-}
-
 export function spawnAriaNodeDaemonHost(options: SpawnAriaNodeDaemonHostOptions): ChildProcess {
   mkdirSync(options.runtimeHome, { recursive: true });
   const logFd = openSync(options.logFile, "a");
@@ -163,8 +146,4 @@ export function spawnAriaNodeDaemonHost(options: SpawnAriaNodeDaemonHostOptions)
 
   child.unref();
   return child;
-}
-
-export function spawnAriaServerDaemonHost(options: SpawnAriaServerDaemonHostOptions): ChildProcess {
-  return spawnAriaNodeDaemonHost(options);
 }

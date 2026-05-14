@@ -38,8 +38,6 @@
       "@aria/sandbox-full/*": ["./packages/sandbox-full/src/*"],
       "aria-node": ["./apps/aria-node/src/index.ts"],
       "aria-node/*": ["./apps/aria-node/src/*"],
-      "aria-server": ["./apps/aria-server/src/index.ts"],
-      "aria-server/*": ["./apps/aria-server/src/*"],
       "aria-desktop": ["./apps/aria-desktop/src/index.ts"],
       "aria-desktop/*": ["./apps/aria-desktop/src/*"],
       "src/renderer/src/*": ["./apps/aria-desktop/src/renderer/src/*"],

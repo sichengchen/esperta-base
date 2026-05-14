@@ -5,22 +5,22 @@ import {
   engineCommand,
   ensureEngine,
   getRuntimeDiscoveryPaths,
-  startAriaServer,
+  startAriaNodeRuntime,
 } from "@aria/server";
 import {
-  ARIA_SERVER_DAEMON_COMMAND,
-  ariaServerHost,
-  createAriaServerDaemonHostBootstrap,
-  createAriaServerHostBootstrap,
-  resolveAriaServerDaemonProcessSpec,
-  runAriaServerDaemonHost,
-  runAriaServerHost,
-} from "aria-server";
+  ARIA_NODE_DAEMON_COMMAND,
+  ariaNodeHost,
+  createAriaNodeDaemonHostBootstrap,
+  createAriaNodeHostBootstrap,
+  resolveAriaNodeDaemonProcessSpec,
+  runAriaNodeDaemonHost,
+  runAriaNodeHost,
+} from "aria-node";
 import type { EngineServer } from "@aria/gateway/server";
 import type { EngineRuntime } from "@aria/node-runtime/runtime";
 
-describe("server host surface", () => {
-  test("starts and stops the server shell through the public package boundary", async () => {
+describe("node host surface", () => {
+  test("starts and stops the node runtime through the public package boundary", async () => {
     const calls: string[] = [];
     let stopCalls = 0;
     let connectorStopCalls = 0;
@@ -38,7 +38,7 @@ describe("server host surface", () => {
       },
     } satisfies EngineServer;
 
-    const app = await startAriaServer({
+    const app = await startAriaNodeRuntime({
       port: 9001,
       hostname: "0.0.0.0",
       factories: {
@@ -72,10 +72,10 @@ describe("server host surface", () => {
     expect(stopCalls).toBe(1);
   });
 
-  test("exposes a thin app wrapper over the server package shell", async () => {
-    const bootstrap = createAriaServerHostBootstrap("/tmp/aria-server-app");
+  test("exposes a thin app wrapper over the node package shell", async () => {
+    const bootstrap = createAriaNodeHostBootstrap("/tmp/aria-node-app");
 
-    expect(bootstrap.host).toEqual(ariaServerHost);
+    expect(bootstrap.host).toEqual(ariaNodeHost);
     expect(bootstrap.host).toMatchObject({
       shellPackage: "@aria/node-runtime",
       command: "aria",
@@ -86,7 +86,7 @@ describe("server host surface", () => {
       "@aria/node-host",
       "@aria/gateway",
     ]);
-    expect(bootstrap.discoveryPaths).toEqual(getRuntimeDiscoveryPaths("/tmp/aria-server-app"));
+    expect(bootstrap.discoveryPaths).toEqual(getRuntimeDiscoveryPaths("/tmp/aria-node-app"));
 
     const runtime = { close: async () => {} } as EngineRuntime;
     const server = { port: 7420, stop: async () => {} } satisfies EngineServer;
@@ -122,8 +122,8 @@ describe("server host surface", () => {
     const runtime = { close: async () => {} } as EngineRuntime;
     const server = { port: 8123, stop: async () => {} } satisfies EngineServer;
 
-    const app = await runAriaServerHost({
-      runtimeHome: "/tmp/aria-server-app",
+    const app = await runAriaNodeHost({
+      runtimeHome: "/tmp/aria-node-app",
       port: 8123,
       factories: {
         async createRuntime() {
@@ -148,11 +148,11 @@ describe("server host surface", () => {
   });
 
   test("exposes a daemon-host bootstrap over the app wrapper", () => {
-    const bootstrap = createAriaServerDaemonHostBootstrap("/tmp/aria-server-app");
-    expect(bootstrap.host).toBe(ariaServerHost);
-    expect(bootstrap.hiddenCommand).toBe(ARIA_SERVER_DAEMON_COMMAND);
-    expect(bootstrap.discoveryPaths).toEqual(getRuntimeDiscoveryPaths("/tmp/aria-server-app"));
-    expect(typeof runAriaServerDaemonHost).toBe("function");
+    const bootstrap = createAriaNodeDaemonHostBootstrap("/tmp/aria-node-app");
+    expect(bootstrap.host).toBe(ariaNodeHost);
+    expect(bootstrap.hiddenCommand).toBe(ARIA_NODE_DAEMON_COMMAND);
+    expect(bootstrap.discoveryPaths).toEqual(getRuntimeDiscoveryPaths("/tmp/aria-node-app"));
+    expect(typeof runAriaNodeDaemonHost).toBe("function");
   });
 
   test("stops the server if connector auto-start fails after gateway boot", async () => {
@@ -173,7 +173,7 @@ describe("server host surface", () => {
     } satisfies EngineServer;
 
     await expect(
-      startAriaServer({
+      startAriaNodeRuntime({
         factories: {
           async createRuntime() {
             return runtime;
@@ -194,72 +194,71 @@ describe("server host surface", () => {
 
   test("resolves an app-owned daemon process spec before falling back to the CLI host command", () => {
     expect(
-      resolveAriaServerDaemonProcessSpec({
+      resolveAriaNodeDaemonProcessSpec({
         execPath: "/usr/local/bin/bun",
         cliEntrypoint: "/tmp/aria-cli.mjs",
-        appEntrypoint: "/Users/sichengchen/src/esperta-aria/apps/aria-server/src/main.ts",
+        appEntrypoint: "/Users/sichengchen/src/esperta-aria/apps/aria-node/src/main.ts",
       }),
     ).toEqual({
       executable: "/usr/local/bin/bun",
-      args: ["/Users/sichengchen/src/esperta-aria/apps/aria-server/src/main.ts"],
+      args: ["/Users/sichengchen/src/esperta-aria/apps/aria-node/src/main.ts"],
       mode: "app_entry",
     });
 
     expect(
-      resolveAriaServerDaemonProcessSpec({
+      resolveAriaNodeDaemonProcessSpec({
         execPath: "/usr/local/bin/bun",
         cliEntrypoint: "/tmp/aria-cli.mjs",
-        appEntrypoint: "/tmp/missing-aria-server-main.ts",
+        appEntrypoint: "/tmp/missing-aria-node-main.ts",
       }),
     ).toEqual({
       executable: "/usr/local/bin/bun",
-      args: ["/tmp/aria-cli.mjs", ARIA_SERVER_DAEMON_COMMAND],
+      args: ["/tmp/aria-cli.mjs", ARIA_NODE_DAEMON_COMMAND],
       mode: "cli_hidden_command",
     });
   });
 
-  test("uses an explicit server main entry from the environment before CLI fallback", () => {
+  test("uses an explicit node main entry from the environment before CLI fallback", () => {
     expect(
-      resolveAriaServerDaemonProcessSpec({
+      resolveAriaNodeDaemonProcessSpec({
         execPath: "/Applications/Aria Desktop.app/Contents/MacOS/Electron",
         cliEntrypoint: "/tmp/aria-cli.mjs",
         env: {
-          ARIA_SERVER_MAIN_ENTRY:
-            "/Users/sichengchen/src/esperta-aria/apps/aria-server/src/main.ts",
+          ARIA_NODE_MAIN_ENTRY: "/Users/sichengchen/src/esperta-aria/apps/aria-node/src/main.ts",
           npm_execpath: "/opt/homebrew/bin/bun",
         },
       }),
     ).toEqual({
       executable: "/opt/homebrew/bin/bun",
-      args: ["/Users/sichengchen/src/esperta-aria/apps/aria-server/src/main.ts"],
+      args: ["/Users/sichengchen/src/esperta-aria/apps/aria-node/src/main.ts"],
       mode: "app_entry",
     });
   });
 
-  test("does not use Electron as the server daemon executable", () => {
+  test("does not use Electron as the node daemon executable", () => {
     expect(
-      resolveAriaServerDaemonProcessSpec({
+      resolveAriaNodeDaemonProcessSpec({
         execPath: "/Applications/Aria Desktop.app/Contents/MacOS/Electron",
         cliEntrypoint: "/tmp/aria-cli.mjs",
-        appEntrypoint: "/Users/sichengchen/src/esperta-aria/apps/aria-server/src/main.ts",
+        appEntrypoint: "/Users/sichengchen/src/esperta-aria/apps/aria-node/src/main.ts",
         env: { npm_execpath: "/opt/homebrew/bin/bun" },
       }),
     ).toEqual({
       executable: "/opt/homebrew/bin/bun",
-      args: ["/Users/sichengchen/src/esperta-aria/apps/aria-server/src/main.ts"],
+      args: ["/Users/sichengchen/src/esperta-aria/apps/aria-node/src/main.ts"],
       mode: "app_entry",
     });
 
     expect(
-      resolveAriaServerDaemonProcessSpec({
+      resolveAriaNodeDaemonProcessSpec({
         execPath: "/Applications/Aria Desktop.app/Contents/MacOS/Electron",
         cliEntrypoint: "/tmp/aria-cli.mjs",
-        appEntrypoint: "/tmp/missing-aria-server-main.ts",
+        appEntrypoint: "/tmp/missing-aria-node-main.ts",
         env: { npm_execpath: "/opt/homebrew/bin/bun" },
       }),
     ).toEqual({
       executable: "/opt/homebrew/bin/bun",
-      args: ["/tmp/aria-cli.mjs", ARIA_SERVER_DAEMON_COMMAND],
+      args: ["/tmp/aria-cli.mjs", ARIA_NODE_DAEMON_COMMAND],
       mode: "cli_hidden_command",
     });
   });

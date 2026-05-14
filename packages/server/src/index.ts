@@ -1,4 +1,4 @@
-export { ariaServerApp, createAriaServerBootstrap, startAriaServer } from "./app.js";
+export { ariaNodeRuntimeApp, createAriaNodeRuntimeBootstrap, startAriaNodeRuntime } from "./app.js";
 export * from "./audio.js";
 export * from "./checkpoints.js";
 export * from "./config.js";
@@ -25,9 +25,9 @@ export {
   stopEngine,
 } from "./daemon.js";
 export type {
-  AriaServerApp,
-  AriaServerFactories,
-  AriaServerBootstrap,
-  CreateAriaServerBootstrapOptions,
-  StartAriaServerOptions,
+  AriaNodeRuntimeApp,
+  AriaNodeRuntimeFactories,
+  AriaNodeRuntimeBootstrap,
+  CreateAriaNodeRuntimeBootstrapOptions,
+  StartAriaNodeRuntimeOptions,
 } from "./app.js";

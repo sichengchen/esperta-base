@@ -122,7 +122,7 @@ function collectStream(
 beforeEach(async () => {
   previousAriaHome = process.env.ARIA_HOME;
   previousTestApiKey = process.env.TEST_API_KEY;
-  testDir = await mkdtemp(join(tmpdir(), "aria-server-project-workflow-"));
+  testDir = await mkdtemp(join(tmpdir(), "aria-node-project-workflow-"));
   process.env.ARIA_HOME = testDir;
 });
 

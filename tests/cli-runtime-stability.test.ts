@@ -38,7 +38,6 @@ const currentBootstrapFiles = [
   "packages/node-runtime/src/app.ts",
   "packages/node-host/src/daemon.ts",
   "apps/aria-node/src/index.ts",
-  "apps/aria-server/src/index.ts",
 ] as const;
 const coreRuntimeBootstrapFiles = [
   "packages/cli/src/index.ts",
@@ -86,13 +85,10 @@ describe("cli and runtime stability", () => {
     const nodeIndex = readRepoFile("apps/aria-node/src/index.ts");
     const nodeProcess = readRepoFile("apps/aria-node/src/process.ts");
     const nodeMain = readRepoFile("apps/aria-node/src/main.ts");
-    const appIndex = readRepoFile("apps/aria-server/src/index.ts");
-    const appProcess = readRepoFile("apps/aria-server/src/process.ts");
-    const appMain = readRepoFile("apps/aria-server/src/main.ts");
 
     expect(cliIndex).toContain('await import("aria-node");');
     expect(cliIndex).toContain("__node_host");
-    expect(cliIndex).toContain("__server_host");
+    expect(cliIndex).not.toContain(["__server", "host"].join("_"));
     expect(cliEngine).toContain('from "@aria/node-host/daemon";');
     expect(runtimeDiscovery).toContain('from "@aria/node-host/discovery";');
     expect(nodeDaemon).toContain('from "./process.js";');
@@ -104,13 +100,6 @@ describe("cli and runtime stability", () => {
     expect(nodeMain).toContain('import { RUNTIME_NAME } from "@aria/node-host/brand";');
     expect(nodeMain).toContain('import { runAriaNodeDaemonHost } from "./index.js";');
     expect(nodeMain).toContain("runAriaNodeDaemonHost().catch");
-    expect(appIndex).toContain('from "aria-node"');
-    expect(appIndex).toContain("ARIA_SERVER_DAEMON_COMMAND");
-    expect(appIndex).toContain("spawnAriaServerDaemonHost");
-    expect(appProcess).toContain('from "@aria/node-host/process"');
-    expect(appMain).toContain('import { RUNTIME_NAME } from "@aria/node-host/brand";');
-    expect(appMain).toContain('import { runAriaServerDaemonHost } from "./index.js";');
-    expect(appMain).toContain("runAriaServerDaemonHost().catch");
   });
 
   test("preserves the CLI-owned root entrypoints while client package shells evolve", () => {

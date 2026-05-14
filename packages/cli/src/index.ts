@@ -278,10 +278,6 @@ const COMMANDS: Record<string, (args: string[]) => Promise<void>> = {
     const { runAriaNodeDaemonHost } = await import("aria-node");
     await runAriaNodeDaemonHost();
   },
-  __server_host: async () => {
-    const { runAriaNodeDaemonHost } = await import("aria-node");
-    await runAriaNodeDaemonHost();
-  },
   help: async () => {
     console.log(`${PRODUCT_NAME} — Local-First Agent Platform\n`);
     console.log(`Usage: ${CLI_NAME} [command]\n`);

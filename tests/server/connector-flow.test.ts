@@ -64,7 +64,7 @@ async function waitFor(assertion: () => void | Promise<void>, timeoutMs = 1_000)
 beforeEach(async () => {
   previousAriaHome = process.env.ARIA_HOME;
   previousTestApiKey = process.env.TEST_API_KEY;
-  testDir = await mkdtemp(`${tmpdir()}/aria-server-connector-flow-`);
+  testDir = await mkdtemp(`${tmpdir()}/aria-node-connector-flow-`);
   process.env.ARIA_HOME = testDir;
 });
 

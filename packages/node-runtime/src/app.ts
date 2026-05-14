@@ -109,13 +109,3 @@ export async function startAriaNodeRuntime(
     throw error;
   }
 }
-
-export type AriaServerFactories = AriaNodeRuntimeFactories;
-export type StartAriaServerOptions = StartAriaNodeRuntimeOptions;
-export type AriaServerApp = AriaNodeRuntimeApp;
-export type AriaServerBootstrap = AriaNodeRuntimeBootstrap;
-export type CreateAriaServerBootstrapOptions = CreateAriaNodeRuntimeBootstrapOptions;
-
-export const ariaServerApp = ariaNodeRuntimeApp;
-export const createAriaServerBootstrap = createAriaNodeRuntimeBootstrap;
-export const startAriaServer = startAriaNodeRuntime;

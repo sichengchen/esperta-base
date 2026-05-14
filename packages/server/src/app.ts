@@ -1,8 +1,12 @@
-export { ariaServerApp, createAriaServerBootstrap, startAriaServer } from "@aria/node-runtime/app";
+export {
+  ariaNodeRuntimeApp,
+  createAriaNodeRuntimeBootstrap,
+  startAriaNodeRuntime,
+} from "@aria/node-runtime/app";
 export type {
-  AriaServerApp,
-  AriaServerBootstrap,
-  AriaServerFactories,
-  CreateAriaServerBootstrapOptions,
-  StartAriaServerOptions,
+  AriaNodeRuntimeApp,
+  AriaNodeRuntimeBootstrap,
+  AriaNodeRuntimeFactories,
+  CreateAriaNodeRuntimeBootstrapOptions,
+  StartAriaNodeRuntimeOptions,
 } from "@aria/node-runtime/app";

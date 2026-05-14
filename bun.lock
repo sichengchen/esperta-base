@@ -70,9 +70,6 @@
       "name": "aria-node",
       "version": "0.0.0",
     },
-    "apps/aria-server": {
-      "name": "aria-server",
-    },
     "packages/access-client": {
       "name": "@aria/access-client",
       "version": "0.0.0",
@@ -979,8 +976,6 @@
     "aria-desktop": ["aria-desktop@workspace:apps/aria-desktop"],
 
     "aria-node": ["aria-node@workspace:apps/aria-node"],
-
-    "aria-server": ["aria-server@workspace:apps/aria-server"],
 
     "assertion-error": ["assertion-error@2.0.1", "", {}, "sha512-Izi8RQcffqCeNVgFigKli1ssklIbpHnCYc6AknXGYoB6grJqyeby7jv12JUQgmTAnIDnbck1uxksT4dzN3PWBA=="],
 

@@ -53,7 +53,7 @@ describe("target dependency graph", () => {
   test("gateway does not import tool, memory, workspace, agent, or sandbox internals", async () => {
     await expect(
       findForbiddenImports("packages/gateway/src", [
-        /from ["']@aria\/(?:agent|tools|memory|workspaces|sandbox(?:-[^"']+)?)\b/,
+        /from ["']@aria\/(?:agent|tools|memory|workspaces|work|handoff|harness|sandbox(?:-[^"']+)?)\b/,
       ]),
     ).resolves.toEqual([]);
   });

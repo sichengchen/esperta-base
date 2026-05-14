@@ -5,14 +5,7 @@ import { join } from "node:path";
 import { router, publicProcedure, middleware } from "./trpc.js";
 import type { EngineRuntime } from "@aria/node-runtime/runtime";
 import { getRuntimeSessionCoordinator } from "@aria/server/session-coordinator";
-import { HandoffService, HandoffStore } from "@aria/handoff";
-import { ProjectsEngineRepository, ProjectsEngineStore } from "@aria/work";
 import type { RuntimeBackendAdapter } from "@aria/jobs/runtime-backend";
-import {
-  createAriaHarnessContext,
-  type AriaHarnessHost,
-  type HarnessSessionData,
-} from "@aria/harness";
 import { classifyExecCommand } from "@aria/policy/exec-classifier";
 import { ToolPolicyManager, type ToolEventContext } from "@aria/policy/policy";
 import { ConnectorTypeSchema, createEngineEventEnvelope } from "@aria/protocol";
@@ -58,6 +51,10 @@ import {
 
 import { upsertWebhookTaskRecord, updateCronTaskState } from "@aria/automation/automation";
 import { queryAuditEntries } from "@aria/audit";
+
+type GatewayProjectsRepository = Awaited<ReturnType<EngineRuntime["getProjectsRepository"]>>;
+type GatewayHandoffService = Awaited<ReturnType<EngineRuntime["getHandoffService"]>>;
+type GatewayHarnessHost = Parameters<EngineRuntime["createHarnessSession"]>[0]["host"];
 
 /** Format tool args as a compact summary for IM display */
 function formatArgsForIM(toolName: string, args: Record<string, unknown>): string {
@@ -168,29 +165,13 @@ export function createAppRouter(runtime: EngineRuntime) {
     pendingEscalations,
     pendingQuestions,
   } = coordinator;
-  let projectsRepositoryPromise: Promise<ProjectsEngineRepository> | null = null;
-  let handoffServicePromise: Promise<HandoffService> | null = null;
+  let projectsRepositoryPromise: Promise<GatewayProjectsRepository> | null = null;
+  let handoffServicePromise: Promise<GatewayHandoffService> | null = null;
   const approvedToolIntents = new Set<string>();
   const capabilityApprovedToolIntents = new Set<string>();
 
-  async function getProjectsRepository(): Promise<ProjectsEngineRepository> {
-    const attachedRuntime = runtime as EngineRuntime & {
-      projects?: ProjectsEngineRepository;
-      __gatewayProjectsRepository?: ProjectsEngineRepository;
-    };
-    if (attachedRuntime.projects) {
-      return attachedRuntime.projects;
-    }
-    if (attachedRuntime.__gatewayProjectsRepository) {
-      return attachedRuntime.__gatewayProjectsRepository;
-    }
-    projectsRepositoryPromise ??= (async () => {
-      const store = new ProjectsEngineStore(join(runtime.config.homeDir, "aria.db"));
-      await store.init();
-      const repository = new ProjectsEngineRepository(store);
-      attachedRuntime.__gatewayProjectsRepository = repository;
-      return repository;
-    })();
+  async function getProjectsRepository(): Promise<GatewayProjectsRepository> {
+    projectsRepositoryPromise ??= runtime.getProjectsRepository();
     return projectsRepositoryPromise;
   }
 
@@ -200,24 +181,8 @@ export function createAppRouter(runtime: EngineRuntime) {
     ).runtimeBackendRegistry;
   }
 
-  async function getHandoffService(): Promise<HandoffService> {
-    const attachedRuntime = runtime as EngineRuntime & {
-      handoffs?: HandoffService;
-      __gatewayHandoffService?: HandoffService;
-    };
-    if (attachedRuntime.handoffs) {
-      return attachedRuntime.handoffs;
-    }
-    if (attachedRuntime.__gatewayHandoffService) {
-      return attachedRuntime.__gatewayHandoffService;
-    }
-    handoffServicePromise ??= (async () => {
-      const store = new HandoffStore(join(runtime.config.homeDir, "aria.db"));
-      await store.init();
-      const service = new HandoffService(store);
-      attachedRuntime.__gatewayHandoffService = service;
-      return service;
-    })();
+  async function getHandoffService(): Promise<GatewayHandoffService> {
+    handoffServicePromise ??= runtime.getHandoffService();
     return handoffServicePromise;
   }
 
@@ -327,7 +292,7 @@ export function createAppRouter(runtime: EngineRuntime) {
     return capabilityApprovedToolIntents.delete(toolIntentApprovalKey(sessionId, intent));
   }
 
-  function createGatewayHarnessHost(sessionId: string): AriaHarnessHost {
+  function createGatewayHarnessHost(sessionId: string): GatewayHarnessHost {
     return {
       resolveModel(input) {
         return runtime.router.getModel(input.model);
@@ -367,7 +332,7 @@ export function createAppRouter(runtime: EngineRuntime) {
       },
       async loadHarnessSession(id) {
         const cached = runtime.store.getPromptCache(`harness-session:${id}`);
-        return cached ? (JSON.parse(cached.content) as HarnessSessionData) : null;
+        return cached ? (JSON.parse(cached.content) as never) : null;
       },
       async saveHarnessSession(id, data) {
         runtime.store.putPromptCache({
@@ -814,14 +779,12 @@ export function createAppRouter(runtime: EngineRuntime) {
     let agent = sessionAgents.get(sessionId);
     if (!agent) {
       const toolEnvironment = ensureSessionToolEnvironment(sessionId);
-      const harnessContext = createAriaHarnessContext({
+      agent = await runtime.createHarnessSession({
         id: sessionId,
         host: createGatewayHarnessHost(sessionId),
         cwd: toolEnvironment.workingDir,
         projectRoot: toolEnvironment.projectRoot,
       });
-      const harnessAgent = await harnessContext.init({ id: sessionId, environment: "default" });
-      agent = await harnessAgent.session(sessionId);
       const persistedMessages = runtime.store.getSessionMessages(sessionId);
       if (persistedMessages.length > 0) {
         agent.hydrateHistory(persistedMessages);

@@ -8,7 +8,8 @@ import { AuditLogger } from "@aria/audit";
 import { createContext } from "@aria/gateway/context";
 import { createAppRouter } from "@aria/gateway/procedures";
 import { ModelRouter } from "@aria/gateway/router";
-import { AriaHarnessSession } from "@aria/harness";
+import { AriaHarnessSession, createAriaHarnessContext } from "@aria/harness";
+import { HandoffService, HandoffStore } from "@aria/handoff";
 import { createKernelRuntime } from "@aria/kernel";
 import { SkillRegistry } from "@aria/memory/skills";
 import { SecurityModeManager } from "@aria/policy";
@@ -105,6 +106,12 @@ async function createTestRuntime(runtimeHome: string): Promise<EngineRuntime> {
   });
   const mcp = new MCPManager(undefined, runtimeHome);
   await mcp.init();
+  const projectsStore = new ProjectsEngineStore(join(runtimeHome, "aria.db"));
+  await projectsStore.init();
+  const projects = new ProjectsEngineRepository(projectsStore);
+  const handoffStore = new HandoffStore(join(runtimeHome, "aria.db"));
+  await handoffStore.init();
+  const handoffs = new HandoffService(handoffStore);
 
   const mainSession = sessions.create("main", "engine");
   const skills = new SkillRegistry();
@@ -162,6 +169,22 @@ async function createTestRuntime(runtimeHome: string): Promise<EngineRuntime> {
     mainSessionId: mainSession.id,
     createSessionTitleTool,
     createSessionToolEnvironment,
+    async getProjectsRepository() {
+      return projects;
+    },
+    async getHandoffService() {
+      return handoffs;
+    },
+    async createHarnessSession(options) {
+      const harnessContext = createAriaHarnessContext({
+        id: options.id,
+        host: options.host,
+        cwd: options.cwd,
+        projectRoot: options.projectRoot,
+      });
+      const harnessAgent = await harnessContext.init({ id: options.id, environment: "default" });
+      return harnessAgent.session(options.id);
+    },
     listToolsets: () => listToolsets([]),
     executeToolWithCapability: async (request) => request.execute(),
     async refreshSystemPrompt() {
@@ -169,6 +192,8 @@ async function createTestRuntime(runtimeHome: string): Promise<EngineRuntime> {
     },
     async close() {
       scheduler.stop();
+      projects.close();
+      handoffs.close();
       store.close();
       archive.close();
       await auth.cleanup();

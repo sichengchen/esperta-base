@@ -5,6 +5,8 @@ import { Agent } from "@aria/agent";
 import { AutomationRegistry, Scheduler, createHeartbeatTask } from "@aria/automation";
 import { AuditLogger } from "@aria/audit";
 import { AuthManager } from "@aria/gateway/auth";
+import { createAriaHarnessContext } from "@aria/harness";
+import { HandoffService, HandoffStore } from "@aria/handoff";
 import { ModelRouter } from "@aria/gateway/router";
 import { createKernelRuntime } from "@aria/kernel";
 import { SkillRegistry } from "@aria/memory/skills";
@@ -17,6 +19,7 @@ import { SessionArchiveManager } from "@aria/server/session-archive";
 import { SessionManager } from "@aria/server/sessions";
 import type { EngineRuntime } from "@aria/node-runtime/runtime";
 import { createSessionTitleTool, createSessionToolEnvironment, listToolsets } from "@aria/tools";
+import { ProjectsEngineRepository, ProjectsEngineStore } from "@aria/work";
 import type { KnownProvider } from "@mariozechner/pi-ai";
 
 const allocatedGatewayPorts = new Set<number>();
@@ -134,6 +137,12 @@ export async function createTestRuntime(
   });
   const mcp = new MCPManager(undefined, runtimeHome);
   await mcp.init();
+  const projectsStore = new ProjectsEngineStore(join(runtimeHome, "aria.db"));
+  await projectsStore.init();
+  const projects = new ProjectsEngineRepository(projectsStore);
+  const handoffStore = new HandoffStore(join(runtimeHome, "aria.db"));
+  await handoffStore.init();
+  const handoffs = new HandoffService(handoffStore);
 
   const mainSession = sessions.create("main", "engine");
   const skills = new SkillRegistry();
@@ -176,6 +185,22 @@ export async function createTestRuntime(
     mainSessionId: mainSession.id,
     createSessionTitleTool,
     createSessionToolEnvironment,
+    async getProjectsRepository() {
+      return projects;
+    },
+    async getHandoffService() {
+      return handoffs;
+    },
+    async createHarnessSession(options) {
+      const harnessContext = createAriaHarnessContext({
+        id: options.id,
+        host: options.host,
+        cwd: options.cwd,
+        projectRoot: options.projectRoot,
+      });
+      const harnessAgent = await harnessContext.init({ id: options.id, environment: "default" });
+      return harnessAgent.session(options.id);
+    },
     listToolsets: () => listToolsets([]),
     executeToolWithCapability: async (request) => request.execute(),
     async refreshSystemPrompt() {
@@ -183,6 +208,8 @@ export async function createTestRuntime(
     },
     async close() {
       scheduler.stop();
+      projects.close();
+      handoffs.close();
       store.close();
       archive.close();
       await auth.cleanup();

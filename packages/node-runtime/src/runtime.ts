@@ -107,6 +107,14 @@ export interface EngineRuntime {
   mainSessionId: string;
   createSessionTitleTool: typeof createSessionTitleTool;
   createSessionToolEnvironment: typeof createSessionToolEnvironment;
+  getProjectsRepository(): Promise<ProjectsEngineRepository>;
+  getHandoffService(): Promise<HandoffService>;
+  createHarnessSession(options: {
+    id: string;
+    host: AriaHarnessHost;
+    cwd?: string;
+    projectRoot?: string;
+  }): Promise<AriaHarnessSession>;
   listToolsets(): ReturnType<typeof listToolsets>;
   executeToolWithCapability(request: RuntimeCapabilityToolExecutionRequest): Promise<ToolResult>;
   createAgent(
@@ -709,6 +717,22 @@ export async function createRuntime(): Promise<EngineRuntime> {
     mainSessionId: mainSession.id,
     createSessionTitleTool,
     createSessionToolEnvironment,
+    async getProjectsRepository() {
+      return projects;
+    },
+    async getHandoffService() {
+      return handoffs;
+    },
+    async createHarnessSession(options) {
+      const harnessContext = createAriaHarnessContext({
+        id: options.id,
+        host: options.host,
+        cwd: options.cwd,
+        projectRoot: options.projectRoot,
+      });
+      const harnessAgent = await harnessContext.init({ id: options.id, environment: "default" });
+      return harnessAgent.session(options.id);
+    },
     listToolsets() {
       return listToolsets(runtime.tools);
     },

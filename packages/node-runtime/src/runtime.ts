@@ -35,6 +35,7 @@ import {
   OperationalStore,
   type ApprovalRecord,
   type ApprovalStatus,
+  type RunEventRecord,
   type ToolCallStatus,
 } from "@aria/persistence";
 import { ProjectsEngineRepository, ProjectsEngineStore } from "@aria/work";
@@ -139,6 +140,14 @@ export interface RuntimeToolCallEndRequest {
   endedAt?: number;
 }
 
+export interface RuntimeRunEventAppendRequest {
+  sessionId?: string | null;
+  runId?: string | null;
+  type: string;
+  data?: Record<string, unknown>;
+  createdAt?: number;
+}
+
 export interface EngineRuntime {
   config: ConfigManager;
   router: ModelRouter;
@@ -180,6 +189,7 @@ export interface EngineRuntime {
   listApprovals(request?: RuntimeApprovalListRequest): Promise<ApprovalRecord[]>;
   recordToolCallStart(request: RuntimeToolCallStartRequest): Promise<void>;
   recordToolCallEnd(request: RuntimeToolCallEndRequest): Promise<void>;
+  appendRunEvent(request: RuntimeRunEventAppendRequest): Promise<RunEventRecord>;
   listToolsets(): ReturnType<typeof listToolsets>;
   executeToolWithCapability(request: RuntimeCapabilityToolExecutionRequest): Promise<ToolResult>;
   createAgent(
@@ -262,6 +272,10 @@ export async function createRuntime(): Promise<EngineRuntime> {
     const payload = command.payload as RuntimeToolCallEndRequest;
     store.recordToolCallEnd(payload);
     return { toolCallId: payload.toolCallId };
+  });
+  kernel.commands.register("runtime.run_event.append", (command) => {
+    const payload = command.payload as RuntimeRunEventAppendRequest;
+    return store.appendRunEvent(payload);
   });
 
   const checkpoints = new CheckpointManager(config.homeDir, ariaConfig.runtime.checkpoints);
@@ -896,6 +910,12 @@ export async function createRuntime(): Promise<EngineRuntime> {
         type: "runtime.tool_call.end",
         payload: request,
         idempotencyKey: `runtime.tool_call.end:${request.toolCallId}:${request.status}:${request.endedAt ?? ""}`,
+      });
+    },
+    async appendRunEvent(request) {
+      return kernel.commands.execute({
+        type: "runtime.run_event.append",
+        payload: request,
       });
     },
     listToolsets() {

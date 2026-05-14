@@ -186,6 +186,9 @@ async function createLiveTestRuntime(runtimeHome: string): Promise<EngineRuntime
     async recordToolCallEnd(request) {
       store.recordToolCallEnd(request);
     },
+    async appendRunEvent(request) {
+      return store.appendRunEvent(request);
+    },
     listToolsets: () => listToolsets(tools),
     executeToolWithCapability: async (request) => request.execute(),
     async refreshSystemPrompt() {

@@ -327,7 +327,7 @@ export function createAppRouter(runtime: EngineRuntime) {
         });
       },
       async appendRunEvent(event) {
-        runtime.store.appendRunEvent({
+        await runtime.appendRunEvent({
           sessionId: event.sessionId ?? sessionId,
           runId: event.runId,
           type: event.type,

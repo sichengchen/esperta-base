@@ -237,6 +237,9 @@ export async function createTestRuntime(
     async recordToolCallEnd(request) {
       store.recordToolCallEnd(request);
     },
+    async appendRunEvent(request) {
+      return store.appendRunEvent(request);
+    },
     listToolsets: () => listToolsets([]),
     executeToolWithCapability: async (request) => request.execute(),
     async refreshSystemPrompt() {

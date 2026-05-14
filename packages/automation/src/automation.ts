@@ -309,7 +309,7 @@ async function runAutomationAttempt(
     inputText: task.prompt,
   });
   if (taskRunId && task.taskType) {
-    runtime.store.recordAutomationRunStart({
+    await runtime.recordAutomationRunStart({
       taskRunId,
       taskId: task.taskId!,
       taskType: task.taskType,
@@ -363,7 +363,7 @@ async function runAutomationAttempt(
       errorMessage: status === "error" ? responseText : undefined,
     });
     if (taskRunId) {
-      runtime.store.finishAutomationRun({
+      await runtime.finishAutomationRun({
         taskRunId,
         status: finalRunStatus === "success" ? "success" : "error",
         responseText,
@@ -412,7 +412,7 @@ export async function runAutomationAgent(
 
   const delivery = await deliverAutomationResult(runtime, task.delivery, finalResult.responseText);
   if (finalResult.taskRunId) {
-    runtime.store.recordAutomationDelivery({
+    await runtime.recordAutomationDelivery({
       taskRunId: finalResult.taskRunId,
       deliveryStatus: delivery.status,
       deliveryAttemptedAt: delivery.attemptedAt ?? undefined,

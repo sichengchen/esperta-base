@@ -162,6 +162,24 @@ export interface RuntimeSessionMessagesSyncRequest {
   messages: readonly Message[];
 }
 
+export type RuntimeAutomationTaskRecord = ReturnType<
+  OperationalStore["listAutomationTasks"]
+>[number];
+export type RuntimeAutomationRunRecord = ReturnType<OperationalStore["listAutomationRuns"]>[number];
+export type RuntimeAutomationTaskType = RuntimeAutomationTaskRecord["taskType"];
+export type RuntimeAutomationTaskUpsertRequest = Parameters<
+  OperationalStore["upsertAutomationTask"]
+>[0];
+export type RuntimeAutomationRunStartRequest = Parameters<
+  OperationalStore["recordAutomationRunStart"]
+>[0];
+export type RuntimeAutomationRunFinishRequest = Parameters<
+  OperationalStore["finishAutomationRun"]
+>[0];
+export type RuntimeAutomationDeliveryRecordRequest = Parameters<
+  OperationalStore["recordAutomationDelivery"]
+>[0];
+
 export interface EngineRuntime {
   config: ConfigManager;
   router: ModelRouter;
@@ -208,6 +226,18 @@ export interface EngineRuntime {
   putPromptCache(request: RuntimePromptCachePutRequest): Promise<void>;
   syncSessionMessages(request: RuntimeSessionMessagesSyncRequest): Promise<void>;
   getSessionMessages(sessionId: string): Promise<Message[]>;
+  upsertAutomationTask(request: RuntimeAutomationTaskUpsertRequest): Promise<void>;
+  getAutomationTaskByName(
+    taskType: RuntimeAutomationTaskType,
+    name: string,
+  ): Promise<RuntimeAutomationTaskRecord | undefined>;
+  getAutomationTaskBySlug(slug: string): Promise<RuntimeAutomationTaskRecord | undefined>;
+  deleteAutomationTask(taskId: string): Promise<boolean>;
+  listAutomationTasks(taskType?: RuntimeAutomationTaskType): Promise<RuntimeAutomationTaskRecord[]>;
+  recordAutomationRunStart(request: RuntimeAutomationRunStartRequest): Promise<void>;
+  finishAutomationRun(request: RuntimeAutomationRunFinishRequest): Promise<void>;
+  recordAutomationDelivery(request: RuntimeAutomationDeliveryRecordRequest): Promise<void>;
+  listAutomationRuns(taskId?: string, limit?: number): Promise<RuntimeAutomationRunRecord[]>;
   listToolsets(): ReturnType<typeof listToolsets>;
   executeToolWithCapability(request: RuntimeCapabilityToolExecutionRequest): Promise<ToolResult>;
   createAgent(
@@ -310,6 +340,43 @@ export async function createRuntime(): Promise<EngineRuntime> {
   });
   kernel.queries.register("runtime.session_messages.get", (query) => {
     return store.getSessionMessages(String(query.payload));
+  });
+  kernel.commands.register("runtime.automation_task.upsert", (command) => {
+    const payload = command.payload as RuntimeAutomationTaskUpsertRequest;
+    store.upsertAutomationTask(payload);
+    return { taskId: payload.taskId };
+  });
+  kernel.commands.register("runtime.automation_task.delete", (command) => {
+    return store.deleteAutomationTask(String(command.payload));
+  });
+  kernel.queries.register("runtime.automation_task.get_by_name", (query) => {
+    const payload = query.payload as { taskType: RuntimeAutomationTaskType; name: string };
+    return store.getAutomationTaskByName(payload.taskType, payload.name);
+  });
+  kernel.queries.register("runtime.automation_task.get_by_slug", (query) => {
+    return store.getAutomationTaskBySlug(String(query.payload));
+  });
+  kernel.queries.register("runtime.automation_tasks.list", (query) => {
+    return store.listAutomationTasks(query.payload as RuntimeAutomationTaskType | undefined);
+  });
+  kernel.commands.register("runtime.automation_run.start", (command) => {
+    const payload = command.payload as RuntimeAutomationRunStartRequest;
+    store.recordAutomationRunStart(payload);
+    return { taskRunId: payload.taskRunId };
+  });
+  kernel.commands.register("runtime.automation_run.finish", (command) => {
+    const payload = command.payload as RuntimeAutomationRunFinishRequest;
+    store.finishAutomationRun(payload);
+    return { taskRunId: payload.taskRunId };
+  });
+  kernel.commands.register("runtime.automation_delivery.record", (command) => {
+    const payload = command.payload as RuntimeAutomationDeliveryRecordRequest;
+    store.recordAutomationDelivery(payload);
+    return { taskRunId: payload.taskRunId };
+  });
+  kernel.queries.register("runtime.automation_runs.list", (query) => {
+    const payload = query.payload as { taskId?: string; limit?: number } | undefined;
+    return store.listAutomationRuns(payload?.taskId, payload?.limit);
   });
 
   const checkpoints = new CheckpointManager(config.homeDir, ariaConfig.runtime.checkpoints);
@@ -975,6 +1042,64 @@ export async function createRuntime(): Promise<EngineRuntime> {
       return kernel.queries.execute({
         type: "runtime.session_messages.get",
         payload: sessionId,
+      });
+    },
+    async upsertAutomationTask(request) {
+      await kernel.commands.execute({
+        type: "runtime.automation_task.upsert",
+        payload: request,
+        idempotencyKey: `runtime.automation_task.upsert:${request.taskId}:${request.updatedAt ?? ""}`,
+      });
+    },
+    async getAutomationTaskByName(taskType, name) {
+      return kernel.queries.execute({
+        type: "runtime.automation_task.get_by_name",
+        payload: { taskType, name },
+      });
+    },
+    async getAutomationTaskBySlug(slug) {
+      return kernel.queries.execute({
+        type: "runtime.automation_task.get_by_slug",
+        payload: slug,
+      });
+    },
+    async deleteAutomationTask(taskId) {
+      return kernel.commands.execute({
+        type: "runtime.automation_task.delete",
+        payload: taskId,
+      });
+    },
+    async listAutomationTasks(taskType) {
+      return kernel.queries.execute({
+        type: "runtime.automation_tasks.list",
+        payload: taskType,
+      });
+    },
+    async recordAutomationRunStart(request) {
+      await kernel.commands.execute({
+        type: "runtime.automation_run.start",
+        payload: request,
+        idempotencyKey: `runtime.automation_run.start:${request.taskRunId}`,
+      });
+    },
+    async finishAutomationRun(request) {
+      await kernel.commands.execute({
+        type: "runtime.automation_run.finish",
+        payload: request,
+        idempotencyKey: `runtime.automation_run.finish:${request.taskRunId}:${request.status}:${request.completedAt ?? ""}`,
+      });
+    },
+    async recordAutomationDelivery(request) {
+      await kernel.commands.execute({
+        type: "runtime.automation_delivery.record",
+        payload: request,
+        idempotencyKey: `runtime.automation_delivery.record:${request.taskRunId}:${request.deliveryStatus}:${request.deliveryAttemptedAt ?? ""}`,
+      });
+    },
+    async listAutomationRuns(taskId, limit) {
+      return kernel.queries.execute({
+        type: "runtime.automation_runs.list",
+        payload: { taskId, limit },
       });
     },
     listToolsets() {

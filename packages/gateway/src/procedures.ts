@@ -3000,7 +3000,7 @@ export function createAppRouter(runtime: EngineRuntime) {
             .optional(),
         )
         .query(({ input }) => {
-          return runtime.store.listAutomationTasks(input?.type);
+          return runtime.listAutomationTasks(input?.type);
         }),
 
       runs: adminProcedure
@@ -3013,7 +3013,7 @@ export function createAppRouter(runtime: EngineRuntime) {
             .optional(),
         )
         .query(({ input }) => {
-          return runtime.store.listAutomationRuns(input?.taskId, input?.limit ?? 20);
+          return runtime.listAutomationRuns(input?.taskId, input?.limit ?? 20);
         }),
     }),
 

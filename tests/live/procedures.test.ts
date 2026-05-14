@@ -201,6 +201,33 @@ async function createLiveTestRuntime(runtimeHome: string): Promise<EngineRuntime
     async getSessionMessages(sessionId) {
       return store.getSessionMessages(sessionId);
     },
+    async upsertAutomationTask(request) {
+      store.upsertAutomationTask(request);
+    },
+    async getAutomationTaskByName(taskType, name) {
+      return store.getAutomationTaskByName(taskType, name);
+    },
+    async getAutomationTaskBySlug(slug) {
+      return store.getAutomationTaskBySlug(slug);
+    },
+    async deleteAutomationTask(taskId) {
+      return store.deleteAutomationTask(taskId);
+    },
+    async listAutomationTasks(taskType) {
+      return store.listAutomationTasks(taskType);
+    },
+    async recordAutomationRunStart(request) {
+      store.recordAutomationRunStart(request);
+    },
+    async finishAutomationRun(request) {
+      store.finishAutomationRun(request);
+    },
+    async recordAutomationDelivery(request) {
+      store.recordAutomationDelivery(request);
+    },
+    async listAutomationRuns(taskId, limit) {
+      return store.listAutomationRuns(taskId, limit);
+    },
     listToolsets: () => listToolsets(tools),
     executeToolWithCapability: async (request) => request.execute(),
     async refreshSystemPrompt() {

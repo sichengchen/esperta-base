@@ -278,7 +278,7 @@ function isEmptyChat(
   return state.messages.length === 0 && !state.streamingText && !state.isStreaming;
 }
 
-function isAriaServerConnected(state: AriaDesktopAriaShellState): boolean {
+function isAriaRuntimeConnected(state: AriaDesktopAriaShellState): boolean {
   return state.chat.connected;
 }
 
@@ -2673,7 +2673,7 @@ export function ProjectSidebar({
 
 type AriaSidebarProps = {
   ariaState: AriaDesktopAriaShellState;
-  ariaServerConnected: boolean;
+  ariaRuntimeConnected: boolean;
   pinnedSessionIds?: string[];
   onArchiveChatSession: (sessionId: string) => void;
   onCreateChat: () => void;
@@ -2688,7 +2688,7 @@ type AriaSidebarProps = {
 
 export function AriaSidebar({
   ariaState,
-  ariaServerConnected,
+  ariaRuntimeConnected,
   pinnedSessionIds = [],
   onArchiveChatSession,
   onCreateChat,
@@ -2712,14 +2712,14 @@ export function AriaSidebar({
         <div className="desktop-sidebar-section">
           <DesktopSidebarButton
             active={!settingsActive && ariaState.selectedAriaScreen === "automations"}
-            disabled={!ariaServerConnected}
+            disabled={!ariaRuntimeConnected}
             icon={<Clock3 aria-hidden="true" />}
             label="Automations"
             onClick={() => onSelectScreen("automations")}
           />
           <DesktopSidebarButton
             active={!settingsActive && ariaState.selectedAriaScreen === "connectors"}
-            disabled={!ariaServerConnected}
+            disabled={!ariaRuntimeConnected}
             icon={<Plug2 aria-hidden="true" />}
             label="Connectors"
             onClick={onSelectConnectorScreen}
@@ -2729,7 +2729,7 @@ export function AriaSidebar({
         <div className="desktop-sidebar-divider" />
 
         <AriaChatThreadSection
-          disabled={!ariaServerConnected}
+          disabled={!ariaRuntimeConnected}
           formatMeta={formatRelativeUpdatedAt}
           pinnedSessionIds={pinnedSessionIds}
           onArchiveSession={onArchiveChatSession}
@@ -2758,7 +2758,7 @@ export function AriaSidebar({
   );
 }
 
-function NoAriaServerView() {
+function NoAriaRuntimeView() {
   return (
     <div className="workbench-surface thread-empty-state">
       <Empty className="workbench-empty">
@@ -3552,7 +3552,7 @@ export function DesktopWorkbenchApp() {
     ariaState.connectorSessions,
     ariaState.connectors.sessionId,
   );
-  const ariaServerConnected = isAriaServerConnected(ariaState);
+  const ariaRuntimeConnected = isAriaRuntimeConnected(ariaState);
 
   const toolbarItems: DesktopBaseLayoutToolbarItem[] =
     !settingsOpen && activeSpace === "projects" && selectedProject
@@ -3590,8 +3590,8 @@ export function DesktopWorkbenchApp() {
             selectedProject={selectedProject}
             selectedThreadState={selectedThreadState}
           />
-        ) : !ariaServerConnected ? (
-          <NoAriaServerView />
+        ) : !ariaRuntimeConnected ? (
+          <NoAriaRuntimeView />
         ) : showAutomationView ? (
           <AutomationsView
             automations={ariaState.automations}
@@ -3647,7 +3647,7 @@ export function DesktopWorkbenchApp() {
         ) : (
           <AriaSidebar
             ariaState={ariaState}
-            ariaServerConnected={ariaServerConnected}
+            ariaRuntimeConnected={ariaRuntimeConnected}
             pinnedSessionIds={pinnedAriaSessionIds}
             onArchiveChatSession={archiveAriaChat}
             onCreateChat={createAriaChat}

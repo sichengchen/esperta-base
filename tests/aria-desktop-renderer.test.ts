@@ -559,7 +559,7 @@ describe("desktop aria renderer", () => {
     const html = renderToStaticMarkup(
       React.createElement(AriaSidebar, {
         ariaState: SAMPLE_ARIA_STATE,
-        ariaServerConnected: true,
+        ariaRuntimeConnected: true,
         pinnedSessionIds: [],
         onArchiveChatSession: () => {},
         onCreateChat: () => {},

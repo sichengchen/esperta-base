@@ -119,6 +119,9 @@ export interface RuntimeConfig {
   automation?: AutomationConfig;
   contextFiles?: ContextFilesConfig;
   checkpoints?: CheckpointsConfig;
+  sandbox?: {
+    provider?: string;
+  };
   mcp?: {
     servers?: Record<string, MCPServerConfig>;
   };

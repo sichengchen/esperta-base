@@ -161,6 +161,7 @@ async function createTestRuntime(runtimeHome: string): Promise<EngineRuntime> {
     createSessionTitleTool,
     createSessionToolEnvironment,
     listToolsets: () => listToolsets([]),
+    executeToolWithCapability: async (request) => request.execute(),
     async refreshSystemPrompt() {
       return "Test agent.";
     },

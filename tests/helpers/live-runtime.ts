@@ -131,6 +131,7 @@ export async function createLiveRuntime(
     createSessionTitleTool,
     createSessionToolEnvironment,
     listToolsets: () => listToolsets(tools),
+    executeToolWithCapability: async (request) => request.execute(),
     async refreshSystemPrompt() {
       return systemPrompt;
     },

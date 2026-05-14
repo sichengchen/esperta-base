@@ -124,6 +124,7 @@ async function createLiveTestRuntime(runtimeHome: string): Promise<EngineRuntime
     createSessionTitleTool,
     createSessionToolEnvironment,
     listToolsets: () => listToolsets(tools),
+    executeToolWithCapability: async (request) => request.execute(),
     async refreshSystemPrompt() {
       return "Reply briefly. When asked to use a tool, use it without explanation.";
     },

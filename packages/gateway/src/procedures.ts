@@ -171,6 +171,7 @@ export function createAppRouter(runtime: EngineRuntime) {
   let projectsRepositoryPromise: Promise<ProjectsEngineRepository> | null = null;
   let handoffServicePromise: Promise<HandoffService> | null = null;
   const approvedToolIntents = new Set<string>();
+  const capabilityApprovedToolIntents = new Set<string>();
 
   async function getProjectsRepository(): Promise<ProjectsEngineRepository> {
     const attachedRuntime = runtime as EngineRuntime & {
@@ -317,7 +318,13 @@ export function createAppRouter(runtime: EngineRuntime) {
 
   function approveToolIntentOnce(sessionId: string, intent?: ToolIntent): void {
     if (!intent || !toolIntentRequiresApproval(intent)) return;
-    approvedToolIntents.add(toolIntentApprovalKey(sessionId, intent));
+    const key = toolIntentApprovalKey(sessionId, intent);
+    approvedToolIntents.add(key);
+    capabilityApprovedToolIntents.add(key);
+  }
+
+  function consumeCapabilityApproval(sessionId: string, intent: ToolIntent): boolean {
+    return capabilityApprovedToolIntents.delete(toolIntentApprovalKey(sessionId, intent));
   }
 
   function createGatewayHarnessHost(sessionId: string): AriaHarnessHost {
@@ -878,6 +885,36 @@ export function createAppRouter(runtime: EngineRuntime) {
         pendingApprovalMeta.delete(toolCallId);
         runtime.store.resolveApproval(toolCallId, "approve_once");
         return true;
+      },
+      executeTool: async ({
+        toolName,
+        toolCallId,
+        args,
+        execute,
+      }: {
+        toolName: string;
+        toolCallId: string;
+        args: Record<string, unknown>;
+        execute: () => Promise<{ content: string; isError?: boolean }>;
+      }) => {
+        const mode = getApprovalMode(sessionId);
+        const level = getEffectiveDangerLevel(toolName, args);
+        const decision = resolveCapabilityPolicyDecision(getCapability(toolName), level, mode);
+        const intent = getToolIntent(toolName, args);
+        const requiresApproval = decision.approvalRequired || toolIntentRequiresApproval(intent);
+        return runtime.executeToolWithCapability({
+          sessionId,
+          runId: activeRunsBySession.get(sessionId),
+          toolCallId,
+          toolName,
+          args,
+          dangerLevel: level,
+          policyDecision: requiresApproval ? "ask" : "allow",
+          approvalDecision: consumeCapabilityApproval(sessionId, intent)
+            ? "approve_once"
+            : undefined,
+          execute,
+        });
       },
     };
   }

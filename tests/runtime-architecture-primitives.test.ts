@@ -99,6 +99,40 @@ describe("runtime architecture primitives", () => {
     ]);
   });
 
+  test("capability broker can gate tool runtime execution after provider selection", async () => {
+    let executed = 0;
+    const broker = new CapabilityBroker({
+      sandbox: new SandboxManager({
+        providers: [createJustBashSandboxProvider()],
+        selection: { defaultProvider: "justbash" },
+      }),
+      decidePolicy: () => "ask",
+      requestApproval: () => "approve_once",
+    });
+
+    const result = await broker.execute({
+      intent: intent({ toolName: "memory_write", action: "write_file" }),
+      sandbox: {},
+      executeToolRuntime: async () => {
+        executed += 1;
+        return { content: "stored" };
+      },
+    });
+
+    expect(executed).toBe(1);
+    expect(result).toMatchObject({
+      status: "executed",
+      policyDecision: "ask",
+      approvalDecision: "approve_once",
+      sandboxResult: {
+        provider: "justbash",
+        status: "completed",
+        result: { content: "stored" },
+      },
+      toolRuntimeResult: { content: "stored" },
+    });
+  });
+
   test("kernel command bus provides unit of work, idempotency, workflow, and outbox primitives", async () => {
     const workflows = new WorkflowEngine();
     const outbox = new Outbox();

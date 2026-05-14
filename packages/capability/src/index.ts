@@ -46,6 +46,7 @@ export type CapabilityAuditEvent =
 export interface CapabilityExecutionRequest {
   intent: ToolIntentRecord;
   sandbox: Omit<SandboxExecutionRequest, "action" | "toolName">;
+  executeToolRuntime?(): Promise<unknown>;
 }
 
 export interface CapabilityExecutionResult {
@@ -53,6 +54,7 @@ export interface CapabilityExecutionResult {
   policyDecision: CapabilityPolicyDecision;
   approvalDecision?: ApprovalDecision;
   sandboxResult?: SandboxExecutionResult;
+  toolRuntimeResult?: unknown;
   reason?: string;
 }
 
@@ -98,11 +100,13 @@ export class CapabilityBroker {
       }
     }
 
-    const sandboxResult = await this.options.sandbox.execute({
-      ...request.sandbox,
-      action: request.intent.action,
-      toolName: request.intent.toolName,
-    });
+    const sandboxResult = request.executeToolRuntime
+      ? await this.executeToolRuntime(request)
+      : await this.options.sandbox.execute({
+          ...request.sandbox,
+          action: request.intent.action,
+          toolName: request.intent.toolName,
+        });
     await this.options.audit?.({
       type: "tool_execution",
       intent: request.intent,
@@ -114,6 +118,24 @@ export class CapabilityBroker {
       policyDecision,
       approvalDecision,
       sandboxResult,
+      toolRuntimeResult: sandboxResult.result,
+    };
+  }
+
+  private async executeToolRuntime(
+    request: CapabilityExecutionRequest,
+  ): Promise<SandboxExecutionResult> {
+    const provider = this.options.sandbox.getConfiguredProviderName(request.sandbox.provider);
+    const result = await request.executeToolRuntime!();
+    const isError =
+      result &&
+      typeof result === "object" &&
+      "isError" in result &&
+      Boolean((result as { isError?: unknown }).isError);
+    return {
+      provider,
+      status: isError ? "failed" : "completed",
+      result,
     };
   }
 }

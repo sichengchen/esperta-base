@@ -4,7 +4,7 @@ import type { AgentEvent } from "@aria/agent";
 import type { Message } from "@mariozechner/pi-ai";
 import type { EngineRuntime } from "@aria/node-runtime/runtime";
 import { createAriaHarnessContext, type AriaHarnessHost } from "@aria/harness";
-import { toolIntentRequiresApproval } from "@aria/policy";
+import { toolIntentRequiresApproval, type ToolIntent } from "@aria/policy";
 import { createSessionToolEnvironment, mergeAllowedTools } from "@aria/tools";
 import type {
   AutomationDeliveryStatus,
@@ -132,6 +132,26 @@ function createAutomationHarnessHost(runtime: EngineRuntime, sessionId: string):
   };
 }
 
+function getAutomationToolIntent(toolName: string, args: Record<string, unknown>): ToolIntent {
+  return {
+    toolName,
+    environment: "default",
+    filesystemEffect:
+      toolName === "write" || toolName === "edit" || toolName === "exec" || toolName === "bash"
+        ? "virtual"
+        : "none",
+    network: toolName === "web_fetch" || toolName === "web_search" ? "allowlist" : "none",
+    leases: Array.isArray(args.leases) ? args.leases.map(String) : [],
+    command: typeof args.command === "string" ? args.command : undefined,
+    cwd:
+      typeof args.cwd === "string"
+        ? args.cwd
+        : typeof args.workdir === "string"
+          ? args.workdir
+          : undefined,
+  };
+}
+
 export function buildDelegationOptions(runtime: EngineRuntime) {
   const orchestration = runtime.config.getConfigFile().runtime.orchestration;
   return {
@@ -202,6 +222,23 @@ async function runAutomationAttempt(
         tools: toolEnvironment.tools,
         getSystemPrompt: () => systemPrompt,
         modelOverride: task.model,
+        executeTool: async ({ toolName, toolCallId, args, execute }) => {
+          const dangerLevel =
+            toolEnvironment.tools.find((tool) => tool.name === toolName)?.dangerLevel ??
+            "dangerous";
+          const intent = getAutomationToolIntent(toolName, args);
+          const requiresApproval =
+            toolIntentRequiresApproval(intent) || dangerLevel === "dangerous";
+          return runtime.executeToolWithCapability({
+            sessionId: session.id,
+            toolCallId,
+            toolName,
+            args,
+            dangerLevel,
+            policyDecision: requiresApproval ? "ask" : "allow",
+            execute,
+          });
+        },
       }),
     getMessages: () => harnessSession.getMessages(),
   };

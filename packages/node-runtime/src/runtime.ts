@@ -1,9 +1,12 @@
 import { existsSync } from "node:fs";
 import { writeFile } from "node:fs/promises";
 import { join } from "node:path";
-import type { ToolApprovalCallback, ToolImpl } from "@aria/agent";
+import type { DangerLevel, ToolApprovalCallback, ToolImpl, ToolResult } from "@aria/agent";
+import { CapabilityBroker, type CapabilityPolicyDecision } from "@aria/capability";
 import type { AgentEvent, AskUserCallback } from "@aria/protocol";
 import type { Message } from "@mariozechner/pi-ai";
+import { SandboxManager, type SandboxAction } from "@aria/sandbox";
+import { createJustBashSandboxProvider } from "@aria/sandbox-justbash";
 import { Orchestrator } from "@aria/agent/orchestrator";
 import { AuditLogger } from "@aria/audit";
 import {
@@ -65,6 +68,18 @@ export interface RuntimeAgentSession {
   hydrateHistory(messages: readonly Message[]): void;
 }
 
+export interface RuntimeCapabilityToolExecutionRequest {
+  sessionId: string;
+  runId?: string;
+  toolCallId: string;
+  toolName: string;
+  args: Record<string, unknown>;
+  dangerLevel: DangerLevel;
+  policyDecision: CapabilityPolicyDecision;
+  approvalDecision?: "approve_once" | "deny";
+  execute: () => Promise<ToolResult>;
+}
+
 export interface EngineRuntime {
   config: ConfigManager;
   router: ModelRouter;
@@ -91,6 +106,7 @@ export interface EngineRuntime {
   createSessionTitleTool: typeof createSessionTitleTool;
   createSessionToolEnvironment: typeof createSessionToolEnvironment;
   listToolsets(): ReturnType<typeof listToolsets>;
+  executeToolWithCapability(request: RuntimeCapabilityToolExecutionRequest): Promise<ToolResult>;
   createAgent(
     onToolApproval?: ToolApprovalCallback,
     modelOverride?: string,
@@ -301,11 +317,62 @@ export async function createRuntime(): Promise<EngineRuntime> {
   await auth.init();
   const audit = new AuditLogger(runtimeHome);
   const securityMode = new SecurityModeManager(ariaConfig.runtime.security);
+  const capabilitySandbox = new SandboxManager({
+    providers: [createJustBashSandboxProvider()],
+    selection: { defaultProvider: ariaConfig.runtime.sandbox?.provider },
+  });
 
-  function createRuntimeHarnessHost(
-    sessionId: string,
-  ): AriaHarnessHost & { rememberApprovedIntent(intent: ToolIntent): void } {
+  function sandboxActionForTool(toolName: string): SandboxAction {
+    switch (toolName) {
+      case "bash":
+      case "exec":
+        return "exec";
+      case "read":
+      case "read_file":
+      case "read_skill":
+        return "read_file";
+      case "write":
+      case "edit":
+      case "set_session_title":
+      case "set_env_secret":
+      case "set_env_variable":
+      case "memory_write":
+      case "memory_delete":
+      case "skill_manage":
+        return "write_file";
+      case "grep":
+      case "glob":
+      case "memory_search":
+      case "memory_read":
+        return "list_files";
+      default:
+        return "create_artifact";
+    }
+  }
+
+  function sideEffectsForTool(toolName: string, intent: ToolIntent): string[] {
+    const effects = new Set<string>();
+    if (toolName === "bash" || toolName === "exec") effects.add("execute_shell");
+    if (intent.filesystemEffect === "host_read" || intent.filesystemEffect === "virtual") {
+      effects.add("read_file");
+    }
+    if (intent.filesystemEffect === "host_write" || toolName === "write" || toolName === "edit") {
+      effects.add("write_file");
+    }
+    if (intent.network !== "none") effects.add("network_access");
+    if (toolName.startsWith("memory_")) effects.add("persist_memory");
+    if (toolName === "notify") effects.add("send_message");
+    if (toolName === "set_env_secret") effects.add("use_secret");
+    if (effects.size === 0) effects.add("runtime_tool");
+    return [...effects];
+  }
+
+  function createRuntimeHarnessHost(sessionId: string): AriaHarnessHost & {
+    rememberApprovedIntent(intent: ToolIntent): void;
+    consumeCapabilityApproval(intent: ToolIntent): boolean;
+  } {
     const preapprovedToolIntents = new Set<string>();
+    const capabilityApprovedToolIntents = new Set<string>();
     const approvalKey = (intent: ToolIntent) =>
       JSON.stringify({
         toolName: intent.toolName,
@@ -314,11 +381,18 @@ export async function createRuntime(): Promise<EngineRuntime> {
         network: intent.network,
         command: intent.command,
       });
-    const host: AriaHarnessHost & { rememberApprovedIntent(intent: ToolIntent): void } = {
+    const host: AriaHarnessHost & {
+      rememberApprovedIntent(intent: ToolIntent): void;
+      consumeCapabilityApproval(intent: ToolIntent): boolean;
+    } = {
       rememberApprovedIntent(intent) {
         if (toolIntentRequiresApproval(intent)) {
           preapprovedToolIntents.add(approvalKey(intent));
+          capabilityApprovedToolIntents.add(approvalKey(intent));
         }
+      },
+      consumeCapabilityApproval(intent) {
+        return capabilityApprovedToolIntents.delete(approvalKey(intent));
       },
       resolveModel(input) {
         return router.getModel(input.model);
@@ -387,6 +461,64 @@ export async function createRuntime(): Promise<EngineRuntime> {
     };
   }
 
+  async function executeToolWithCapability(
+    request: RuntimeCapabilityToolExecutionRequest,
+  ): Promise<ToolResult> {
+    const intent = getRuntimeToolIntent(request.toolName, request.args);
+    const broker = new CapabilityBroker({
+      sandbox: capabilitySandbox,
+      decidePolicy: () => request.policyDecision,
+      requestApproval: () => request.approvalDecision ?? "deny",
+      audit: (event) => {
+        audit.log({
+          session: request.sessionId,
+          connector: "engine",
+          event:
+            event.type === "approval_decision"
+              ? event.decision === "approve_once"
+                ? "tool_approval"
+                : "tool_denial"
+              : "tool_call",
+          run: request.runId,
+          tool: request.toolName,
+          summary: event.type,
+          environment: intent.environment,
+          command: intent.command,
+          cwd: intent.cwd,
+          leases: intent.leases,
+        });
+      },
+    });
+
+    const result = await broker.execute({
+      intent: {
+        identity: {
+          sessionId: request.sessionId,
+          runId: request.runId,
+          toolIntentId: request.toolCallId,
+        },
+        toolName: request.toolName,
+        action: sandboxActionForTool(request.toolName),
+        sideEffects: sideEffectsForTool(request.toolName, intent),
+        createdAt: new Date().toISOString(),
+        input: request.args,
+      },
+      sandbox: {
+        command: intent.command,
+        cwd: intent.cwd,
+      },
+      executeToolRuntime: request.execute,
+    });
+
+    if (result.status !== "executed") {
+      return {
+        content: result.reason ?? `Tool "${request.toolName}" was denied by capability policy.`,
+        isError: true,
+      };
+    }
+    return result.toolRuntimeResult as ToolResult;
+  }
+
   function createHarnessRuntimeAgent(options: {
     sessionId: string;
     tools: ToolImpl[];
@@ -448,7 +580,26 @@ export async function createRuntime(): Promise<EngineRuntime> {
                 return approved;
               }
             : undefined,
-          executeTool: async ({ execute }) => execute(),
+          executeTool: async ({ toolName, toolCallId, args, execute }) => {
+            const dangerLevel =
+              toolEnvironment.tools.find((tool) => tool.name === toolName)?.dangerLevel ??
+              "dangerous";
+            const intent = getRuntimeToolIntent(toolName, args);
+            const requiresApproval =
+              toolIntentRequiresApproval(intent) || dangerLevel === "dangerous";
+            return executeToolWithCapability({
+              sessionId: options.sessionId,
+              toolCallId,
+              toolName,
+              args,
+              dangerLevel,
+              policyDecision: requiresApproval ? "ask" : "allow",
+              approvalDecision: harnessHost.consumeCapabilityApproval(intent)
+                ? "approve_once"
+                : undefined,
+              execute,
+            });
+          },
           onAskUser: options.onAskUser,
         });
       },
@@ -532,6 +683,7 @@ export async function createRuntime(): Promise<EngineRuntime> {
     listToolsets() {
       return listToolsets(runtime.tools);
     },
+    executeToolWithCapability,
     async refreshSystemPrompt(): Promise<string> {
       systemPrompt = await promptEngine.buildBasePrompt(true);
       runtime.systemPrompt = systemPrompt;

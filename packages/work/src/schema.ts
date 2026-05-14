@@ -180,6 +180,36 @@ CREATE TABLE IF NOT EXISTS projects_publish_runs (
   FOREIGN KEY (repo_id) REFERENCES projects_repos(repo_id) ON DELETE CASCADE
 );
 
+CREATE TABLE IF NOT EXISTS projects_artifacts (
+  artifact_id TEXT PRIMARY KEY,
+  dispatch_id TEXT NOT NULL,
+  thread_id TEXT NOT NULL,
+  workspace_id TEXT,
+  kind TEXT NOT NULL,
+  title TEXT NOT NULL,
+  content TEXT NOT NULL,
+  metadata_json TEXT,
+  created_at INTEGER NOT NULL,
+  FOREIGN KEY (dispatch_id) REFERENCES projects_dispatches(dispatch_id) ON DELETE CASCADE,
+  FOREIGN KEY (thread_id) REFERENCES projects_threads(thread_id) ON DELETE CASCADE
+);
+
+CREATE TABLE IF NOT EXISTS projects_workspace_mutations (
+  mutation_id TEXT PRIMARY KEY,
+  artifact_id TEXT NOT NULL,
+  dispatch_id TEXT NOT NULL,
+  thread_id TEXT NOT NULL,
+  workspace_id TEXT,
+  status TEXT NOT NULL,
+  approval_decision TEXT,
+  audit_json TEXT,
+  created_at INTEGER NOT NULL,
+  resolved_at INTEGER,
+  FOREIGN KEY (artifact_id) REFERENCES projects_artifacts(artifact_id) ON DELETE CASCADE,
+  FOREIGN KEY (dispatch_id) REFERENCES projects_dispatches(dispatch_id) ON DELETE CASCADE,
+  FOREIGN KEY (thread_id) REFERENCES projects_threads(thread_id) ON DELETE CASCADE
+);
+
 CREATE TABLE IF NOT EXISTS projects_external_refs (
   external_ref_id TEXT PRIMARY KEY,
   owner_type TEXT NOT NULL,
@@ -207,6 +237,10 @@ CREATE INDEX IF NOT EXISTS idx_projects_dispatches_thread_status
   ON projects_dispatches(thread_id, status, created_at);
 CREATE INDEX IF NOT EXISTS idx_projects_worktrees_repo_status
   ON projects_worktrees(repo_id, status, created_at);
+CREATE INDEX IF NOT EXISTS idx_projects_artifacts_dispatch
+  ON projects_artifacts(dispatch_id, created_at);
+CREATE INDEX IF NOT EXISTS idx_projects_workspace_mutations_artifact
+  ON projects_workspace_mutations(artifact_id, created_at);
 CREATE INDEX IF NOT EXISTS idx_projects_external_refs_lookup
   ON projects_external_refs(system, external_id, external_key);
 `;

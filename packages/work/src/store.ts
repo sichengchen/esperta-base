@@ -9,6 +9,7 @@ import type {
   ExternalRefRecord,
   JobRecord,
   ProjectRecord,
+  ProjectArtifactRecord,
   PublishRunRecord,
   RepoRecord,
   ReviewRecord,
@@ -18,6 +19,7 @@ import type {
   ThreadEnvironmentBindingRecord,
   EnvironmentRecord,
   WorkspaceRecord,
+  WorkspaceMutationRecord,
   WorktreeRecord,
 } from "./types.js";
 
@@ -264,6 +266,43 @@ function normalizePublishRunRow(row: SqliteRow | null | undefined): PublishRunRe
     metadataJson: asOptionalText(row.metadata_json),
     createdAt: Number(row.created_at),
     completedAt: row.completed_at == null ? null : Number(row.completed_at),
+  };
+}
+
+function normalizeArtifactRow(
+  row: SqliteRow | null | undefined,
+): ProjectArtifactRecord | undefined {
+  if (!row) return undefined;
+  return {
+    artifactId: asText(row.artifact_id),
+    dispatchId: asText(row.dispatch_id),
+    threadId: asText(row.thread_id),
+    workspaceId: asOptionalText(row.workspace_id),
+    kind: asText(row.kind) as ProjectArtifactRecord["kind"],
+    title: asText(row.title),
+    content: asText(row.content),
+    metadataJson: asOptionalText(row.metadata_json),
+    createdAt: Number(row.created_at),
+  };
+}
+
+function normalizeWorkspaceMutationRow(
+  row: SqliteRow | null | undefined,
+): WorkspaceMutationRecord | undefined {
+  if (!row) return undefined;
+  return {
+    mutationId: asText(row.mutation_id),
+    artifactId: asText(row.artifact_id),
+    dispatchId: asText(row.dispatch_id),
+    threadId: asText(row.thread_id),
+    workspaceId: asOptionalText(row.workspace_id),
+    status: asText(row.status) as WorkspaceMutationRecord["status"],
+    approvalDecision: asOptionalText(row.approval_decision) as
+      | WorkspaceMutationRecord["approvalDecision"]
+      | undefined,
+    auditJson: asOptionalText(row.audit_json),
+    createdAt: Number(row.created_at),
+    resolvedAt: row.resolved_at == null ? null : Number(row.resolved_at),
   };
 }
 
@@ -1472,5 +1511,131 @@ export class ProjectsEngineStore {
         publishRunId,
       ),
     );
+  }
+
+  upsertArtifact(artifact: ProjectArtifactRecord): void {
+    this.run(
+      `
+      INSERT INTO projects_artifacts (
+        artifact_id, dispatch_id, thread_id, workspace_id, kind, title, content,
+        metadata_json, created_at
+      ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)
+      ON CONFLICT(artifact_id) DO UPDATE SET
+        dispatch_id = excluded.dispatch_id,
+        thread_id = excluded.thread_id,
+        workspace_id = excluded.workspace_id,
+        kind = excluded.kind,
+        title = excluded.title,
+        content = excluded.content,
+        metadata_json = excluded.metadata_json,
+        created_at = excluded.created_at
+      `,
+      artifact.artifactId,
+      artifact.dispatchId,
+      artifact.threadId,
+      artifact.workspaceId ?? null,
+      artifact.kind,
+      artifact.title,
+      artifact.content,
+      artifact.metadataJson ?? null,
+      artifact.createdAt,
+    );
+  }
+
+  listArtifacts(dispatchId?: string): ProjectArtifactRecord[] {
+    const rows = dispatchId
+      ? this.all<SqliteRow>(
+          `
+          SELECT artifact_id, dispatch_id, thread_id, workspace_id, kind, title, content,
+                 metadata_json, created_at
+          FROM projects_artifacts
+          WHERE dispatch_id = ?
+          ORDER BY created_at ASC, artifact_id ASC
+          `,
+          dispatchId,
+        )
+      : this.all<SqliteRow>(
+          `
+          SELECT artifact_id, dispatch_id, thread_id, workspace_id, kind, title, content,
+                 metadata_json, created_at
+          FROM projects_artifacts
+          ORDER BY created_at ASC, artifact_id ASC
+          `,
+        );
+
+    return rows
+      .map((row) => normalizeArtifactRow(row))
+      .filter((row): row is ProjectArtifactRecord => Boolean(row));
+  }
+
+  getArtifact(artifactId: string): ProjectArtifactRecord | undefined {
+    return normalizeArtifactRow(
+      this.get<SqliteRow>(
+        `
+        SELECT artifact_id, dispatch_id, thread_id, workspace_id, kind, title, content,
+               metadata_json, created_at
+        FROM projects_artifacts
+        WHERE artifact_id = ?
+        `,
+        artifactId,
+      ),
+    );
+  }
+
+  upsertWorkspaceMutation(mutation: WorkspaceMutationRecord): void {
+    this.run(
+      `
+      INSERT INTO projects_workspace_mutations (
+        mutation_id, artifact_id, dispatch_id, thread_id, workspace_id, status,
+        approval_decision, audit_json, created_at, resolved_at
+      ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+      ON CONFLICT(mutation_id) DO UPDATE SET
+        artifact_id = excluded.artifact_id,
+        dispatch_id = excluded.dispatch_id,
+        thread_id = excluded.thread_id,
+        workspace_id = excluded.workspace_id,
+        status = excluded.status,
+        approval_decision = excluded.approval_decision,
+        audit_json = excluded.audit_json,
+        created_at = excluded.created_at,
+        resolved_at = excluded.resolved_at
+      `,
+      mutation.mutationId,
+      mutation.artifactId,
+      mutation.dispatchId,
+      mutation.threadId,
+      mutation.workspaceId ?? null,
+      mutation.status,
+      mutation.approvalDecision ?? null,
+      mutation.auditJson ?? null,
+      mutation.createdAt,
+      mutation.resolvedAt ?? null,
+    );
+  }
+
+  listWorkspaceMutations(artifactId?: string): WorkspaceMutationRecord[] {
+    const rows = artifactId
+      ? this.all<SqliteRow>(
+          `
+          SELECT mutation_id, artifact_id, dispatch_id, thread_id, workspace_id, status,
+                 approval_decision, audit_json, created_at, resolved_at
+          FROM projects_workspace_mutations
+          WHERE artifact_id = ?
+          ORDER BY created_at ASC, mutation_id ASC
+          `,
+          artifactId,
+        )
+      : this.all<SqliteRow>(
+          `
+          SELECT mutation_id, artifact_id, dispatch_id, thread_id, workspace_id, status,
+                 approval_decision, audit_json, created_at, resolved_at
+          FROM projects_workspace_mutations
+          ORDER BY created_at ASC, mutation_id ASC
+          `,
+        );
+
+    return rows
+      .map((row) => normalizeWorkspaceMutationRow(row))
+      .filter((row): row is WorkspaceMutationRecord => Boolean(row));
   }
 }

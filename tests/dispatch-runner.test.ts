@@ -12,13 +12,17 @@ import type {
 } from "@aria/jobs/runtime-backend";
 
 const stores: ProjectsEngineStore[] = [];
+const repositoryDbPaths = new WeakMap<ProjectsEngineRepository, string>();
 
 async function createRepository(): Promise<ProjectsEngineRepository> {
   const home = await mkdtemp(join(tmpdir(), "aria-dispatch-runner-"));
-  const store = new ProjectsEngineStore(join(home, "aria.db"));
+  const dbPath = join(home, "aria.db");
+  const store = new ProjectsEngineStore(dbPath);
   await store.init();
   stores.push(store);
-  return new ProjectsEngineRepository(store);
+  const repository = new ProjectsEngineRepository(store);
+  repositoryDbPaths.set(repository, dbPath);
+  return repository;
 }
 
 function createFakeBackend(options: {
@@ -210,7 +214,7 @@ describe("runDispatchExecution", () => {
           stdout: "done",
           stderr: "",
           summary: "Completed dispatch run",
-          filesChanged: [],
+          filesChanged: ["src/dispatch-runner.ts"],
           metadata: request.metadata,
         };
       },
@@ -230,6 +234,47 @@ describe("runDispatchExecution", () => {
     expect(dispatch?.summary).toBe("Completed dispatch run");
     expect(dispatch?.acceptedAt).toBeNumber();
     expect(dispatch?.completedAt).toBeNumber();
+
+    expect(repository.listArtifacts("dispatch-1")).toEqual(
+      expect.arrayContaining([
+        expect.objectContaining({
+          artifactId: "dispatch-1:summary",
+          kind: "summary",
+          content: "Completed dispatch run",
+        }),
+        expect.objectContaining({
+          artifactId: "dispatch-1:stdout",
+          kind: "stdout",
+          content: "done",
+        }),
+        expect.objectContaining({
+          artifactId: "dispatch-1:patch",
+          kind: "patch",
+          content: expect.stringContaining("src/dispatch-runner.ts"),
+        }),
+      ]),
+    );
+    expect(repository.listWorkspaceMutations("dispatch-1:patch")).toEqual([
+      expect.objectContaining({
+        mutationId: "dispatch-1:apply_patch",
+        artifactId: "dispatch-1:patch",
+        status: "pending_approval",
+        approvalDecision: null,
+      }),
+    ]);
+
+    const dbPath = repositoryDbPaths.get(repository)!;
+    repository.close();
+    const restartedStore = new ProjectsEngineStore(dbPath);
+    await restartedStore.init();
+    stores.push(restartedStore);
+    const restartedRepository = new ProjectsEngineRepository(restartedStore);
+    expect(
+      restartedRepository.listArtifacts("dispatch-1").map((artifact) => artifact.artifactId),
+    ).toEqual(
+      expect.arrayContaining(["dispatch-1:summary", "dispatch-1:stdout", "dispatch-1:patch"]),
+    );
+    expect(restartedRepository.listWorkspaceMutations("dispatch-1:patch")).toHaveLength(1);
   });
 
   test("records failed dispatches when the backend throws", async () => {

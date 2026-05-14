@@ -167,6 +167,33 @@ export interface PublishRunRecord {
   completedAt?: number | null;
 }
 
+export type ProjectArtifactKind = "summary" | "stdout" | "stderr" | "file_change" | "patch";
+
+export interface ProjectArtifactRecord {
+  artifactId: string;
+  dispatchId: string;
+  threadId: string;
+  workspaceId?: string | null;
+  kind: ProjectArtifactKind;
+  title: string;
+  content: string;
+  metadataJson?: string | null;
+  createdAt: number;
+}
+
+export interface WorkspaceMutationRecord {
+  mutationId: string;
+  artifactId: string;
+  dispatchId: string;
+  threadId: string;
+  workspaceId?: string | null;
+  status: "pending_approval" | "approved" | "denied" | "applied" | "failed";
+  approvalDecision?: "approve_once" | "deny" | null;
+  auditJson?: string | null;
+  createdAt: number;
+  resolvedAt?: number | null;
+}
+
 export interface ExternalRefRecord {
   externalRefId: string;
   ownerType: "project" | "task" | "thread" | "review" | "publish_run";

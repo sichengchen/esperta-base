@@ -3,6 +3,7 @@ import type {
   ExternalRefRecord,
   JobRecord,
   ProjectRecord,
+  ProjectArtifactRecord,
   PublishRunRecord,
   RepoRecord,
   ReviewRecord,
@@ -12,6 +13,7 @@ import type {
   ThreadEnvironmentBindingRecord,
   EnvironmentRecord,
   WorkspaceRecord,
+  WorkspaceMutationRecord,
   WorktreeRecord,
 } from "./types.js";
 import { ProjectsEngineStore } from "./store.js";
@@ -196,5 +198,25 @@ export class ProjectsEngineRepository {
 
   getPublishRun(publishRunId: string): PublishRunRecord | undefined {
     return this.store.getPublishRun(publishRunId);
+  }
+
+  upsertArtifact(artifact: ProjectArtifactRecord): void {
+    this.store.upsertArtifact(artifact);
+  }
+
+  listArtifacts(dispatchId?: string): ProjectArtifactRecord[] {
+    return this.store.listArtifacts(dispatchId);
+  }
+
+  getArtifact(artifactId: string): ProjectArtifactRecord | undefined {
+    return this.store.getArtifact(artifactId);
+  }
+
+  upsertWorkspaceMutation(mutation: WorkspaceMutationRecord): void {
+    this.store.upsertWorkspaceMutation(mutation);
+  }
+
+  listWorkspaceMutations(artifactId?: string): WorkspaceMutationRecord[] {
+    return this.store.listWorkspaceMutations(artifactId);
   }
 }

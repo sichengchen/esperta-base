@@ -127,6 +127,83 @@ function mapBackendEventToDispatchEvent(
   return null;
 }
 
+function persistDispatchArtifacts(
+  repository: ProjectsEngineRepository,
+  launch: ReturnType<ProjectsDispatchService["buildLaunchRequest"]>,
+  result: {
+    summary?: string | null;
+    stdout?: string | null;
+    stderr?: string | null;
+    filesChanged?: string[];
+  },
+): void {
+  const createdAt = Date.now();
+  const base = {
+    dispatchId: launch.dispatchId,
+    threadId: launch.threadId,
+    workspaceId: launch.workspaceId,
+    createdAt,
+  };
+
+  if (result.summary) {
+    repository.upsertArtifact({
+      ...base,
+      artifactId: `${launch.dispatchId}:summary`,
+      kind: "summary",
+      title: "Execution summary",
+      content: result.summary,
+    });
+  }
+
+  if (result.stdout) {
+    repository.upsertArtifact({
+      ...base,
+      artifactId: `${launch.dispatchId}:stdout`,
+      kind: "stdout",
+      title: "Execution stdout",
+      content: result.stdout,
+    });
+  }
+
+  if (result.stderr) {
+    repository.upsertArtifact({
+      ...base,
+      artifactId: `${launch.dispatchId}:stderr`,
+      kind: "stderr",
+      title: "Execution stderr",
+      content: result.stderr,
+    });
+  }
+
+  if (result.filesChanged && result.filesChanged.length > 0) {
+    const content = JSON.stringify({ filesChanged: result.filesChanged }, null, 2);
+    const artifactId = `${launch.dispatchId}:patch`;
+    repository.upsertArtifact({
+      ...base,
+      artifactId,
+      kind: "patch",
+      title: "Workspace patch",
+      content,
+      metadataJson: JSON.stringify({
+        filesChanged: result.filesChanged,
+        environmentId: launch.environmentId,
+        environmentBindingId: launch.environmentBindingId,
+      }),
+    });
+    repository.upsertWorkspaceMutation({
+      ...base,
+      mutationId: `${launch.dispatchId}:apply_patch`,
+      artifactId,
+      status: "pending_approval",
+      approvalDecision: null,
+      auditJson: JSON.stringify({
+        reason:
+          "Patch application requires Capability, Policy, Approval, Workspace Engine, and Audit",
+      }),
+    });
+  }
+}
+
 export interface RunDispatchExecutionOptions {
   backendRegistry?: Map<string, RuntimeBackendAdapter>;
 }
@@ -191,6 +268,8 @@ export async function runDispatchExecution(
         summary: latestDispatch.summary ?? result.summary ?? null,
       };
     }
+
+    persistDispatchArtifacts(repository, launch, result);
 
     dispatchService.applyExecutionEvent(
       mapResultToEvent(dispatchId, executionSessionId, {

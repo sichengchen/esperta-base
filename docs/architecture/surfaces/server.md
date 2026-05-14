@@ -3,8 +3,7 @@
 This page defines the internal component model of an Aria Node Runtime.
 
 The file name remains `server.md` because existing project instructions link to
-it. The target product term is `Aria Node Runtime`, not a separate server
-runtime.
+it. The product term for this surface is `Aria Node Runtime`.
 
 ## Component Model
 

@@ -59,8 +59,8 @@ function collectSubscription(
   });
 }
 
-describe("server-local console e2e", () => {
-  test("uses local gateway auth and persists Aria chat state in the server runtime", async () => {
+describe("node-local console e2e", () => {
+  test("uses local gateway auth and persists Aria chat state in the node runtime", async () => {
     const runtime = await createTestRuntime(testDir);
     const port = await getAvailableGatewayPortPair();
     let server: EngineServer | undefined;

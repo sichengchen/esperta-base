@@ -129,11 +129,11 @@ function createAutomationHarnessHost(runtime: EngineRuntime, sessionId: string):
       });
     },
     async loadHarnessSession(id) {
-      const cached = runtime.store.getPromptCache(`harness-session:${id}`);
+      const cached = await runtime.getPromptCache(`harness-session:${id}`);
       return cached ? JSON.parse(cached.content) : null;
     },
     async saveHarnessSession(id, data) {
-      runtime.store.putPromptCache({
+      await runtime.putPromptCache({
         cacheKey: `harness-session:${id}`,
         scope: "harness_session",
         content: JSON.stringify(data),

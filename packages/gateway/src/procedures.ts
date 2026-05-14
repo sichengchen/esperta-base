@@ -336,11 +336,11 @@ export function createAppRouter(runtime: EngineRuntime) {
         });
       },
       async loadHarnessSession(id) {
-        const cached = runtime.store.getPromptCache(`harness-session:${id}`);
+        const cached = await runtime.getPromptCache(`harness-session:${id}`);
         return cached ? (JSON.parse(cached.content) as never) : null;
       },
       async saveHarnessSession(id, data) {
-        runtime.store.putPromptCache({
+        await runtime.putPromptCache({
           cacheKey: `harness-session:${id}`,
           scope: "harness_session",
           content: JSON.stringify(data),

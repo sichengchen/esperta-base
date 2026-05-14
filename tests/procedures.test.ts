@@ -224,6 +224,12 @@ async function createTestRuntime(runtimeHome: string): Promise<EngineRuntime> {
     async appendRunEvent(request) {
       return store.appendRunEvent(request);
     },
+    async getPromptCache(cacheKey) {
+      return store.getPromptCache(cacheKey);
+    },
+    async putPromptCache(request) {
+      store.putPromptCache(request);
+    },
     listToolsets: () => listToolsets([]),
     executeToolWithCapability: async (request) => request.execute(),
     async refreshSystemPrompt() {

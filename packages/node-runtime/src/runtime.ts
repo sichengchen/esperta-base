@@ -35,6 +35,7 @@ import {
   OperationalStore,
   type ApprovalRecord,
   type ApprovalStatus,
+  type PromptCacheRecord,
   type RunEventRecord,
   type ToolCallStatus,
 } from "@aria/persistence";
@@ -148,6 +149,14 @@ export interface RuntimeRunEventAppendRequest {
   createdAt?: number;
 }
 
+export interface RuntimePromptCachePutRequest {
+  cacheKey: string;
+  scope: string;
+  content: string;
+  metadata?: Record<string, unknown>;
+  updatedAt?: number;
+}
+
 export interface EngineRuntime {
   config: ConfigManager;
   router: ModelRouter;
@@ -190,6 +199,8 @@ export interface EngineRuntime {
   recordToolCallStart(request: RuntimeToolCallStartRequest): Promise<void>;
   recordToolCallEnd(request: RuntimeToolCallEndRequest): Promise<void>;
   appendRunEvent(request: RuntimeRunEventAppendRequest): Promise<RunEventRecord>;
+  getPromptCache(cacheKey: string): Promise<PromptCacheRecord | undefined>;
+  putPromptCache(request: RuntimePromptCachePutRequest): Promise<void>;
   listToolsets(): ReturnType<typeof listToolsets>;
   executeToolWithCapability(request: RuntimeCapabilityToolExecutionRequest): Promise<ToolResult>;
   createAgent(
@@ -276,6 +287,14 @@ export async function createRuntime(): Promise<EngineRuntime> {
   kernel.commands.register("runtime.run_event.append", (command) => {
     const payload = command.payload as RuntimeRunEventAppendRequest;
     return store.appendRunEvent(payload);
+  });
+  kernel.queries.register("runtime.prompt_cache.get", (query) => {
+    return store.getPromptCache(String(query.payload));
+  });
+  kernel.commands.register("runtime.prompt_cache.put", (command) => {
+    const payload = command.payload as RuntimePromptCachePutRequest;
+    store.putPromptCache(payload);
+    return { cacheKey: payload.cacheKey };
   });
 
   const checkpoints = new CheckpointManager(config.homeDir, ariaConfig.runtime.checkpoints);
@@ -916,6 +935,19 @@ export async function createRuntime(): Promise<EngineRuntime> {
       return kernel.commands.execute({
         type: "runtime.run_event.append",
         payload: request,
+      });
+    },
+    async getPromptCache(cacheKey) {
+      return kernel.queries.execute({
+        type: "runtime.prompt_cache.get",
+        payload: cacheKey,
+      });
+    },
+    async putPromptCache(request) {
+      await kernel.commands.execute({
+        type: "runtime.prompt_cache.put",
+        payload: request,
+        idempotencyKey: `runtime.prompt_cache.put:${request.cacheKey}:${request.updatedAt ?? ""}`,
       });
     },
     listToolsets() {

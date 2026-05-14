@@ -64,7 +64,7 @@ export class InMemoryHarnessHost implements AriaHarnessHost {
 
   async requestToolDecision(intent: ToolIntent): Promise<ToolDecision> {
     const decision: ToolDecision = toolIntentRequiresApproval(intent)
-      ? { status: "escalate", reason: "approval required for host or full-network execution" }
+      ? { status: "ask", reason: "approval required for host or full-network execution" }
       : { status: "allow" };
     this.audit.push({ type: "tool_decision", intent, decision, at: Date.now() });
     return decision;

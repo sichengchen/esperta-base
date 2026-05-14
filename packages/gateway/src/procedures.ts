@@ -338,7 +338,7 @@ export function createAppRouter(runtime: EngineRuntime) {
           return { status: "allow" };
         }
         if (toolIntentRequiresApproval(intent)) {
-          return { status: "escalate", reason: "Runtime approval required for tool intent" };
+          return { status: "ask", reason: "Runtime approval required for tool intent" };
         }
         return { status: "allow" };
       },

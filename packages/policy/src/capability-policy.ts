@@ -48,7 +48,7 @@ export interface ToolIntent {
 }
 
 export interface ToolDecision {
-  status: "allow" | "deny" | "escalate";
+  status: "allow" | "ask" | "deny";
   reason?: string;
   approvalId?: string;
 }

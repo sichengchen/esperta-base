@@ -56,7 +56,7 @@ export function commandLeaseToJustBashCommand(
       await host.recordAudit({ type: "tool_intent", toolName: lease.name, intent });
       if (lease.environment !== "host") {
         const decision = {
-          status: "escalate" as const,
+          status: "ask" as const,
           reason: `command lease environment is not available: ${lease.environment}`,
         };
         await host.recordAudit({ type: "tool_decision", toolName: lease.name, intent, decision });

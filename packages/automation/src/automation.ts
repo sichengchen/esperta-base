@@ -94,7 +94,7 @@ function createAutomationHarnessHost(runtime: EngineRuntime, sessionId: string):
     },
     async requestToolDecision(intent) {
       if (toolIntentRequiresApproval(intent)) {
-        return { status: "escalate", reason: "Automation tool intent requires approval" };
+        return { status: "ask", reason: "Automation tool intent requires approval" };
       }
       return { status: "allow" };
     },

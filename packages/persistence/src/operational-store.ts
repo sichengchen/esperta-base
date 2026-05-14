@@ -54,6 +54,15 @@ export interface PromptCacheRecord {
   updatedAt: number;
 }
 
+export interface RunEventRecord {
+  eventId: number;
+  sessionId?: string | null;
+  runId?: string | null;
+  type: string;
+  data?: Record<string, unknown>;
+  createdAt: number;
+}
+
 export interface AuthSessionTokenRecord {
   tokenHash: string;
   connectorId: string;
@@ -242,6 +251,15 @@ CREATE TABLE IF NOT EXISTS automation_runs (
   error_message TEXT
 );
 
+CREATE TABLE IF NOT EXISTS run_events (
+  event_id INTEGER PRIMARY KEY AUTOINCREMENT,
+  session_id TEXT,
+  run_id TEXT,
+  event_type TEXT NOT NULL,
+  data_json TEXT,
+  created_at INTEGER NOT NULL
+);
+
 CREATE INDEX IF NOT EXISTS idx_sessions_last_active ON sessions(last_active_at DESC);
 CREATE INDEX IF NOT EXISTS idx_messages_session_idx ON messages(session_id, message_index);
 CREATE INDEX IF NOT EXISTS idx_runs_session_started ON runs(session_id, started_at DESC);
@@ -254,6 +272,8 @@ CREATE INDEX IF NOT EXISTS idx_auth_session_tokens_paired ON auth_session_tokens
 CREATE INDEX IF NOT EXISTS idx_auth_pairing_codes_expires ON auth_pairing_codes(expires_at DESC);
 CREATE INDEX IF NOT EXISTS idx_automation_tasks_type_name ON automation_tasks(task_type, name);
 CREATE INDEX IF NOT EXISTS idx_automation_runs_task_started ON automation_runs(task_id, started_at DESC);
+CREATE INDEX IF NOT EXISTS idx_run_events_run_created ON run_events(run_id, created_at ASC);
+CREATE INDEX IF NOT EXISTS idx_run_events_session_created ON run_events(session_id, created_at ASC);
 `;
 
 function ensureTimestamp(value: unknown): number {
@@ -772,6 +792,74 @@ export class OperationalStore {
       createdAt: Number(row.created_at),
       resolvedAt: row.resolved_at != null ? Number(row.resolved_at) : null,
       resolution: row.resolution != null ? String(row.resolution) : null,
+    }));
+  }
+
+  appendRunEvent(input: {
+    sessionId?: string | null;
+    runId?: string | null;
+    type: string;
+    data?: Record<string, unknown>;
+    createdAt?: number;
+  }): RunEventRecord {
+    const createdAt = input.createdAt ?? Date.now();
+    const result = this.getDb()
+      .prepare(
+        `
+        INSERT INTO run_events (session_id, run_id, event_type, data_json, created_at)
+        VALUES (?, ?, ?, ?, ?)
+      `,
+      )
+      .run(
+        input.sessionId ?? null,
+        input.runId ?? null,
+        input.type,
+        input.data ? JSON.stringify(input.data) : null,
+        createdAt,
+      );
+    return {
+      eventId: Number(result.lastInsertRowid),
+      sessionId: input.sessionId ?? null,
+      runId: input.runId ?? null,
+      type: input.type,
+      data: input.data,
+      createdAt,
+    };
+  }
+
+  listRunEvents(input?: { sessionId?: string; runId?: string; limit?: number }): RunEventRecord[] {
+    const filters: string[] = [];
+    const params: Array<string | number> = [];
+    if (input?.sessionId) {
+      filters.push("session_id = ?");
+      params.push(input.sessionId);
+    }
+    if (input?.runId) {
+      filters.push("run_id = ?");
+      params.push(input.runId);
+    }
+    const whereClause = filters.length > 0 ? `WHERE ${filters.join(" AND ")}` : "";
+    const rows = this.getDb()
+      .prepare(
+        `
+        SELECT event_id, session_id, run_id, event_type, data_json, created_at
+        FROM run_events
+        ${whereClause}
+        ORDER BY created_at ASC, event_id ASC
+        LIMIT ?
+      `,
+      )
+      .all(...params, input?.limit ?? 100) as Array<Record<string, unknown>>;
+    return rows.map((row) => ({
+      eventId: Number(row.event_id),
+      sessionId: row.session_id != null ? String(row.session_id) : null,
+      runId: row.run_id != null ? String(row.run_id) : null,
+      type: String(row.event_type),
+      data:
+        typeof row.data_json === "string" && row.data_json.length > 0
+          ? (JSON.parse(row.data_json) as Record<string, unknown>)
+          : undefined,
+      createdAt: Number(row.created_at),
     }));
   }
 

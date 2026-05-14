@@ -357,9 +357,13 @@ export function createAppRouter(runtime: EngineRuntime) {
         });
       },
       async appendRunEvent(event) {
-        if (event.runId) return;
-        // Run identity remains owned by the gateway/runtime path; harness-local
-        // events are persisted through saveHarnessSession below.
+        runtime.store.appendRunEvent({
+          sessionId: event.sessionId ?? sessionId,
+          runId: event.runId,
+          type: event.type,
+          data: event.data,
+          createdAt: event.at,
+        });
       },
       async loadHarnessSession(id) {
         const cached = runtime.store.getPromptCache(`harness-session:${id}`);
@@ -374,8 +378,16 @@ export function createAppRouter(runtime: EngineRuntime) {
           updatedAt: data.updatedAt,
         });
       },
-      async resolveSecrets() {
-        return {};
+      async resolveSecrets(leases) {
+        const secrets = await runtime.config.loadSecrets();
+        const resolved: Record<string, string> = {};
+        for (const lease of leases) {
+          const value = secrets?.apiKeys?.[lease.ref.name] ?? process.env[lease.ref.name];
+          if (value !== undefined) {
+            resolved[lease.id] = value;
+          }
+        }
+        return resolved;
       },
     };
   }

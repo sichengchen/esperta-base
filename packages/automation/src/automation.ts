@@ -112,7 +112,15 @@ function createAutomationHarnessHost(runtime: EngineRuntime, sessionId: string):
         leases: event.intent?.leases,
       });
     },
-    async appendRunEvent() {},
+    async appendRunEvent(event) {
+      runtime.store.appendRunEvent({
+        sessionId: event.sessionId ?? sessionId,
+        runId: event.runId,
+        type: event.type,
+        data: event.data,
+        createdAt: event.at,
+      });
+    },
     async loadHarnessSession(id) {
       const cached = runtime.store.getPromptCache(`harness-session:${id}`);
       return cached ? JSON.parse(cached.content) : null;
@@ -126,8 +134,16 @@ function createAutomationHarnessHost(runtime: EngineRuntime, sessionId: string):
         updatedAt: data.updatedAt,
       });
     },
-    async resolveSecrets() {
-      return {};
+    async resolveSecrets(leases) {
+      const secrets = await runtime.config.loadSecrets();
+      const resolved: Record<string, string> = {};
+      for (const lease of leases) {
+        const value = secrets?.apiKeys?.[lease.ref.name] ?? process.env[lease.ref.name];
+        if (value !== undefined) {
+          resolved[lease.id] = value;
+        }
+      }
+      return resolved;
     },
   };
 }

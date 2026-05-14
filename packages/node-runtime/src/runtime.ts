@@ -423,7 +423,15 @@ export async function createRuntime(): Promise<EngineRuntime> {
           leases: event.intent?.leases,
         });
       },
-      async appendRunEvent() {},
+      async appendRunEvent(event) {
+        store.appendRunEvent({
+          sessionId: event.sessionId ?? sessionId,
+          runId: event.runId,
+          type: event.type,
+          data: event.data,
+          createdAt: event.at,
+        });
+      },
       async loadHarnessSession(id) {
         const cached = store.getPromptCache(`harness-session:${id}`);
         return cached ? (JSON.parse(cached.content) as HarnessSessionData) : null;
@@ -437,8 +445,16 @@ export async function createRuntime(): Promise<EngineRuntime> {
           updatedAt: data.updatedAt,
         });
       },
-      async resolveSecrets() {
-        return {};
+      async resolveSecrets(leases) {
+        const secrets = await config.loadSecrets();
+        const resolved: Record<string, string> = {};
+        for (const lease of leases) {
+          const value = secrets?.apiKeys?.[lease.ref.name] ?? process.env[lease.ref.name];
+          if (value !== undefined) {
+            resolved[lease.id] = value;
+          }
+        }
+        return resolved;
       },
     };
     return host;

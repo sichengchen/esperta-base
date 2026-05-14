@@ -501,4 +501,47 @@ describe("OperationalStore", () => {
 
     reopened.close();
   });
+
+  test("persists run timeline events across restarts", async () => {
+    const store = new OperationalStore(testDir);
+    await store.init();
+
+    store.appendRunEvent({
+      sessionId: "tui:run-events",
+      runId: "run-events-1",
+      type: "prompt",
+      data: { role: "assistant", hasTypedResult: false },
+      createdAt: 500,
+    });
+    store.appendRunEvent({
+      sessionId: "tui:run-events",
+      runId: "run-events-1",
+      type: "tool_intent",
+      data: { toolName: "bash" },
+      createdAt: 501,
+    });
+    store.close();
+
+    const reopened = new OperationalStore(testDir);
+    await reopened.init();
+
+    expect(reopened.listRunEvents({ runId: "run-events-1" })).toEqual([
+      expect.objectContaining({
+        sessionId: "tui:run-events",
+        runId: "run-events-1",
+        type: "prompt",
+        data: { role: "assistant", hasTypedResult: false },
+        createdAt: 500,
+      }),
+      expect.objectContaining({
+        sessionId: "tui:run-events",
+        runId: "run-events-1",
+        type: "tool_intent",
+        data: { toolName: "bash" },
+        createdAt: 501,
+      }),
+    ]);
+
+    reopened.close();
+  });
 });

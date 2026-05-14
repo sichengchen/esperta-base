@@ -2882,7 +2882,7 @@ export function createAppRouter(runtime: EngineRuntime) {
               },
             },
           });
-          upsertWebhookTaskRecord(runtime, createdTask);
+          await upsertWebhookTaskRecord(runtime, createdTask);
 
           return { added: true, slug: input.slug };
         }),
@@ -2956,7 +2956,7 @@ export function createAppRouter(runtime: EngineRuntime) {
               },
             },
           });
-          upsertWebhookTaskRecord(runtime, updatedTask);
+          await upsertWebhookTaskRecord(runtime, updatedTask);
 
           return { updated: true, slug: input.slug };
         }),
@@ -2983,7 +2983,7 @@ export function createAppRouter(runtime: EngineRuntime) {
             },
           },
         });
-        deleteWebhookTaskRecord(runtime, input.slug);
+        await deleteWebhookTaskRecord(runtime, input.slug);
 
         return { removed: true };
       }),
@@ -3057,7 +3057,7 @@ export function createAppRouter(runtime: EngineRuntime) {
             intervalMinutes: z.number().min(1).max(1440).optional(),
           }),
         )
-        .mutation(({ input }) => {
+        .mutation(async ({ input }) => {
           if (input.enabled !== undefined) {
             heartbeatState.config.enabled = input.enabled;
           }
@@ -3066,7 +3066,7 @@ export function createAppRouter(runtime: EngineRuntime) {
             runtime.scheduler.updateInterval("heartbeat", input.intervalMinutes);
           }
           const heartbeatTask = runtime.scheduler.list().find((task) => task.name === "heartbeat");
-          upsertHeartbeatTaskRecord(runtime, {
+          await upsertHeartbeatTaskRecord(runtime, {
             enabled: heartbeatState.config.enabled,
             intervalMinutes: heartbeatState.config.intervalMinutes,
             nextRunAt: heartbeatTask?.nextRunAt ?? null,
@@ -3086,7 +3086,7 @@ export function createAppRouter(runtime: EngineRuntime) {
       trigger: adminProcedure.mutation(async () => {
         await runtime.scheduler.runTask("heartbeat");
         const heartbeatTask = runtime.scheduler.list().find((task) => task.name === "heartbeat");
-        upsertHeartbeatTaskRecord(runtime, {
+        await upsertHeartbeatTaskRecord(runtime, {
           enabled: heartbeatState.config.enabled,
           intervalMinutes: heartbeatState.config.intervalMinutes,
           nextRunAt: heartbeatTask?.nextRunAt ?? null,

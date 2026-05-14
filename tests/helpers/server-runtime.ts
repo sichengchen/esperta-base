@@ -301,6 +301,6 @@ export async function createTestRuntime(
       });
     },
   };
-  new AutomationRegistry(runtime).restoreFromRuntimeConfig();
+  await new AutomationRegistry(runtime).restoreFromRuntimeConfig();
   return runtime;
 }

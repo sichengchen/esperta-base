@@ -276,7 +276,7 @@ async function handleWebhookTask(
   });
   const updatedTask = updatedWebhookTasks.find((item) => item.slug === slug);
   if (updatedTask) {
-    upsertWebhookTaskRecord(runtime, updatedTask);
+    await upsertWebhookTaskRecord(runtime, updatedTask);
   }
 
   return new Response(
@@ -322,7 +322,7 @@ async function handleWebhookHeartbeat(req: Request, runtime: EngineRuntime): Pro
   try {
     await runtime.scheduler.runTask("heartbeat");
     const heartbeatTask = runtime.scheduler.list().find((task) => task.name === "heartbeat");
-    upsertHeartbeatTaskRecord(runtime, {
+    await upsertHeartbeatTaskRecord(runtime, {
       enabled: heartbeatState.config.enabled,
       intervalMinutes: heartbeatState.config.intervalMinutes,
       nextRunAt: heartbeatTask?.nextRunAt ?? null,

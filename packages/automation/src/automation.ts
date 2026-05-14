@@ -440,9 +440,9 @@ function resolveTaskId(
   return task.id ?? `${prefix}:${task.name}`;
 }
 
-export function upsertCronTaskRecord(runtime: EngineRuntime, task: CronTask): void {
-  const existing = runtime.store.getAutomationTaskByName("cron", task.name);
-  runtime.store.upsertAutomationTask({
+export async function upsertCronTaskRecord(runtime: EngineRuntime, task: CronTask): Promise<void> {
+  const existing = await runtime.getAutomationTaskByName("cron", task.name);
+  await runtime.upsertAutomationTask({
     taskId: resolveTaskId(task, "cron"),
     taskType: "cron",
     name: task.name,
@@ -458,9 +458,12 @@ export function upsertCronTaskRecord(runtime: EngineRuntime, task: CronTask): vo
   });
 }
 
-export function upsertWebhookTaskRecord(runtime: EngineRuntime, task: WebhookTask): void {
-  const existing = runtime.store.getAutomationTaskBySlug(task.slug);
-  runtime.store.upsertAutomationTask({
+export async function upsertWebhookTaskRecord(
+  runtime: EngineRuntime,
+  task: WebhookTask,
+): Promise<void> {
+  const existing = await runtime.getAutomationTaskBySlug(task.slug);
+  await runtime.upsertAutomationTask({
     taskId: resolveTaskId(task, "webhook"),
     taskType: "webhook",
     name: task.name,
@@ -477,7 +480,7 @@ export function upsertWebhookTaskRecord(runtime: EngineRuntime, task: WebhookTas
   });
 }
 
-export function upsertHeartbeatTaskRecord(
+export async function upsertHeartbeatTaskRecord(
   runtime: EngineRuntime,
   input: {
     enabled: boolean;
@@ -487,9 +490,9 @@ export function upsertHeartbeatTaskRecord(
     lastStatus?: AutomationRunStatus | null;
     lastSummary?: string | null;
   },
-): void {
-  const existing = runtime.store.getAutomationTaskByName("heartbeat", "heartbeat");
-  runtime.store.upsertAutomationTask({
+): Promise<void> {
+  const existing = await runtime.getAutomationTaskByName("heartbeat", "heartbeat");
+  return runtime.upsertAutomationTask({
     taskId: "heartbeat",
     taskType: "heartbeat",
     name: "heartbeat",
@@ -509,16 +512,19 @@ export function upsertHeartbeatTaskRecord(
   });
 }
 
-export function deleteCronTaskRecord(runtime: EngineRuntime, name: string): boolean {
-  const record = runtime.store.getAutomationTaskByName("cron", name);
+export async function deleteCronTaskRecord(runtime: EngineRuntime, name: string): Promise<boolean> {
+  const record = await runtime.getAutomationTaskByName("cron", name);
   if (!record) return false;
-  return runtime.store.deleteAutomationTask(record.taskId);
+  return runtime.deleteAutomationTask(record.taskId);
 }
 
-export function deleteWebhookTaskRecord(runtime: EngineRuntime, slug: string): boolean {
-  const record = runtime.store.getAutomationTaskBySlug(slug);
+export async function deleteWebhookTaskRecord(
+  runtime: EngineRuntime,
+  slug: string,
+): Promise<boolean> {
+  const record = await runtime.getAutomationTaskBySlug(slug);
   if (!record) return false;
-  return runtime.store.deleteAutomationTask(record.taskId);
+  return runtime.deleteAutomationTask(record.taskId);
 }
 
 export async function deliverAutomationResult(
@@ -647,7 +653,7 @@ export async function logAutomationResult(
 }
 
 export function registerCronTask(runtime: EngineRuntime, task: CronTask): void {
-  upsertCronTaskRecord(runtime, task);
+  void upsertCronTaskRecord(runtime, task);
   runtime.scheduler.register({
     name: task.name,
     schedule: task.schedule,
@@ -697,7 +703,7 @@ export function registerCronTask(runtime: EngineRuntime, task: CronTask): void {
         lastStatus: result.status,
         lastSummary: result.summary,
       });
-      upsertCronTaskRecord(runtime, {
+      await upsertCronTaskRecord(runtime, {
         ...task,
         lastRunAt,
         nextRunAt,
@@ -725,7 +731,7 @@ export async function persistCronTask(runtime: EngineRuntime, task: CronTask): P
     ...configFile,
     runtime: { ...configFile.runtime, automation },
   });
-  upsertCronTaskRecord(runtime, task);
+  await upsertCronTaskRecord(runtime, task);
 }
 
 export async function removeCronTaskFromConfig(
@@ -739,7 +745,7 @@ export async function removeCronTaskFromConfig(
     ...configFile,
     runtime: { ...configFile.runtime, automation },
   });
-  deleteCronTaskRecord(runtime, name);
+  await deleteCronTaskRecord(runtime, name);
 }
 
 export async function updateCronTaskState(
@@ -760,6 +766,6 @@ export async function updateCronTaskState(
     runtime: { ...configFile.runtime, automation },
   });
   if (updatedTask) {
-    upsertCronTaskRecord(runtime, updatedTask);
+    await upsertCronTaskRecord(runtime, updatedTask);
   }
 }

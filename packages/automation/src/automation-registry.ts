@@ -10,43 +10,43 @@ import {
 export class AutomationRegistry {
   constructor(private readonly runtime: EngineRuntime) {}
 
-  syncHeartbeatDefinition(input: {
+  async syncHeartbeatDefinition(input: {
     enabled: boolean;
     intervalMinutes: number;
     nextRunAt?: string | null;
     lastRunAt?: string | null;
     lastStatus?: "success" | "error" | null;
     lastSummary?: string | null;
-  }): void {
-    upsertHeartbeatTaskRecord(this.runtime, input);
+  }): Promise<void> {
+    await upsertHeartbeatTaskRecord(this.runtime, input);
   }
 
-  syncCronDefinition(task: CronTask): void {
-    upsertCronTaskRecord(this.runtime, task);
+  async syncCronDefinition(task: CronTask): Promise<void> {
+    await upsertCronTaskRecord(this.runtime, task);
     if (task.enabled) {
       registerCronTask(this.runtime, task);
     }
   }
 
-  syncWebhookDefinition(task: WebhookTask): void {
-    upsertWebhookTaskRecord(this.runtime, task);
+  async syncWebhookDefinition(task: WebhookTask): Promise<void> {
+    await upsertWebhookTaskRecord(this.runtime, task);
   }
 
-  restoreFromRuntimeConfig(): void {
+  async restoreFromRuntimeConfig(): Promise<void> {
     const config = this.runtime.config.getConfigFile();
     const heartbeatTask = this.runtime.scheduler.list().find((task) => task.name === "heartbeat");
-    this.syncHeartbeatDefinition({
+    await this.syncHeartbeatDefinition({
       enabled: config.runtime.heartbeat?.enabled ?? true,
       intervalMinutes: config.runtime.heartbeat?.intervalMinutes ?? 30,
       nextRunAt: heartbeatTask?.nextRunAt ?? null,
     });
 
     for (const task of config.runtime.automation?.cronTasks ?? []) {
-      this.syncCronDefinition(task);
+      await this.syncCronDefinition(task);
     }
 
     for (const task of config.runtime.automation?.webhookTasks ?? []) {
-      this.syncWebhookDefinition(task);
+      await this.syncWebhookDefinition(task);
     }
   }
 }

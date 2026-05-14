@@ -1143,7 +1143,7 @@ export async function createRuntime(): Promise<EngineRuntime> {
   };
 
   const automationRegistry = new AutomationRegistry(runtime);
-  automationRegistry.restoreFromRuntimeConfig();
+  await automationRegistry.restoreFromRuntimeConfig();
   if (cronTasks.length > 0) {
     console.log(`[aria] Restored ${cronTasks.filter((task) => task.enabled).length} cron task(s)`);
   }
